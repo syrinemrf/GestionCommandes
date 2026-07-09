@@ -4,9 +4,12 @@ namespace App\Entity;
 
 use App\Repository\UserRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
+
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
-class User
+class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -107,4 +110,22 @@ class User
 
         return $this;
     }
+
+    public function getUserIdentifier(): string
+{
+    return (string) $this->email;
+}
+
+
+public function getRoles(): array
+{
+    return [$this->role];
+}
+
+
+public function eraseCredentials(): void
+{
+   
+}
+
 }

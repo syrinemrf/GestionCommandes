@@ -1,76 +1,170 @@
 {% extends 'base.html.twig' %}
 
+
+{% block title %}
+Ajouter un utilisateur
+{% endblock %}
+
+
 {% block body %}
 
-<h1>Ajouter un utilisateur</h1>
+<div class="form-card">
+
+    <h1>Ajouter un utilisateur</h1>
 
 
-<form method="POST">
+    <form id="user-form" method="POST">
 
 
-<div>
-    <label>Nom</label>
-    <input type="text" name="nom">
+        <div class="form-row">
+
+            <div class="form-group">
+
+                <label for="nom">
+                    Nom
+                </label>
+
+                <input 
+                    type="text"
+                    id="nom"
+                    name="nom"
+                    placeholder="Nom"
+                    required>
+
+            </div>
+
+
+
+            <div class="form-group">
+
+                <label for="prenom">
+                    Prénom
+                </label>
+
+                <input 
+                    type="text"
+                    id="prenom"
+                    name="prenom"
+                    placeholder="Prénom"
+                    required>
+
+            </div>
+
+        </div>
+
+
+        <div class="form-row">
+
+            <div class="form-group">
+
+                <label for="email">
+                    Email
+                </label>
+
+                <input 
+                    type="email"
+                    id="email"
+                    name="email"
+                    placeholder="Email"
+                    required>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="password">
+                    Mot de passe
+                </label>
+
+                <input 
+                    type="password"
+                    id="password"
+                    name="password"
+                    placeholder="Mot de passe"
+                    required>
+
+            </div>
+
+        </div>
+
+        <div class="form-group">
+
+            <label>
+                Rôle
+            </label>
+
+            <div class="roles">
+
+
+                <label>
+                    <input 
+                        type="radio"
+                        name="role"
+                        value="ROLE_ADMIN"
+                        class="role-choice"
+                        checked>
+
+                    Administrateur
+                </label>
+
+
+
+                <label>
+                    <input 
+                        type="radio"
+                        name="role"
+                        value="ROLE_FOURNISSEUR"
+                        class="role-choice">
+
+                    Fournisseur
+                </label>
+
+
+            </div>
+
+        </div>
+
+
+
+
+        <div 
+            id="libelle-container"
+            class="form-group"
+            style="display:none">
+
+
+            <label for="libelle">
+                Libellé fournisseur
+            </label>
+
+
+            <input
+                type="text"
+                id="libelle"
+                name="libelle"
+                placeholder="Nom du fournisseur">
+
+
+        </div>
+
+
+
+
+        <button type="submit" class="btn-primary">
+
+            Créer
+
+        </button>
+
+
+    </form>
+
+
 </div>
 
-
-<div>
-    <label>Prénom</label>
-    <input type="text" name="prenom">
-</div>
-
-
-<div>
-    <label>Email</label>
-    <input type="email" name="email">
-</div>
-
-
-<div>
-    <label>Password</label>
-    <input type="password" name="password">
-</div>
-
-
-<div>
-    <label>
-        <input 
-            type="radio"
-            name="role"
-            value="ROLE_ADMIN"
-            checked
-        >
-        Admin
-    </label>
-
-
-    <label>
-        <input 
-            type="radio"
-            name="role"
-            value="ROLE_FOURNISSEUR"
-        >
-        Fournisseur
-    </label>
-</div>
-
-
-<div id="libelle-container">
-
-<label>Libellé fournisseur</label>
-<input type="text" name="libelle">
-
-</div>
-
-
-<button type="submit">
-Ajouter
-</button>
-
-
-</form>
-
-
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="{{ asset('js/user.js') }}"></script>
+
 
 {% endblock %}

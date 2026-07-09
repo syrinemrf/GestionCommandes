@@ -5,16 +5,17 @@ namespace App\Controller;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class UserController extends AbstractController
 {
-
     public function add(
         Request $request,
-        EntityManagerInterface $entityManager
+        EntityManagerInterface $entityManager,
+        UserPasswordHasherInterface $passwordHasher
     ): Response
     {
 
@@ -34,14 +35,16 @@ class UserController extends AbstractController
                 $request->request->get('email')
             );
 
-            $user->setPassword(
+            $hashedPassword = $passwordHasher->hashPassword(
+                $user,
                 $request->request->get('password')
             );
+
+            $user->setPassword($hashedPassword);
 
             $user->setRole(
                 $request->request->get('role')
             );
-
 
             if ($user->getRole() === 'ROLE_FOURNISSEUR') {
 
@@ -51,16 +54,19 @@ class UserController extends AbstractController
 
             }
 
-
             $entityManager->persist($user);
             $entityManager->flush();
 
-
-            return $this->redirectToRoute('user_add');
+            return new Response();
 
         }
 
+        $html = 'user/add.html.twig';
 
-        return $this->render('user/add.html.twig');
+        return $this->render(
+            $html,
+            []
+        );
+
     }
 }

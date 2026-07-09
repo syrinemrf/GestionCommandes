@@ -1,26 +1,51 @@
-const roles = document.querySelectorAll('input[name="role"]');
-const libelle = document.getElementById('libelle-container');
+$(document).ready(function () {
+
+    toggleLibelle();
+
+    $('input[name="role"]').change(function () {
+
+        toggleLibelle();
+
+    });
+
+
+    $('#user-form').submit(function (e) {
+
+        e.preventDefault();
+
+        $.ajax({
+            type: "POST",
+            url: "/users/add",
+            data: $(this).serialize(),
+            success: function () {
+                alert("Utilisateur ajouté avec succès.");
+                $('#user-form')[0].reset();
+                toggleLibelle();
+            },
+
+            error: function () {
+
+                alert("Une erreur est survenue.");
+
+            }
+
+        });
+
+    });
+
+});
 
 
 function toggleLibelle() {
 
-    const selected = document.querySelector(
-        'input[name="role"]:checked'
-    );
+    if ($('input[name="role"]:checked').val() === "ROLE_FOURNISSEUR") {
 
+        $('#libelle-container').show();
 
-    if (selected.value === "ROLE_FOURNISSEUR") {
-        libelle.style.display = "block";
     } else {
-        libelle.style.display = "none";
+
+        $('#libelle-container').hide();
+
     }
 
 }
-
-
-roles.forEach(role => {
-    role.addEventListener('change', toggleLibelle);
-});
-
-
-toggleLibelle();
