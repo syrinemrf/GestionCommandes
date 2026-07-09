@@ -1,0 +1,76 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+
+<h1>Ajouter un utilisateur</h1>
+
+
+<form method="POST">
+
+
+<div>
+    <label>Nom</label>
+    <input type="text" name="nom">
+</div>
+
+
+<div>
+    <label>Prénom</label>
+    <input type="text" name="prenom">
+</div>
+
+
+<div>
+    <label>Email</label>
+    <input type="email" name="email">
+</div>
+
+
+<div>
+    <label>Password</label>
+    <input type="password" name="password">
+</div>
+
+
+<div>
+    <label>
+        <input 
+            type="radio"
+            name="role"
+            value="ROLE_ADMIN"
+            checked
+        >
+        Admin
+    </label>
+
+
+    <label>
+        <input 
+            type="radio"
+            name="role"
+            value="ROLE_FOURNISSEUR"
+        >
+        Fournisseur
+    </label>
+</div>
+
+
+<div id="libelle-container">
+
+<label>Libellé fournisseur</label>
+<input type="text" name="libelle">
+
+</div>
+
+
+<button type="submit">
+Ajouter
+</button>
+
+
+</form>
+
+
+<script src="{{ asset('js/user.js') }}"></script>
+
+{% endblock %}
