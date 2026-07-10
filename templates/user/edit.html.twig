@@ -2,7 +2,7 @@
 
 
 {% block title %}
-Ajouter un utilisateur
+Modifier un utilisateur
 {% endblock %}
 
 
@@ -10,11 +10,10 @@ Ajouter un utilisateur
 
 <div class="form-card">
 
-    <h1>Ajouter un utilisateur</h1>
+    <h1>Modifier un utilisateur</h1>
 
 
-    <form id="user-form" method="POST" action="{{ path('user_add') }}" data-success-message="Utilisateur ajouté avec succès." data-reset-form="true">
-
+    <form id="user-form" method="POST" action="{{ path('user_edit', { id: user.id }) }}" data-success-message="Utilisateur modifié avec succès." data-reset-form="false">
 
         <div class="form-row">
 
@@ -29,6 +28,7 @@ Ajouter un utilisateur
                     id="nom"
                     name="nom"
                     placeholder="Nom"
+                    value="{{ user.nom }}"
                     required>
 
             </div>
@@ -46,6 +46,7 @@ Ajouter un utilisateur
                     id="prenom"
                     name="prenom"
                     placeholder="Prénom"
+                    value="{{ user.prenom }}"
                     required>
 
             </div>
@@ -66,7 +67,9 @@ Ajouter un utilisateur
                     id="email"
                     name="email"
                     placeholder="Email"
+                    value="{{ user.email }}"
                     data-check-url="{{ path('user_check_email') }}"
+                    data-user-id="{{ user.id }}"
                     required>
 
             </div>
@@ -82,8 +85,7 @@ Ajouter un utilisateur
                     type="password"
                     id="password"
                     name="password"
-                    placeholder="Mot de passe"
-                    required>
+                    placeholder="Laisser vide pour ne pas modifier">
 
             </div>
 
@@ -105,7 +107,7 @@ Ajouter un utilisateur
                         name="role"
                         value="ROLE_ADMIN"
                         class="role-choice"
-                        checked>
+                        {% if user.role == 'ROLE_ADMIN' %}checked{% endif %}>
 
                     Administrateur
                 </label>
@@ -117,13 +119,15 @@ Ajouter un utilisateur
                         type="radio"
                         name="role"
                         value="ROLE_FOURNISSEUR"
-                        class="role-choice">
+                        class="role-choice"
+                        {% if user.role == 'ROLE_FOURNISSEUR' %}checked{% endif %}>
 
                     Fournisseur
                 </label>
 
 
             </div>
+
             <div 
                 id="libelle-container"
                 class="form-group"
@@ -139,7 +143,8 @@ Ajouter un utilisateur
                     type="text"
                     id="libelle"
                     name="libelle"
-                    placeholder="Nom du fournisseur">
+                    placeholder="Nom du fournisseur"
+                    value="{{ user.libelle }}">
 
 
             </div>
@@ -152,7 +157,7 @@ Ajouter un utilisateur
 
         <button type="submit" class="btn-primary">
 
-            Créer
+            Modifier
 
         </button>
 
@@ -163,6 +168,7 @@ Ajouter un utilisateur
 </div>
 
 {% endblock %}
+
 
 {% block javascripts %}
     {{ parent() }}

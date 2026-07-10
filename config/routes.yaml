@@ -16,3 +16,18 @@ user_add:
     path: /users/add
     controller: App\Controller\UserController::add
     methods: [GET, POST]
+
+user_check_email:
+    path: /users/check-email
+    controller: App\Controller\UserController::checkEmail
+    methods: [POST]
+
+user_edit:
+    path: /users/edit/{id}
+    controller: App\Controller\UserController::edit
+    methods: [GET, POST]
+
+user_list:
+    path: /users
+    controller: App\Controller\UserController::list
+    methods: [GET]
