@@ -1,0 +1,109 @@
+{% extends 'base.html.twig' %}
+
+
+{% block title %}
+Liste des utilisateurs
+{% endblock %}
+
+
+{% block body %}
+
+<div class="list-card">
+
+    <div class="list-header">
+
+        <div>
+            <h1>Utilisateurs</h1>
+            <p>Liste des comptes enregistrés</p>
+        </div>
+
+        <a href="{{ path('user_add') }}" class="btn-primary">
+            Ajouter
+        </a>
+
+    </div>
+
+    <div class="table-wrapper">
+        <table class="user-table">
+
+            <thead>
+                <tr>
+                    <th>Nom</th>
+                    <th>Prénom</th>
+                    <th>Email</th>
+                    <th>Rôle</th>
+                    <th>Libellé</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for user in users %}
+
+                    <tr>
+                        <td>{{ user.nom }}</td>
+                        <td>{{ user.prenom }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            <span class="role-badge">
+                                {% if user.role == 'ROLE_ADMIN' %}
+                                    Administrateur
+                                {% else %}
+                                    Fournisseur
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            {% if user.libelle %}
+                                {{ user.libelle }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ path('user_edit', { id: user.id }) }}" class="table-action">
+                                Modifier
+                            </a>
+                        </td>
+                    </tr>
+
+                {% else %}
+
+                    <tr>
+                        <td colspan="6">
+                            Aucun utilisateur trouvé.
+                        </td>
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+    </div>
+
+
+    <div class="pagination">
+
+        {% if page > 1 %}
+            <a href="{{ path('user_list', { page: page - 1 }) }}">
+                Précédent
+            </a>
+        {% endif %}
+
+        <span>
+            Page {{ page }} / {{ totalPages }}
+        </span>
+
+        {% if page < totalPages %}
+            <a href="{{ path('user_list', { page: page + 1 }) }}">
+                Suivant
+            </a>
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}
