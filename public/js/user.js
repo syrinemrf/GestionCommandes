@@ -87,7 +87,28 @@ $(document).ready(function () {
 
     }
 
-    $('.delete-form').submit(function (e) {
+    if ($('#users-table').length) {
+
+        const usersTable = $('#users-table').DataTable({
+            processing: true,
+            serverSide: true,
+            pageLength: 20,
+            lengthChange: false,
+            ajax: $('#users-table').data('url'),
+
+            columns: [
+                { data: 'nom' },
+                { data: 'prenom' },
+                { data: 'email' },
+                { data: 'role_badge', orderable: false, searchable: false },
+                { data: 'libelle' },
+                { data: 'actions', orderable: false, searchable: false }
+            ]
+        });
+
+    }
+
+    $(document).on('submit', '.delete-form', function (e) {
 
         e.preventDefault();
 
@@ -106,7 +127,7 @@ $(document).ready(function () {
                 response = response.trim();
 
                 if (response === 'success') {
-                    $('tr[data-user-id="' + userId + '"]').remove();
+                    $('#users-table').DataTable().ajax.reload(null, false);
                     alert("Utilisateur supprimé avec succès.");
                 }
             },

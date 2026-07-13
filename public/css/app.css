@@ -277,6 +277,13 @@ body {
     color: white;
 }
 
+/* rendre la colonne d'actions compacte */
+.user-table th:last-child,
+.user-table td:last-child {
+  width: 1%;
+  white-space: nowrap;
+}
+
 /* Pagination */
 .pagination {
     display: flex;

@@ -32,6 +32,11 @@ user_list:
     controller: App\Controller\UserController::list
     methods: [GET]
 
+user_data:
+    path: /users/data
+    controller: App\Controller\UserController::data
+    methods: [GET]
+
 user_delete:
     path: /users/delete/{id}
     controller: App\Controller\UserController::delete

@@ -9,7 +9,8 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
-
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 class UserController extends AbstractController
 {
     public function checkEmail(
@@ -157,36 +158,56 @@ class UserController extends AbstractController
         );
     }
 
-    public function list(
-        Request $request,
-        UserRepository $userRepository
-    ): Response
+    public function list(): Response
     {
-        $page = $request->query->getInt('page', 1);
-        $limit = 20;
-        $offset = ($page - 1) * $limit;
-
-        $users = $userRepository->findBy(
-        ['isDeleted' => false],
-        ['id' => 'DESC'],
-        $limit,
-        $offset
-    );
-
-    $totalUsers = $userRepository->count([
-        'isDeleted' => false
-    ]);
-
-        $totalPages = max(1, ceil($totalUsers / $limit));
-
         return $this->render(
             'user/list.html.twig',
-            [
-                'users' => $users,
-                'page' => $page,
-                'totalPages' => $totalPages
-            ]
+            []
         );
+    }
+
+    
+    public function data(Request $request, UserRepository $userRepository): JsonResponse
+    {
+        $start  = $request->query->getInt('start', 0);
+        $length = $request->query->getInt('length', 20);
+        $search = $request->query->all('search')['value'] ?? '';
+
+        $result = $userRepository->findForDatatable($start, $length, $search);
+
+        foreach ($result['rows'] as &$row) {
+
+            $row['role_badge'] = $this->renderView(
+                'user/_role_badge.html.twig',
+                [
+                    'role_class' => $row['role'] === 'ROLE_ADMIN'
+                        ? 'role-admin'
+                        : 'role-fournisseur',
+
+                    'role_label' => $row['role'] === 'ROLE_ADMIN'
+                        ? 'Administrateur'
+                        : 'Fournisseur',
+                ]
+            );
+
+            $row['actions'] = $this->renderView(
+                'user/_row_actions.html.twig',
+                [
+                    'user' => [
+                        'id' => $row['id']
+                    ]
+                ]
+            );
+
+        }
+        unset($row);
+
+        return $this->json([
+            'draw' => $request->query->getInt('draw'),
+            'recordsTotal' => $result['total'],
+            'recordsFiltered' => $result['filtered'],
+            'data' => $result['rows'],
+        ]);
     }
 
     public function delete(

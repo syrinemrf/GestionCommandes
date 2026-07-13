@@ -24,7 +24,7 @@ Liste des utilisateurs
     </div>
 
     <div class="table-wrapper">
-        <table class="user-table">
+        <table id="users-table" class="user-table" data-url="{{ path('user_data') }}">
 
             <thead>
                 <tr>
@@ -37,82 +37,11 @@ Liste des utilisateurs
                 </tr>
             </thead>
 
-            <tbody>
-
-                {% for user in users %}
-
-                    <tr data-user-id="{{ user.id }}">
-                        <td>{{ user.nom }}</td>
-                        <td>{{ user.prenom }}</td>
-                        <td>{{ user.email }}</td>
-                        <td>
-                            <span class="role-badge {% if user.role == 'ROLE_ADMIN' %}role-admin{% else %}role-fournisseur{% endif %}">
-                                {% if user.role == 'ROLE_ADMIN' %}
-                                    Administrateur
-                                {% else %}
-                                    Fournisseur
-                                {% endif %}
-                            </span>
-                        </td>
-                        <td>
-                            {% if user.libelle %}
-                                {{ user.libelle }}
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="table-actions">
-
-                                <a href="{{ path('user_edit', { id: user.id }) }}" class="table-action">
-                                    Modifier
-                                </a>
-
-                                <form method="POST" action="{{ path('user_delete', { id: user.id }) }}" class="delete-form" data-user-id="{{ user.id }}">
-                                    <button type="submit" class="table-action table-action-danger">
-                                        Supprimer
-                                    </button>
-                                </form>
-
-                            </div>
-                        </td>
-                    </tr>
-
-                {% else %}
-
-                    <tr>
-                        <td colspan="6">
-                            Aucun utilisateur trouvé.
-                        </td>
-                    </tr>
-
-                {% endfor %}
-
-            </tbody>
+            
 
         </table>
     </div>
 
-
-    <div class="pagination">
-
-        {% if page > 1 %}
-            <a href="{{ path('user_list', { page: page - 1 }) }}">
-                Précédent
-            </a>
-        {% endif %}
-
-        <span>
-            Page {{ page }} / {{ totalPages }}
-        </span>
-
-        {% if page < totalPages %}
-            <a href="{{ path('user_list', { page: page + 1 }) }}">
-                Suivant
-            </a>
-        {% endif %}
-
-    </div>
 
 </div>
 
@@ -122,5 +51,13 @@ Liste des utilisateurs
     {{ parent() }}
 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/2.0.8/js/dataTables.min.js"></script>
+    <script src="{{ asset('js/app.js') }}"></script>
     <script src="{{ asset('js/user.js') }}"></script>
+{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.0.8/css/dataTables.dataTables.min.css">
 {% endblock %}
