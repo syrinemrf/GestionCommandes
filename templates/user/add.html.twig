@@ -10,7 +10,15 @@ Ajouter un utilisateur
 
 <div class="form-card">
 
-    <h1>Ajouter un utilisateur</h1>
+    <div class="form-header">
+
+        <h1>Ajouter un utilisateur</h1>
+
+        <a href="{{ path('user_list') }}" class="btn-secondary">
+            Retour
+        </a>
+
+    </div>
 
 
     <form id="user-form" method="POST" action="{{ path('user_add') }}" data-success-message="Utilisateur ajouté avec succès." data-reset-form="true">

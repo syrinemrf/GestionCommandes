@@ -33,6 +33,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $libelle = null;
+    
+    #[ORM\Column]
+    private bool $isDeleted = false;
 
     public function getId(): ?int
     {
@@ -111,21 +114,33 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function getUserIdentifier(): string
-{
-    return (string) $this->email;
-}
+        public function getUserIdentifier(): string
+    {
+        return (string) $this->email;
+    }
 
 
-public function getRoles(): array
-{
-    return [$this->role];
-}
+    public function getRoles(): array
+    {
+        return [$this->role];
+    }
 
 
-public function eraseCredentials(): void
-{
-   
-}
+    public function eraseCredentials(): void
+    {
+    
+    }
+
+    public function isDeleted(): bool
+    {
+        return $this->isDeleted;
+    }
+
+    public function setIsDeleted(bool $isDeleted): static
+    {
+        $this->isDeleted = $isDeleted;
+
+        return $this;
+    }
 
 }

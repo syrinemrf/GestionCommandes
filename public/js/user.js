@@ -87,4 +87,37 @@ $(document).ready(function () {
 
     }
 
+    $('.delete-form').submit(function (e) {
+
+        e.preventDefault();
+
+        if (!confirm("Voulez-vous vraiment supprimer cet utilisateur ?")) {
+            return;
+        }
+
+        const form = $(this);
+        const userId = form.data('user-id');
+
+        $.ajax({
+            type: "POST",
+            url: this.action,
+
+            success: function (response) {
+                response = response.trim();
+
+                if (response === 'success') {
+                    $('tr[data-user-id="' + userId + '"]').remove();
+                    alert("Utilisateur supprimé avec succès.");
+                }
+            },
+
+            error: function () {
+                alert("Une erreur est survenue.");
+            }
+        });
+
+    });
+
+    
+
 });

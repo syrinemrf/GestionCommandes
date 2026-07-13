@@ -167,13 +167,15 @@ class UserController extends AbstractController
         $offset = ($page - 1) * $limit;
 
         $users = $userRepository->findBy(
-            [],
-            ['id' => 'DESC'],
-            $limit,
-            $offset
-        );
+        ['isDeleted' => false],
+        ['id' => 'DESC'],
+        $limit,
+        $offset
+    );
 
-        $totalUsers = $userRepository->count([]);
+    $totalUsers = $userRepository->count([
+        'isDeleted' => false
+    ]);
 
         $totalPages = max(1, ceil($totalUsers / $limit));
 
@@ -185,5 +187,24 @@ class UserController extends AbstractController
                 'totalPages' => $totalPages
             ]
         );
+    }
+
+    public function delete(
+        int $id,
+        EntityManagerInterface $entityManager,
+        UserRepository $userRepository
+    ): Response
+    {
+        $user = $userRepository->find($id);
+
+        if (!$user) {
+            return new Response('user_not_found');
+        }
+
+        $user->setIsDeleted(true);
+
+        $entityManager->flush();
+
+        return new Response('success');
     }
 }

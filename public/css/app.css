@@ -101,7 +101,6 @@ body {
 }
 
 .form-card h1 {
-    margin-bottom: 30px;
     font-size: 26px;
 }
 
@@ -217,13 +216,22 @@ body {
 
 .role-badge {
     display: inline-block;
-    background: #ecfdf5;
-    color: #047857;
     border-radius: 999px;
     padding: 6px 10px;
     font-size: 13px;
     font-weight: 600;
 }
+
+.role-admin {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.role-fournisseur {
+    background: #ecfdf5;
+    color: #047857;
+}
+
 
 .table-action {
     display: inline-flex;
@@ -241,6 +249,31 @@ body {
 
 .table-action:hover {
     background: #2563eb;
+    color: white;
+}
+
+.table-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.table-actions form {
+    margin: 0;
+}
+
+.table-action {
+    border: none;
+    cursor: pointer;
+}
+
+.table-action-danger {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.table-action-danger:hover {
+    background: #dc2626;
     color: white;
 }
 
@@ -271,4 +304,30 @@ body {
 .pagination a:hover {
     background: #2563eb;
     color: white;
+}
+
+.form-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 30px;
+}
+
+.form-header h1 {
+    margin: 0;
+}
+
+.btn-secondary {
+    display: inline-block;
+    background: #f3f4f6;
+    color: #374151;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: 0.2s;
+}
+
+.btn-secondary:hover {
+    background: #e5e7eb;
 }

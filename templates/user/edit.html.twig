@@ -10,7 +10,15 @@ Modifier un utilisateur
 
 <div class="form-card">
 
-    <h1>Modifier un utilisateur</h1>
+    <div class="form-header">
+
+        <h1>Modifier un utilisateur</h1>
+
+        <a href="{{ path('user_list') }}" class="btn-secondary">
+            Retour
+        </a>
+
+    </div>
 
 
     <form id="user-form" method="POST" action="{{ path('user_edit', { id: user.id }) }}" data-success-message="Utilisateur modifié avec succès." data-reset-form="false">
