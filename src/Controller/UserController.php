@@ -11,8 +11,10 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 class UserController extends AbstractController
 {
+    #[IsGranted('ROLE_ADMIN')]
     public function checkEmail(
         Request $request,
         UserRepository $userRepository
@@ -32,7 +34,7 @@ class UserController extends AbstractController
         return new Response('email_available');
     }
 
-
+    #[IsGranted('ROLE_ADMIN')]
     public function add(
         Request $request,
         EntityManagerInterface $entityManager,
@@ -90,6 +92,7 @@ class UserController extends AbstractController
 
     }
 
+    #[IsGranted('ROLE_ADMIN')]
     public function edit(
         int $id,
         Request $request,
@@ -158,6 +161,7 @@ class UserController extends AbstractController
         );
     }
 
+    #[IsGranted('ROLE_ADMIN')]
     public function list(): Response
     {
         return $this->render(
@@ -166,7 +170,7 @@ class UserController extends AbstractController
         );
     }
 
-    
+    #[IsGranted('ROLE_ADMIN')]
     public function data(Request $request, UserRepository $userRepository): JsonResponse
     {
         $start  = $request->query->getInt('start', 0);
@@ -210,6 +214,7 @@ class UserController extends AbstractController
         ]);
     }
 
+    #[IsGranted('ROLE_ADMIN')]
     public function delete(
         int $id,
         EntityManagerInterface $entityManager,

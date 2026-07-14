@@ -92,7 +92,7 @@ $(document).ready(function () {
         const usersTable = $('#users-table').DataTable({
             processing: true,
             serverSide: true,
-            pageLength: 20,
+            pageLength: 15,
             lengthChange: false,
             ajax: $('#users-table').data('url'),
 

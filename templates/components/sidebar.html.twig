@@ -1,23 +1,29 @@
 <aside class="sidebar">
 
-
     <div class="logo">
-        Commandes+
+        <a href="{{ path('app_home') }}">
+            Commandes+
+        </a>
     </div>
-
 
     <nav>
 
-
-        <a href="{{ path('user_list') }}">
-            <i class="bi bi-people"></i>
-            <span>Utilisateurs</span>
-        </a>
-
-
-        
+        {% if is_granted('ROLE_ADMIN') %}
+            <a href="{{ path('user_list') }}">
+                <i class="bi bi-people"></i>
+                <span>Utilisateurs</span>
+            </a>
+        {% endif %}
 
     </nav>
 
+    {% if app.user %}
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <p class="user-name">{{ app.user.prenom }} {{ app.user.nom }}</p>
+                <p class="user-role">{{ app.user.role }}</p>
+            </div>
+        </div>
+    {% endif %}
 
 </aside>

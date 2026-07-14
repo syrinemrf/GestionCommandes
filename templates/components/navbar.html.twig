@@ -1,14 +1,24 @@
 <header class="navbar">
 
+    <div class="navbar-left">
+        <h2>Gestion Commandes</h2>
+    </div>
 
-<div>
-    
-</div>
-
-
-<div class="profile">
-    
-</div>
-
+    <div class="navbar-right">
+        {% if app.user %}
+            <div class="profile">
+                <span class="user-email">{{ app.user.email }}</span>
+                <a href="{{ path('app_logout') }}" class="logout-btn">
+                    <i class="bi bi-box-arrow-right"></i>
+                    Déconnexion
+                </a>
+            </div>
+        {% else %}
+            <a href="{{ path('app_login') }}" class="login-link">
+                <i class="bi bi-box-arrow-in-right"></i>
+                Connexion
+            </a>
+        {% endif %}
+    </div>
 
 </header>

@@ -1,0 +1,58 @@
+{% extends "base.html.twig" %}
+
+{% block title %}Accueil - Gestion Commandes{% endblock %}
+
+{% block body %}
+    <div class="form-card">
+
+        <h1>Accueil</h1>
+
+        <p class="home-text">
+            Bienvenue dans l'application de gestion des commandes.
+         </p>
+
+        <div class="home-actions">
+
+            {% if app.user %}
+
+                {% if is_granted('ROLE_ADMIN') %}
+
+                    <a
+                        href="{{ path('user_list') }}"
+                        class="btn btn-primary"
+                    >
+                        <i class="bi bi-people"></i>
+                        Utilisateurs
+                    </a>
+
+                {% endif %}
+
+                <a
+                    href="{{ path('app_logout') }}"
+                    class="btn btn-secondary"
+                >
+                    <i class="bi bi-box-arrow-right"></i>
+                    Déconnexion
+                </a>
+
+            {% else %}
+
+                <a
+                    href="{{ path('app_login') }}"
+                    class="btn btn-primary"
+                >
+                    <i class="bi bi-box-arrow-in-right"></i>
+                    Se connecter
+                </a>
+
+                <p class="home-info">
+                    Vous n'avez pas de compte ? Contactez l'administrateur.
+                </p>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+{% endblock %}
+

@@ -6,11 +6,22 @@
 
 # To list all registered routes, run the following command:
 #   bin/console debug:router
+app_home:
+    path: /
+    controller: App\Controller\HomeController::index
+    methods: [GET]
+
+app_login:
+    path: /login
+    controller: App\Controller\LoginController::login
+    methods: [GET, POST]
+
+app_logout:
+    path: /logout
+    controller: App\Controller\LoginController::logout
 
 #users:
-user:
-    resource: '../src/Controller/'
-    type: attribute
+
 
 user_add:
     path: /users/add
