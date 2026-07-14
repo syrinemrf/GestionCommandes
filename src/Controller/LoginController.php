@@ -24,7 +24,7 @@ class LoginController extends AbstractController
     }
 
     public function logout(): Response
-    {
-        // Ce contrôleur n'est pas appelé
+    { 
+        
     }
 }

@@ -1,76 +1,99 @@
-{% extends "base.html.twig" %}
+{% extends "base_auth.html.twig" %}
 
 {% block title %}Connexion - Gestion Commandes{% endblock %}
 
 {% block body %}
+<div class="login-container">
+    <div class="login-card">
 
-<div class="form-card">
+        <h1>Connexion</h1>
 
-    <h1>Connexion</h1>
+        <p class="login-text">
+            Connectez-vous à votre compte.
+        </p>
 
-    <p class="login-text">
-        Connectez-vous à votre compte.
-    </p>
+        {% if error %}
+            <div class="login-error">
+                <i class="bi bi-exclamation-circle"></i>
+                Le nom d'utilisateur ou le mot de passe est incorrect.
+            </div>
+        {% endif %}
 
-    {% if error %}
-        <div class="login-error">
-            <i class="bi bi-exclamation-circle"></i>
-            Le nom d'utilisateur ou le mot de passe est incorrect.
-        </div>
-    {% endif %}
-
-    <form
-        method="POST"
-        action="{{ path('app_login') }}"
-    >
-
-        <div class="form-group">
-
-            <label for="username">
-                Email
-            </label>
-
-            <input
-                type="email"
-                id="username"
-                name="_username"
-                value="{{ last_username }}"
-                placeholder="Email"
-                required
-                autofocus
-            >
-
-        </div>
-
-        <div class="form-group">
-
-            <label for="password">
-                Mot de passe
-            </label>
-
-            <input
-                type="password"
-                id="password"
-                name="_password"
-                placeholder="Mot de passe"
-                required
-            >
-
-        </div>
-
-        <button
-            type="submit"
-            class="btn-primary"
+        <form
+            method="POST"
+            action="{{ path('app_login') }}"
         >
 
-            <i class="bi bi-box-arrow-in-right"></i>
+            <div class="form-group">
 
-            Connexion
+                <label for="username">
+                    Email
+                </label>
 
-        </button>
+                <input
+                    type="email"
+                    id="username"
+                    name="_username"
+                    value="{{ last_username }}"
+                    placeholder="Email"
+                    required
+                    autofocus
+                >
 
-    </form>
+            </div>
 
+            <div class="form-group">
+
+                <label for="password">
+                    Mot de passe
+                </label>
+
+                <input
+                    type="password"
+                    id="password"
+                    name="_password"
+                    placeholder="Mot de passe"
+                    required
+                >
+
+            </div>
+
+            <div class="form-group remember-me">
+
+                <label>
+
+                    <input
+                        type="checkbox"
+                        name="_remember_me"
+                    >
+
+                    Se souvenir de moi
+
+                </label>
+
+            </div>
+
+            <button
+                type="submit"
+                class="btn-primary"
+            >
+
+                <i class="bi bi-box-arrow-in-right"></i>
+
+                Connexion
+
+            </button>
+
+            <a
+                href="{{ path('app_home') }}"
+                class="btn-secondary login-back"
+            >
+                <i class="bi bi-arrow-left"></i>
+                Retour à l'accueil
+            </a>
+
+        </form>
+
+    </div>
 </div>
-
 {% endblock %}
