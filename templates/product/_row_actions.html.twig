@@ -1,0 +1,26 @@
+<div class="table-actions">
+
+    <a
+        href="{{ path('product_edit', {'id': product.id}) }}"
+        class="table-action">
+
+        Modifier
+
+    </a>
+
+    <form
+        method="POST"
+        action="{{ path('product_delete', {'id': product.id}) }}"
+        class="delete-form">
+
+        <button
+            type="submit"
+            class="table-action table-action-danger">
+
+            Supprimer
+
+        </button>
+
+    </form>
+
+</div>

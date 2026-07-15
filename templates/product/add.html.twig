@@ -1,0 +1,122 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}
+Ajouter un produit
+{% endblock %}
+
+{% block body %}
+
+<div class="form-card">
+
+    <div class="form-header">
+
+        <h1>Ajouter un produit</h1>
+
+        <a href="{{ path('product_list') }}" class="btn-secondary">
+            Retour
+        </a>
+
+    </div>
+
+    <form id="product-form" method="POST" action="{{ path('product_add') }}" data-success-message="Produit ajouté avec succès." data-reset-form="true" enctype="multipart/form-data">
+
+        <div class="form-group">
+
+            <label for="libelle">
+                Libellé
+            </label>
+
+            <input
+                type="text"
+                id="libelle"
+                name="libelle"
+                placeholder="Libellé du produit"
+                required>
+
+        </div>
+
+        <div class="form-group">
+
+            <label for="description">
+                Description
+            </label>
+
+            <textarea
+                id="description"
+                name="description"
+                rows="4"
+                placeholder="Description du produit"
+                required></textarea>
+
+        </div>
+
+        <div class="form-row">
+
+            <div class="form-group">
+
+                <label for="image">
+                    Image
+                </label>
+
+                <input
+                    type="file"
+                    id="image"
+                    name="image"
+                    accept="image/*">
+
+            </div>
+
+            <div class="form-group">
+
+                <label for="prix">
+                    Prix
+                </label>
+
+                <input
+                    type="text"
+                    id="prix"
+                    name="prix"
+                    placeholder="0.00"
+                    required>
+
+            </div>
+
+        </div>
+
+        {% if is_granted('ROLE_ADMIN') %}
+            <div class="form-group">
+
+                <label for="fournisseur">
+                    Fournisseur
+                </label>
+
+                <select id="fournisseur" name="fournisseur">
+                    {% for fournisseur in fournisseurs %}
+                        <option value="{{ fournisseur.id }}">
+                            {{ fournisseur.nom }} {{ fournisseur.prenom }}
+                            {% if fournisseur.libelle %}
+                                ({{ fournisseur.libelle }})
+                            {% endif %}
+                        </option>
+                    {% endfor %}
+                </select>
+
+            </div>
+        {% endif %}
+
+        <button type="submit" class="btn-primary">
+            Créer
+        </button>
+
+    </form>
+
+</div>
+
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="{{ asset('js/product.js') }}"></script>
+{% endblock %}

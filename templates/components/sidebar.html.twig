@@ -15,13 +15,20 @@
             </a>
         {% endif %}
 
+        {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_FOURNISSEUR') %}
+            <a href="{{ path('product_list') }}">
+                <i class="bi bi-box-seam"></i>
+                <span>Produits</span>
+            </a>
+        {% endif %}
+
     </nav>
 
     {% if app.user %}
         <div class="sidebar-footer">
             <div class="user-info">
                 <p class="user-name">{{ app.user.prenom }} {{ app.user.nom }}</p>
-                <p class="user-role">{{ app.user.role }}</p>
+                <p class="user-role">{{ app.user.libelle }}</p>
             </div>
         </div>
     {% endif %}

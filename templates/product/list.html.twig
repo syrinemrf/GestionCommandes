@@ -1,0 +1,60 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}
+Liste des produits
+{% endblock %}
+
+{% block body %}
+
+<div class="list-card">
+
+    <div class="list-header">
+
+        <div>
+            <h1>Produits</h1>
+            <p>Liste des produits enregistrés</p>
+        </div>
+
+        <a href="{{ path('product_add') }}" class="btn-primary">
+            Ajouter
+        </a>
+
+    </div>
+
+    <div class="table-wrapper">
+        <table id="products-table" class="user-table product-table" data-url="{{ path('product_data') }}" data-is-admin="{{ is_granted('ROLE_ADMIN') ? 1 : 0 }}">
+
+            <thead>
+                <tr>
+                    <th>Image</th>
+                    <th>Libellé</th>
+                    <th>Prix</th>
+
+                    {% if is_granted('ROLE_ADMIN') %}
+                        <th>Fournisseur</th>
+                    {% endif %}
+
+                    <th></th>
+                </tr>
+            </thead>
+
+        </table>
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/2.0.8/js/dataTables.min.js"></script>
+    <script src="{{ asset('js/product.js') }}"></script>
+{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.0.8/css/dataTables.dataTables.min.css">
+{% endblock %}

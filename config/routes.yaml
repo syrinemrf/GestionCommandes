@@ -21,8 +21,6 @@ app_logout:
     controller: App\Controller\LoginController::logout
 
 #users:
-
-
 user_add:
     path: /users/add
     controller: App\Controller\UserController::add
@@ -51,4 +49,30 @@ user_data:
 user_delete:
     path: /users/delete/{id}
     controller: App\Controller\UserController::delete
+    methods: [POST]
+
+#Products:
+product_list:
+    path: /products
+    controller: App\Controller\ProductController::list
+    methods: [GET]
+
+product_data:
+    path: /products/data
+    controller: App\Controller\ProductController::data
+    methods: [GET]
+
+product_add:
+    path: /products/add
+    controller: App\Controller\ProductController::add
+    methods: [GET, POST]
+
+product_edit:
+    path: /products/edit/{id}
+    controller: App\Controller\ProductController::edit
+    methods: [GET, POST]
+
+product_delete:
+    path: /products/delete/{id}
+    controller: App\Controller\ProductController::delete
     methods: [POST]

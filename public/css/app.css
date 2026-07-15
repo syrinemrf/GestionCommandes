@@ -919,3 +919,138 @@ a {
 
 }
 
+/* ==========================
+   ERROR PAGES
+========================== */
+
+
+.error-container {
+
+    min-height:100vh;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    padding:20px;
+
+}
+
+
+
+.error-card {
+
+    background:white;
+
+    max-width:450px;
+
+    width:100%;
+
+    padding:45px;
+
+    text-align:center;
+
+    border-radius:16px;
+
+    box-shadow:0 15px 40px rgba(0,0,0,0.08);
+
+}
+
+
+
+.error-icon {
+
+    width:80px;
+
+    height:80px;
+
+    margin:auto;
+
+    border-radius:50%;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    background:#fee2e2;
+
+    color:#dc2626;
+
+    font-size:35px;
+
+}
+
+
+
+.error-card h1 {
+
+    margin-top:25px;
+
+    color:var(--color-text);
+
+}
+
+
+
+.error-card p {
+
+    color:var(--color-text-light);
+
+    margin:20px 0 30px;
+
+    line-height:1.6;
+
+}
+
+
+
+.error-actions {
+
+    display:flex;
+
+    gap:15px;
+
+    justify-content:center;
+
+    flex-wrap:wrap;
+
+}
+
+.form-group textarea,
+.form-group select {
+    padding: 12px 14px;
+    border: 1px solid var(--color-gray-border);
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+}
+
+.form-group textarea:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.product-image {
+    width: 70px;
+    height: 70px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+
+.product-image {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+
