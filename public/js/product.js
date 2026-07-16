@@ -15,20 +15,6 @@ $(document).ready(function () {
             return;
         }
 
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-
-        if (!allowedTypes.includes(file.type)) {
-            alert("Format d'image non autorisé.");
-            imageInput.val('');
-            return;
-        }
-
-        if (file.size > 5 * 1024 * 1024) {
-            alert("L'image ne doit pas dépasser 5 Mo.");
-            imageInput.val('');
-            return;
-        }
-
         if (previewObjectUrl) {
             URL.revokeObjectURL(previewObjectUrl);
         }
@@ -106,16 +92,30 @@ $(document).ready(function () {
 
     if ($('#products-table').length) {
 
+        const productsTable = $('#products-table');
+        const placeholderImage = productsTable.data('placeholder'); 
+
         const columns = [
 
             {
                 data: 'image',
                 orderable: false,
                 searchable: false,
-                render: function (data) {
-                    return data
-                        ? '<img src="' + data + '" class="product-image" alt="Produit">'
-                        : '-';
+                render: function (data, type) {
+                    if (type !== 'display') {
+                        return data;
+                    }
+
+                    const image = document.createElement('img');
+
+                    image.src = data || placeholderImage;
+                    image.className = 'product-image';
+                    image.alt = data
+                        ? 'Image du produit'
+                        : 'Aucune image disponible';
+                    image.loading = 'lazy';
+
+                    return image;
                 }
             },
 
@@ -152,7 +152,7 @@ $(document).ready(function () {
         $('#products-table').DataTable({
             processing: true,
             serverSide: true,
-            pageLength: 15,
+            pageLength: 5,
             lengthChange: false,
             ajax: $('#products-table').data('url'),
 

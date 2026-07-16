@@ -22,7 +22,7 @@ Liste des produits
     </div>
 
     <div class="table-wrapper">
-        <table id="products-table" class="user-table product-table" data-url="{{ path('product_data') }}" data-is-admin="{{ is_granted('ROLE_ADMIN') ? 1 : 0 }}">
+        <table id="products-table" class="user-table product-table" data-url="{{ path('product_data') }}" data-is-admin="{{ is_granted('ROLE_ADMIN') ? 1 : 0 }}" data-placeholder="{{ asset('images/product-placeholder.jpg') }}">
 
             <thead>
                 <tr>
