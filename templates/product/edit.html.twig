@@ -20,6 +20,8 @@ Modifier un produit
 
     <form id="product-form" method="POST" action="{{ path('product_edit', { id: product.id }) }}" data-success-message="Produit modifié avec succès." data-reset-form="false" enctype="multipart/form-data">
 
+        <input type="hidden" name="_token" value="{{ csrf_token('product-edit-' ~ product.id) }}">
+
         <div class="form-group">
 
             <label for="libelle">
@@ -63,8 +65,7 @@ Modifier un produit
                     type="file"
                     id="image"
                     name="image"
-                    accept="image/*"
-                    value="{{ product.image }}">
+                    accept="image/*">
 
             </div>
 

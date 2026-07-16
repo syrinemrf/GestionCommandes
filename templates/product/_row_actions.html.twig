@@ -11,7 +11,13 @@
     <form
         method="POST"
         action="{{ path('product_delete', {'id': product.id}) }}"
-        class="delete-form">
+        class="delete-form"
+        data-product-id="{{ product.id }}">
+
+        <input
+            type="hidden"
+            name="_token"
+            value="{{ csrf_token('delete-product-' ~ product.id) }}">
 
         <button
             type="submit"

@@ -20,6 +20,8 @@ Ajouter un produit
 
     <form id="product-form" method="POST" action="{{ path('product_add') }}" data-success-message="Produit ajouté avec succès." data-reset-form="true" enctype="multipart/form-data">
 
+        <input type="hidden" name="_token" value="{{ csrf_token('product-add') }}">
+
         <div class="form-group">
 
             <label for="libelle">

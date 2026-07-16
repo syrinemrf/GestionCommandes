@@ -5,13 +5,13 @@ namespace App\Controller;
 use App\Entity\Product;
 use App\Repository\ProductRepository;
 use App\Repository\UserRepository;
+use App\Service\ProductImageUploader;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 class ProductController extends AbstractController
 {
@@ -20,55 +20,36 @@ class ProductController extends AbstractController
         return $this->render('product/list.html.twig');
     }
 
-    private function uploadImage(?UploadedFile $imageFile): ?string
-    {
-        if (!$imageFile || !$imageFile->isValid()) {
-            return null;
-        }
-
-        $extension = $imageFile->guessExtension() ?? 'jpg';
-
-        $newFilename =
-            bin2hex(random_bytes(16))
-            . '.'
-            . $extension;
-                
-        if (!str_starts_with($imageFile->getMimeType(), 'image/')) {
-            return null;
-        }
-
-        if ($imageFile->getSize() > 5 * 1024 * 1024) {
-            return null;
-        }
-
-        $uploadDir = $this->getParameter('kernel.project_dir') . '/public/uploads/products';
-
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0777, true);
-        }
-
-        $imageFile->move($uploadDir, $newFilename);
-
-        return 'uploads/products/' . $newFilename;
-    }
-
     public function add(
         Request $request,
         EntityManagerInterface $entityManager,
-        UserRepository $userRepository
+        UserRepository $userRepository,
+        ProductImageUploader $imageUploader
     ): Response {
 
         if ($request->isMethod('POST')) {
+            if (!$this->isCsrfTokenValid('product-add', $request->request->get('_token'))) {
+                return new Response('invalid_csrf_token', 403);
+            }
+
+            $libelle = trim((string) $request->request->get('libelle'));
+            $description = trim((string) $request->request->get('description'));
+            $prix = str_replace(',', '.', trim((string) $request->request->get('prix')));
+
+            if ($libelle === '' || $description === '' || !is_numeric($prix) || (float) $prix < 0) {
+                return new Response('invalid_data', 422);
+            }
+
             $product = new Product();
 
-            $product->setLibelle($request->request->get('libelle'));
-            $product->setDescription($request->request->get('description'));
+            $product->setLibelle($libelle);
+            $product->setDescription($description);
 
             $imageFile = $request->files->get('image');
 
             if ($imageFile) {
 
-                $imagePath = $this->uploadImage($imageFile);
+                $imagePath = $imageUploader->upload($imageFile);
 
                 if ($imagePath === null) {
                     return new Response('invalid_image');
@@ -78,13 +59,25 @@ class ProductController extends AbstractController
 
             }
 
-            $product->setPrix((float) $request->request->get('prix'));
+            $product->setPrix($prix);
 
             if ($this->isGranted('ROLE_ADMIN')) {
-                $fournisseur = $userRepository->find($request->request->getInt('fournisseur'));
+                $fournisseur = $userRepository->findOneBy([
+                    'id' => $request->request->getInt('fournisseur'),
+                    'role' => 'ROLE_FOURNISSEUR',
+                    'isDeleted' => false,
+                ]);
+
+                if (!$fournisseur) {
+                    return new Response('invalid_fournisseur', 422);
+                }
                 $product->setFournisseur($fournisseur);
             } else {
-                $product->setFournisseur($this->getUser());
+                $user = $this->getUser();
+                if (!$user instanceof \App\Entity\User || $user->getRole() !== 'ROLE_FOURNISSEUR') {
+                    return new Response('forbidden', 403);
+                }
+                $product->setFournisseur($user);
             }
 
             $product->setIsDeleted(false);
@@ -114,13 +107,14 @@ class ProductController extends AbstractController
         Request $request,
         EntityManagerInterface $entityManager,
         UserRepository $userRepository,
-        ProductRepository $productRepository
+        ProductRepository $productRepository,
+        ProductImageUploader $imageUploader
     ): Response {
 
         $product = $productRepository->find($id);
 
         if (!$product) {
-            return new Response('product_not_found');
+            return new Response('product_not_found', 404);
         }
 
         if (!$this->isGranted('ROLE_ADMIN') && $product->getFournisseur()?->getId() !== $this->getUser()?->getId()) {
@@ -128,14 +122,26 @@ class ProductController extends AbstractController
         }
 
         if ($request->isMethod('POST')) {
-            $product->setLibelle($request->request->get('libelle'));
-            $product->setDescription($request->request->get('description'));
+            if (!$this->isCsrfTokenValid('product-edit-' . $product->getId(), $request->request->get('_token'))) {
+                return new Response('invalid_csrf_token', 403);
+            }
+
+            $libelle = trim((string) $request->request->get('libelle'));
+            $description = trim((string) $request->request->get('description'));
+            $prix = str_replace(',', '.', trim((string) $request->request->get('prix')));
+
+            if ($libelle === '' || $description === '' || !is_numeric($prix) || (float) $prix < 0) {
+                return new Response('invalid_data', 422);
+            }
+
+            $product->setLibelle($libelle);
+            $product->setDescription($description);
             
             $imageFile = $request->files->get('image');
 
             if ($imageFile) {
 
-                $imagePath = $this->uploadImage($imageFile);
+                $imagePath = $imageUploader->upload($imageFile);
 
                 if ($imagePath === null) {
                     return new Response('invalid_image');
@@ -145,10 +151,18 @@ class ProductController extends AbstractController
 
             }
 
-            $product->setPrix((float) $request->request->get('prix'));
+            $product->setPrix($prix);
 
             if ($this->isGranted('ROLE_ADMIN')) {
-                $fournisseur = $userRepository->find($request->request->getInt('fournisseur'));
+                $fournisseur = $userRepository->findOneBy([
+                    'id' => $request->request->getInt('fournisseur'),
+                    'role' => 'ROLE_FOURNISSEUR',
+                    'isDeleted' => false,
+                ]);
+
+                if (!$fournisseur) {
+                    return new Response('invalid_fournisseur', 422);
+                }
                 $product->setFournisseur($fournisseur);
             } else {
                 $product->setFournisseur($this->getUser());
@@ -190,19 +204,7 @@ class ProductController extends AbstractController
 
         $result = $productRepository->findForDatatable($start, $length, $search, $fournisseur);
 
-        $isAdmin = $this->isGranted('ROLE_ADMIN');
         foreach ($result['rows'] as &$row) {
-            if ($isAdmin) {
-                $row['fournisseur'] =
-                    $row['prenom']
-                    . ' '
-                    . $row['nom']
-                    . ' ('
-                    . $row['libelle']
-                    . ')';
-
-            }
-
             $row['actions'] = $this->renderView('product/_row_actions.html.twig', [
                 'product' => [
                     'id' => $row['id'],
@@ -221,6 +223,7 @@ class ProductController extends AbstractController
 
     public function delete(
         int $id,
+        Request $request,
         EntityManagerInterface $entityManager,
         ProductRepository $productRepository
     ): Response {
@@ -228,11 +231,15 @@ class ProductController extends AbstractController
         $product = $productRepository->find($id);
 
         if (!$product) {
-            return new Response('product_not_found');
+            return new Response('product_not_found', 404);
         }
 
         if (!$this->isGranted('ROLE_ADMIN') && $product->getFournisseur()?->getId() !== $this->getUser()?->getId()) {
             return new Response('forbidden', 403);
+        }
+
+        if (!$this->isCsrfTokenValid('delete-product-' . $product->getId(), $request->request->get('_token'))) {
+            return new Response('invalid_csrf_token', 403);
         }
 
         $product->setIsDeleted(true);

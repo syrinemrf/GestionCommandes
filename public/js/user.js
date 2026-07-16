@@ -122,6 +122,7 @@ $(document).ready(function () {
         $.ajax({
             type: "POST",
             url: this.action,
+            data: form.serialize(),
 
             success: function (response) {
                 response = response.trim();

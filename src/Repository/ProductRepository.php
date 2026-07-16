@@ -64,9 +64,14 @@ class ProductRepository extends ServiceEntityRepository
         $total = $this->createQueryBuilder('p')
             ->select('COUNT(p.id)')
             ->andWhere('p.isDeleted = :deleted')
-            ->setParameter('deleted', false)
-            ->getQuery()
-            ->getSingleScalarResult();
+            ->setParameter('deleted', false);
+
+        if ($fournisseur !== null) {
+            $total->andWhere('p.fournisseur = :fournisseur')
+                ->setParameter('fournisseur', $fournisseur);
+        }
+
+        $total = $total->getQuery()->getSingleScalarResult();
 
         $filtered = ($search === '')
             ? $total

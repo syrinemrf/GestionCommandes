@@ -22,8 +22,8 @@ class Product
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $image = null;
 
-    #[ORM\Column]
-    private ?float $prix = null;
+    #[ORM\Column(type: 'decimal', precision: 10, scale: 3)]
+    private ?string $prix = null;
 
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(name: 'id_fournisseur_id', referencedColumnName: 'id', nullable: false)]
@@ -73,12 +73,12 @@ class Product
         return $this;
     }
 
-    public function getPrix(): ?float
+    public function getPrix(): ?string
     {
         return $this->prix;
     }
 
-    public function setPrix(float $prix): static
+    public function setPrix(string $prix): static
     {
         $this->prix = $prix;
 

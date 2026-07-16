@@ -23,6 +23,8 @@ Modifier un utilisateur
 
     <form id="user-form" method="POST" action="{{ path('user_edit', { id: user.id }) }}" data-success-message="Utilisateur modifié avec succès." data-reset-form="false">
 
+        <input type="hidden" name="_token" value="{{ csrf_token('user-edit-' ~ user.id) }}">
+
         <div class="form-row">
 
             <div class="form-group">
