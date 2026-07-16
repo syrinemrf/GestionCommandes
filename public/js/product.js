@@ -1,5 +1,58 @@
 $(document).ready(function () {
 
+    const imageInput = $('#image');
+    const imagePreview = $('#image-preview');
+    const imagePreviewContainer = $('#image-preview-container');
+    const imageUploadZone = $('.image-upload-zone');
+    const removeImageButton = $('#remove-image');
+    const removeImageValue = $('#remove-image-value');
+    let previewObjectUrl = null;
+
+    imageInput.on('change', function () {
+        const file = this.files[0];
+
+        if (!file) {
+            return;
+        }
+
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+
+        if (!allowedTypes.includes(file.type)) {
+            alert("Format d'image non autorisé.");
+            imageInput.val('');
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            alert("L'image ne doit pas dépasser 5 Mo.");
+            imageInput.val('');
+            return;
+        }
+
+        if (previewObjectUrl) {
+            URL.revokeObjectURL(previewObjectUrl);
+        }
+
+        previewObjectUrl = URL.createObjectURL(file);
+        imagePreview.attr('src', previewObjectUrl);
+        imagePreviewContainer.prop('hidden', false);
+        imageUploadZone.prop('hidden', true);
+        removeImageValue.val('0');
+    });
+
+    removeImageButton.on('click', function () {
+        if (previewObjectUrl) {
+            URL.revokeObjectURL(previewObjectUrl);
+            previewObjectUrl = null;
+        }
+
+        imageInput.val('');
+        imagePreview.attr('src', '');
+        imagePreviewContainer.prop('hidden', true);
+        imageUploadZone.prop('hidden', false);
+        removeImageValue.val('1');
+    });
+
     $('#product-form').submit(function (e) {
 
         e.preventDefault();
@@ -26,6 +79,14 @@ $(document).ready(function () {
 
                     if (form.data('reset-form')) {
                         form[0].reset();
+                        imagePreview.attr('src', '');
+                        imagePreviewContainer.prop('hidden', true);
+                        imageUploadZone.prop('hidden', false);
+
+                        if (previewObjectUrl) {
+                            URL.revokeObjectURL(previewObjectUrl);
+                            previewObjectUrl = null;
+                        }
                     }
                 } else {
                     alert(response || "Une erreur est survenue.");

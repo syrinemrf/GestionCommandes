@@ -54,21 +54,6 @@ Modifier un produit
         </div>
 
         <div class="form-row">
-
-            <div class="form-group">
-
-                <label for="image">
-                    Image
-                </label>
-
-                <input
-                    type="file"
-                    id="image"
-                    name="image"
-                    accept="image/*">
-
-            </div>
-
             <div class="form-group">
 
                 <label for="prix">
@@ -84,7 +69,46 @@ Modifier un produit
                     required>
 
             </div>
+        </div>
 
+        <div class="form-group product-image-field">
+            <label>Image du produit</label>
+
+            <div class="image-uploader" id="image-uploader">
+                <input
+                    type="file"
+                    id="image"
+                    name="image"
+                    accept="image/jpeg,image/png,image/webp"
+                    class="image-input">
+
+                <input type="hidden" id="remove-image-value" name="remove_image" value="0">
+
+                <label for="image" class="image-upload-zone" {% if product.image %}hidden{% endif %}>
+                    <i class="bi bi-cloud-arrow-up"></i>
+                    <span class="image-upload-title">Choisir une image</span>
+                    <small>JPEG, PNG ou WebP — maximum 5 Mo</small>
+                </label>
+
+                <div
+                    class="image-preview-container"
+                    id="image-preview-container"
+                    {% if not product.image %}hidden{% endif %}>
+                    <img
+                        id="image-preview"
+                        class="image-preview"
+                        src="{{ product.image ? asset(product.image) : '' }}"
+                        alt="Aperçu du produit">
+
+                    <button
+                        type="button"
+                        id="remove-image"
+                        class="remove-image-button"
+                        aria-label="Enlever l’image">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
         </div>
 
         {% if is_granted('ROLE_ADMIN') %}

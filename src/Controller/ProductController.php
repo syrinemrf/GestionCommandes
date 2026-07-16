@@ -29,7 +29,7 @@ class ProductController extends AbstractController
 
         if ($request->isMethod('POST')) {
             if (!$this->isCsrfTokenValid('product-add', $request->request->get('_token'))) {
-                return new Response('invalid_csrf_token', 403);
+                return new Response('invalid_csrf_token', Response::HTTP_FORBIDDEN);
             }
 
             $libelle = trim((string) $request->request->get('libelle'));
@@ -37,7 +37,7 @@ class ProductController extends AbstractController
             $prix = str_replace(',', '.', trim((string) $request->request->get('prix')));
 
             if ($libelle === '' || $description === '' || !is_numeric($prix) || (float) $prix < 0) {
-                return new Response('invalid_data', 422);
+                return new Response('invalid_data', Response::HTTP_UNPROCESSABLE_ENTITY);
             }
 
             $product = new Product();
@@ -52,7 +52,7 @@ class ProductController extends AbstractController
                 $imagePath = $imageUploader->upload($imageFile);
 
                 if ($imagePath === null) {
-                    return new Response('invalid_image');
+                    return new Response('invalid_image', Response::HTTP_UNPROCESSABLE_ENTITY);
                 }
 
                 $product->setImage($imagePath);
@@ -69,13 +69,13 @@ class ProductController extends AbstractController
                 ]);
 
                 if (!$fournisseur) {
-                    return new Response('invalid_fournisseur', 422);
+                    return new Response('invalid_fournisseur', Response::HTTP_UNPROCESSABLE_ENTITY);
                 }
                 $product->setFournisseur($fournisseur);
             } else {
                 $user = $this->getUser();
                 if (!$user instanceof \App\Entity\User || $user->getRole() !== 'ROLE_FOURNISSEUR') {
-                    return new Response('forbidden', 403);
+                    throw $this->createAccessDeniedException('Vous ne pouvez pas ajouter de produit.');
                 }
                 $product->setFournisseur($user);
             }
@@ -114,16 +114,16 @@ class ProductController extends AbstractController
         $product = $productRepository->find($id);
 
         if (!$product) {
-            return new Response('product_not_found', 404);
+            throw $this->createNotFoundException('Produit introuvable.');
         }
 
         if (!$this->isGranted('ROLE_ADMIN') && $product->getFournisseur()?->getId() !== $this->getUser()?->getId()) {
-            return new Response('forbidden', 403);
+            throw $this->createAccessDeniedException('Vous ne pouvez pas modifier ce produit.');
         }
 
         if ($request->isMethod('POST')) {
             if (!$this->isCsrfTokenValid('product-edit-' . $product->getId(), $request->request->get('_token'))) {
-                return new Response('invalid_csrf_token', 403);
+                return new Response('invalid_csrf_token', Response::HTTP_FORBIDDEN);
             }
 
             $libelle = trim((string) $request->request->get('libelle'));
@@ -131,12 +131,18 @@ class ProductController extends AbstractController
             $prix = str_replace(',', '.', trim((string) $request->request->get('prix')));
 
             if ($libelle === '' || $description === '' || !is_numeric($prix) || (float) $prix < 0) {
-                return new Response('invalid_data', 422);
+                return new Response('invalid_data', Response::HTTP_UNPROCESSABLE_ENTITY);
             }
 
             $product->setLibelle($libelle);
             $product->setDescription($description);
-            
+
+            $oldImage = $product->getImage();
+
+            if ($request->request->getBoolean('remove_image')) {
+                $product->setImage(null);
+            }
+
             $imageFile = $request->files->get('image');
 
             if ($imageFile) {
@@ -144,7 +150,7 @@ class ProductController extends AbstractController
                 $imagePath = $imageUploader->upload($imageFile);
 
                 if ($imagePath === null) {
-                    return new Response('invalid_image');
+                    return new Response('invalid_image', Response::HTTP_UNPROCESSABLE_ENTITY);
                 }
 
                 $product->setImage($imagePath);
@@ -161,7 +167,7 @@ class ProductController extends AbstractController
                 ]);
 
                 if (!$fournisseur) {
-                    return new Response('invalid_fournisseur', 422);
+                    return new Response('invalid_fournisseur', Response::HTTP_UNPROCESSABLE_ENTITY);
                 }
                 $product->setFournisseur($fournisseur);
             } else {
@@ -169,6 +175,10 @@ class ProductController extends AbstractController
             }
 
             $entityManager->flush();
+
+            if ($oldImage && $oldImage !== $product->getImage()) {
+                $imageUploader->delete($oldImage);
+            }
 
             return new Response('success');
         }
@@ -204,13 +214,19 @@ class ProductController extends AbstractController
 
         $result = $productRepository->findForDatatable($start, $length, $search, $fournisseur);
 
+        $html = 'product/_row_actions.html.twig';
+
         foreach ($result['rows'] as &$row) {
-            $row['actions'] = $this->renderView('product/_row_actions.html.twig', [
-                'product' => [
-                    'id' => $row['id'],
-                ],
-            ]);
+            $row['actions'] = $this->renderView(
+                $html,
+                [
+                    'product' => [
+                        'id' => $row['id'],
+                    ],
+                ]
+            );
         }
+
         unset($row);
 
         return $this->json([
@@ -231,15 +247,15 @@ class ProductController extends AbstractController
         $product = $productRepository->find($id);
 
         if (!$product) {
-            return new Response('product_not_found', 404);
+            throw $this->createNotFoundException('Produit introuvable.');
         }
 
         if (!$this->isGranted('ROLE_ADMIN') && $product->getFournisseur()?->getId() !== $this->getUser()?->getId()) {
-            return new Response('forbidden', 403);
+            throw $this->createAccessDeniedException('Vous ne pouvez pas supprimer ce produit.');
         }
 
         if (!$this->isCsrfTokenValid('delete-product-' . $product->getId(), $request->request->get('_token'))) {
-            return new Response('invalid_csrf_token', 403);
+            return new Response('invalid_csrf_token', Response::HTTP_FORBIDDEN);
         }
 
         $product->setIsDeleted(true);

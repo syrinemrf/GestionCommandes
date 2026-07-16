@@ -47,4 +47,23 @@ class ProductImageUploader
 
         return 'uploads/products/' . $newFilename;
     }
+
+    public function delete(?string $imagePath): void
+    {
+        if (!$imagePath) {
+            return;
+        }
+
+        $uploadDirectory = realpath($this->kernel->getProjectDir() . '/public/uploads/products');
+        $file = realpath($this->kernel->getProjectDir() . '/public/' . $imagePath);
+
+        if (
+            $uploadDirectory !== false
+            && $file !== false
+            && str_starts_with($file, $uploadDirectory . DIRECTORY_SEPARATOR)
+            && is_file($file)
+        ) {
+            unlink($file);
+        }
+    }
 }

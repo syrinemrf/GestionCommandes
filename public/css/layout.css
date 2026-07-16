@@ -1,0 +1,77 @@
+.app-container { display: flex; min-height: 100vh; }
+.main-content { flex: 1; display: flex; flex-direction: column; }
+.navbar {
+    height: 70px;
+    background: var(--color-white);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 35px;
+    flex-shrink: 0;
+}
+.page-content { flex: 1; padding: 35px; background: var(--color-gray-light); }
+
+/* Sidebar */
+.sidebar {
+    width: 260px;
+    min-height: 100vh;
+    padding: 25px;
+    background: var(--color-sidebar-bg);
+    color: var(--color-white);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+.sidebar .logo { margin-bottom: 40px; color: var(--color-white); font-size: 25px; font-weight: 700; }
+.sidebar .logo a { color: var(--color-white); transition: 0.3s ease; }
+.sidebar .logo a:hover { color: #a8d5ba; }
+.sidebar nav { flex: 1; padding: 20px 0; }
+.sidebar nav a {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    border-left: 3px solid transparent;
+    border-radius: 8px;
+    color: #d1d5db;
+    transition: all 0.3s ease;
+}
+.sidebar nav a i { width: 25px; font-size: 20px; text-align: center; }
+.sidebar nav a span { width: 25px; font-size: 17px; text-align: center; }
+.sidebar nav a:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-left-color: #a8d5ba;
+    color: var(--color-white);
+}
+.sidebar-footer { padding: 20px 0; border-top: 1px solid rgba(255, 255, 255, 0.2); }
+.user-info { color: var(--color-white); }
+.user-name { margin: 0; font-size: 14px; font-weight: 600; }
+.user-role { margin: 5px 0 0; color: #a8d5ba; font-size: 12px; }
+
+/* Navbar */
+.navbar-left h2 { margin: 0; color: var(--color-text); font-size: 24px; }
+.navbar-right { display: flex; align-items: center; gap: 20px; }
+.profile { display: flex; align-items: center; gap: 15px; }
+.user-email { color: var(--color-text-light); font-size: 14px; }
+.logout-btn,
+.login-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 5px;
+    background: var(--color-primary);
+    color: var(--color-white);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+.logout-btn:hover,
+.login-link:hover {
+    background: var(--color-primary-dark);
+    box-shadow: 0 5px 15px rgba(37, 99, 235, 0.3);
+    transform: translateY(-2px);
+}
