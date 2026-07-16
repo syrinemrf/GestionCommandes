@@ -12,6 +12,8 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 class UserController extends AbstractController
 {
     #[IsGranted('ROLE_ADMIN')]
@@ -28,10 +30,10 @@ class UserController extends AbstractController
         ]);
 
         if ($existingUser && $existingUser->getId() != $id) {
-            return new Response('email_exists');
+            return $this->json(['available' => false, 'message' => 'Cet email est déjà utilisé.']);
         }
 
-        return new Response('email_available');
+        return $this->json(['available' => true]);
     }
 
     #[IsGranted('ROLE_ADMIN')]
@@ -39,13 +41,13 @@ class UserController extends AbstractController
         Request $request,
         EntityManagerInterface $entityManager,
         UserPasswordHasherInterface $passwordHasher,
-        UserRepository $userRepository,
+        ValidatorInterface $validator,
     ): Response
     {
 
         if ($request->isMethod('POST')) {
             if (!$this->isCsrfTokenValid('user-add', $request->request->get('_token'))) {
-                return new Response('invalid_csrf_token', 403);
+                return $this->json(['success' => false, 'message' => 'Votre session a expiré. Rechargez la page.'], Response::HTTP_FORBIDDEN);
             }
 
             $nom = trim((string) $request->request->get('nom'));
@@ -54,26 +56,6 @@ class UserController extends AbstractController
             $password = (string) $request->request->get('password');
             $role = (string) $request->request->get('role');
 
-            if ($nom === '' || $prenom === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                return new Response('invalid_data', 422);
-            }
-
-            if (strlen($password) < 8) {
-                return new Response('invalid_password', 422);
-            }
-
-            if (!in_array($role, ['ROLE_ADMIN', 'ROLE_FOURNISSEUR'], true)) {
-                return new Response('invalid_role', 422);
-            }
-
-            if ($role === 'ROLE_FOURNISSEUR' && trim((string) $request->request->get('libelle')) === '') {
-                return new Response('invalid_libelle', 422);
-            }
-
-            if ($userRepository->findOneBy(['email' => $email])) {
-                return new Response('email_exists', 409);
-            }
-            
             $user = new User();
 
             $user->setNom(
@@ -88,6 +70,26 @@ class UserController extends AbstractController
                 $email
             );
 
+            $user->setRole($role);
+            $user->setLibelle(
+                $role === 'ROLE_FOURNISSEUR'
+                    ? trim((string) $request->request->get('libelle'))
+                    : null
+            );
+
+            $errors = $validator->validate($user);
+            if (count($errors) > 0) {
+                return $this->json(['success' => false, 'message' => $errors[0]->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            $passwordErrors = $validator->validate($password, [
+                new Assert\NotBlank(message: 'Le mot de passe est obligatoire.'),
+                new Assert\Length(min: 8, minMessage: 'Le mot de passe doit contenir au moins {{ limit }} caractères.'),
+            ]);
+            if (count($passwordErrors) > 0) {
+                return $this->json(['success' => false, 'message' => $passwordErrors[0]->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
             $hashedPassword = $passwordHasher->hashPassword(
                 $user,
                 $password
@@ -95,22 +97,10 @@ class UserController extends AbstractController
 
             $user->setPassword($hashedPassword);
 
-            $user->setRole(
-                $role
-            );
-
-            if ($user->getRole() === 'ROLE_FOURNISSEUR') {
-
-                $user->setLibelle(
-                    $request->request->get('libelle')
-                );
-
-            }
-
             $entityManager->persist($user);
             $entityManager->flush();
 
-            return new Response('success');
+            return $this->json(['success' => true, 'message' => 'Utilisateur ajouté avec succès.']);
         }
 
         $html = 'user/add.html.twig';
@@ -128,7 +118,8 @@ class UserController extends AbstractController
         Request $request,
         EntityManagerInterface $entityManager,
         UserPasswordHasherInterface $passwordHasher,
-        UserRepository $userRepository
+        UserRepository $userRepository,
+        ValidatorInterface $validator
     ): Response
     {
         $user = $userRepository->find($id);
@@ -139,32 +130,13 @@ class UserController extends AbstractController
 
         if ($request->isMethod('POST')) {
             if (!$this->isCsrfTokenValid('user-edit-' . $user->getId(), $request->request->get('_token'))) {
-                return new Response('invalid_csrf_token', 403);
+                return $this->json(['success' => false, 'message' => 'Votre session a expiré. Rechargez la page.'], Response::HTTP_FORBIDDEN);
             }
 
             $email = $request->request->get('email');
             $nom = trim((string) $request->request->get('nom'));
             $prenom = trim((string) $request->request->get('prenom'));
             $role = (string) $request->request->get('role');
-
-            if ($nom === '' || $prenom === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                return new Response('invalid_data', 422);
-            }
-
-            if (!in_array($role, ['ROLE_ADMIN', 'ROLE_FOURNISSEUR'], true)) {
-                return new Response('invalid_role', 422);
-            }
-
-            if ($role === 'ROLE_FOURNISSEUR' && trim((string) $request->request->get('libelle')) === '') {
-                return new Response('invalid_libelle', 422);
-            }
-            $existingUser = $userRepository->findOneBy([
-                'email' => $email
-            ]);
-
-            if ($existingUser && $existingUser->getId() !== $user->getId()) {
-                return new Response('email_exists');
-            }
 
             $user->setNom(
                 $nom
@@ -176,9 +148,25 @@ class UserController extends AbstractController
 
             $user->setEmail($email);
 
+            $user->setRole($role);
+            $user->setLibelle(
+                $role === 'ROLE_FOURNISSEUR'
+                    ? trim((string) $request->request->get('libelle'))
+                    : null
+            );
+
+            $errors = $validator->validate($user);
+            if (count($errors) > 0) {
+                return $this->json(['success' => false, 'message' => $errors[0]->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
             if ($request->request->get('password')) {
-                if (strlen((string) $request->request->get('password')) < 8) {
-                    return new Response('invalid_password', 422);
+                $passwordErrors = $validator->validate(
+                    (string) $request->request->get('password'),
+                    new Assert\Length(min: 8, minMessage: 'Le mot de passe doit contenir au moins {{ limit }} caractères.')
+                );
+                if (count($passwordErrors) > 0) {
+                    return $this->json(['success' => false, 'message' => $passwordErrors[0]->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
                 }
 
                 $hashedPassword = $passwordHasher->hashPassword(
@@ -189,21 +177,9 @@ class UserController extends AbstractController
                 $user->setPassword($hashedPassword);
             }
 
-            $user->setRole(
-                $role
-            );
-
-            if ($user->getRole() === 'ROLE_FOURNISSEUR') {
-                $user->setLibelle(
-                    $request->request->get('libelle')
-                );
-            } else {
-                $user->setLibelle(null);
-            }
-
             $entityManager->flush();
 
-            return new Response('success');
+            return $this->json(['success' => true, 'message' => 'Utilisateur modifié avec succès.']);
         }
 
         return $this->render(
@@ -282,13 +258,13 @@ class UserController extends AbstractController
         }
 
         if (!$this->isCsrfTokenValid('delete-user-' . $user->getId(), $request->request->get('_token'))) {
-            return new Response('invalid_csrf_token', 403);
+            return $this->json(['success' => false, 'message' => 'Votre session a expiré. Rechargez la page.'], Response::HTTP_FORBIDDEN);
         }
 
         $user->setIsDeleted(true);
 
         $entityManager->flush();
 
-        return new Response('success');
+        return $this->json(['success' => true, 'message' => 'Utilisateur supprimé avec succès.']);
     }
 }

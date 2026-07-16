@@ -19,12 +19,11 @@ $(document).ready(function () {
                 email: emailInput.val(),
                 id: emailInput.data('user-id')
             },
+            dataType: 'json',
 
             success: function (response) {
-                response = response.trim();
-
-                if (response === 'email_exists') {
-                    alert("Cet email est déjà utilisé.");
+                if (!response.available) {
+                    showToast(response.message, 'error');
                     emailInput.val('');
                 }
             }
@@ -47,12 +46,11 @@ $(document).ready(function () {
             type: "POST",
             url: this.action,
             data: form.serialize(),
+            dataType: 'json',
 
             success: function (response) {
-                response = response.trim();
-
-                if (response === 'success') {
-                    alert(form.data('success-message'));
+                if (response.success) {
+                    showToast(response.message || form.data('success-message'));
                     if (form.data('reset-form')) {
                         form[0].reset();
                     }
@@ -61,8 +59,8 @@ $(document).ready(function () {
                 }
             },
 
-            error: function () {
-                alert("Une erreur est survenue.");
+            error: function (xhr) {
+                showToast(xhr.responseJSON?.message || "Une erreur est survenue.", 'error');
             },
 
             complete: function () {
@@ -108,11 +106,11 @@ $(document).ready(function () {
 
     }
 
-    $(document).on('submit', '.delete-form', function (e) {
+    $(document).on('submit', '.delete-form', async function (e) {
 
         e.preventDefault();
 
-        if (!confirm("Voulez-vous vraiment supprimer cet utilisateur ?")) {
+        if (!await confirmAction("Voulez-vous vraiment supprimer cet utilisateur ?")) {
             return;
         }
 
@@ -123,18 +121,17 @@ $(document).ready(function () {
             type: "POST",
             url: this.action,
             data: form.serialize(),
+            dataType: 'json',
 
             success: function (response) {
-                response = response.trim();
-
-                if (response === 'success') {
+                if (response.success) {
                     $('#users-table').DataTable().ajax.reload(null, false);
-                    alert("Utilisateur supprimé avec succès.");
+                    showToast(response.message);
                 }
             },
 
-            error: function () {
-                alert("Une erreur est survenue.");
+            error: function (xhr) {
+                showToast(xhr.responseJSON?.message || "Une erreur est survenue.", 'error');
             }
         });
 

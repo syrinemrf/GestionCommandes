@@ -12,6 +12,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class ProductController extends AbstractController
 {
@@ -24,26 +25,29 @@ class ProductController extends AbstractController
         Request $request,
         EntityManagerInterface $entityManager,
         UserRepository $userRepository,
-        ProductImageUploader $imageUploader
+        ProductImageUploader $imageUploader,
+        ValidatorInterface $validator
     ): Response {
 
         if ($request->isMethod('POST')) {
             if (!$this->isCsrfTokenValid('product-add', $request->request->get('_token'))) {
-                return new Response('invalid_csrf_token', Response::HTTP_FORBIDDEN);
+                return $this->json(['success' => false, 'message' => 'Votre session a expiré. Rechargez la page.'], Response::HTTP_FORBIDDEN);
             }
 
             $libelle = trim((string) $request->request->get('libelle'));
             $description = trim((string) $request->request->get('description'));
             $prix = str_replace(',', '.', trim((string) $request->request->get('prix')));
 
-            if ($libelle === '' || $description === '' || !is_numeric($prix) || (float) $prix < 0) {
-                return new Response('invalid_data', Response::HTTP_UNPROCESSABLE_ENTITY);
-            }
-
             $product = new Product();
 
             $product->setLibelle($libelle);
             $product->setDescription($description);
+            $product->setPrix($prix);
+
+            $errors = $validator->validate($product);
+            if (count($errors) > 0) {
+                return $this->json(['success' => false, 'message' => $errors[0]->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
 
             $imageFile = $request->files->get('image');
 
@@ -52,14 +56,12 @@ class ProductController extends AbstractController
                 $imagePath = $imageUploader->upload($imageFile);
 
                 if ($imagePath === null) {
-                    return new Response('invalid_image', Response::HTTP_UNPROCESSABLE_ENTITY);
+                    return $this->json(['success' => false, 'message' => 'L’image doit être au format JPEG, PNG ou WebP et ne pas dépasser 5 Mo.'], Response::HTTP_UNPROCESSABLE_ENTITY);
                 }
 
                 $product->setImage($imagePath);
 
             }
-
-            $product->setPrix($prix);
 
             if ($this->isGranted('ROLE_ADMIN')) {
                 $fournisseur = $userRepository->findOneBy([
@@ -69,7 +71,7 @@ class ProductController extends AbstractController
                 ]);
 
                 if (!$fournisseur) {
-                    return new Response('invalid_fournisseur', Response::HTTP_UNPROCESSABLE_ENTITY);
+                    return $this->json(['success' => false, 'message' => 'Le fournisseur sélectionné est invalide.'], Response::HTTP_UNPROCESSABLE_ENTITY);
                 }
                 $product->setFournisseur($fournisseur);
             } else {
@@ -85,7 +87,7 @@ class ProductController extends AbstractController
             $entityManager->persist($product);
             $entityManager->flush();
 
-            return new Response('success');
+            return $this->json(['success' => true, 'message' => 'Produit ajouté avec succès.']);
         }
 
         $fournisseurs = [];
@@ -108,7 +110,8 @@ class ProductController extends AbstractController
         EntityManagerInterface $entityManager,
         UserRepository $userRepository,
         ProductRepository $productRepository,
-        ProductImageUploader $imageUploader
+        ProductImageUploader $imageUploader,
+        ValidatorInterface $validator
     ): Response {
 
         $product = $productRepository->find($id);
@@ -123,19 +126,21 @@ class ProductController extends AbstractController
 
         if ($request->isMethod('POST')) {
             if (!$this->isCsrfTokenValid('product-edit-' . $product->getId(), $request->request->get('_token'))) {
-                return new Response('invalid_csrf_token', Response::HTTP_FORBIDDEN);
+                return $this->json(['success' => false, 'message' => 'Votre session a expiré. Rechargez la page.'], Response::HTTP_FORBIDDEN);
             }
 
             $libelle = trim((string) $request->request->get('libelle'));
             $description = trim((string) $request->request->get('description'));
             $prix = str_replace(',', '.', trim((string) $request->request->get('prix')));
 
-            if ($libelle === '' || $description === '' || !is_numeric($prix) || (float) $prix < 0) {
-                return new Response('invalid_data', Response::HTTP_UNPROCESSABLE_ENTITY);
-            }
-
             $product->setLibelle($libelle);
             $product->setDescription($description);
+            $product->setPrix($prix);
+
+            $errors = $validator->validate($product);
+            if (count($errors) > 0) {
+                return $this->json(['success' => false, 'message' => $errors[0]->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
 
             $oldImage = $product->getImage();
 
@@ -150,14 +155,12 @@ class ProductController extends AbstractController
                 $imagePath = $imageUploader->upload($imageFile);
 
                 if ($imagePath === null) {
-                    return new Response('invalid_image', Response::HTTP_UNPROCESSABLE_ENTITY);
+                    return $this->json(['success' => false, 'message' => 'L’image doit être au format JPEG, PNG ou WebP et ne pas dépasser 5 Mo.'], Response::HTTP_UNPROCESSABLE_ENTITY);
                 }
 
                 $product->setImage($imagePath);
 
             }
-
-            $product->setPrix($prix);
 
             if ($this->isGranted('ROLE_ADMIN')) {
                 $fournisseur = $userRepository->findOneBy([
@@ -167,7 +170,7 @@ class ProductController extends AbstractController
                 ]);
 
                 if (!$fournisseur) {
-                    return new Response('invalid_fournisseur', Response::HTTP_UNPROCESSABLE_ENTITY);
+                    return $this->json(['success' => false, 'message' => 'Le fournisseur sélectionné est invalide.'], Response::HTTP_UNPROCESSABLE_ENTITY);
                 }
                 $product->setFournisseur($fournisseur);
             } else {
@@ -180,9 +183,12 @@ class ProductController extends AbstractController
                 $imageUploader->delete($oldImage);
             }
 
-            return new Response('success');
+            return $this->json([
+                'success' => true,
+                'message' => 'Produit modifié avec succès.',
+                'redirectUrl' => $this->generateUrl('product_list'),
+            ]);        
         }
-
         $fournisseurs = [];
 
         if ($this->isGranted('ROLE_ADMIN')) {
@@ -255,12 +261,12 @@ class ProductController extends AbstractController
         }
 
         if (!$this->isCsrfTokenValid('delete-product-' . $product->getId(), $request->request->get('_token'))) {
-            return new Response('invalid_csrf_token', Response::HTTP_FORBIDDEN);
+            return $this->json(['success' => false, 'message' => 'Votre session a expiré. Rechargez la page.'], Response::HTTP_FORBIDDEN);
         }
 
         $product->setIsDeleted(true);
         $entityManager->flush();
 
-        return new Response('success');
+        return $this->json(['success' => true, 'message' => 'Produit supprimé avec succès.']);
     }
 }

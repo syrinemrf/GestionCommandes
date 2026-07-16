@@ -6,9 +6,13 @@ use App\Repository\UserRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
+#[UniqueEntity(fields: ['email'], message: 'Cet email est déjà utilisé.')]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
@@ -17,18 +21,25 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank(message: 'Le nom est obligatoire.')]
+    #[Assert\Length(max: 255)]
     private ?string $nom = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank(message: 'Le prénom est obligatoire.')]
+    #[Assert\Length(max: 255)]
     private ?string $prenom = null;
 
     #[ORM\Column(length: 255, unique: true)]
+    #[Assert\NotBlank(message: 'L’email est obligatoire.')]
+    #[Assert\Email(message: 'L’adresse email est invalide.')]
     private ?string $email = null;
 
     #[ORM\Column(length: 255)]
     private ?string $password = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\Choice(choices: ['ROLE_ADMIN', 'ROLE_FOURNISSEUR'], message: 'Le rôle sélectionné est invalide.')]
     private ?string $role = null;
 
     #[ORM\Column(length: 255, nullable: true)]
@@ -141,6 +152,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->isDeleted = $isDeleted;
 
         return $this;
+    }
+
+    #[Assert\Callback]
+    public function validateSupplierLabel(ExecutionContextInterface $context): void
+    {
+        if ($this->role === 'ROLE_FOURNISSEUR' && trim((string) $this->libelle) === '') {
+            $context
+                ->buildViolation('Le libellé du fournisseur est obligatoire.')
+                ->atPath('libelle')
+                ->addViolation();
+        }
     }
 
 }

@@ -56,12 +56,17 @@ $(document).ready(function () {
             data: formData,
             processData: false,
             contentType: false,
+            dataType: 'json',
 
             success: function (response) {
-                response = response.trim();
+                if (response.success) {
+                    showToast(response.message || form.data('success-message'));
 
-                if (response === 'success') {
-                    alert(form.data('success-message'));
+                    if (response.redirectUrl) {
+                        setTimeout(function () {
+                            window.location.href = response.redirectUrl;
+                        }, 800);
+                    }
 
                     if (form.data('reset-form')) {
                         form[0].reset();
@@ -74,13 +79,11 @@ $(document).ready(function () {
                             previewObjectUrl = null;
                         }
                     }
-                } else {
-                    alert(response || "Une erreur est survenue.");
                 }
             },
 
             error: function (xhr) {
-                alert(xhr.responseText || "Une erreur est survenue.");
+                showToast(xhr.responseJSON?.message || "Une erreur est survenue.", 'error');
             },
 
             complete: function () {
@@ -163,11 +166,11 @@ $(document).ready(function () {
 
     }
 
-    $(document).on('submit', '.delete-form', function (e) {
+    $(document).on('submit', '.delete-form', async function (e) {
 
         e.preventDefault();
 
-        if (!confirm("Voulez-vous vraiment supprimer ce produit ?")) {
+        if (!await confirmAction("Voulez-vous vraiment supprimer ce produit ?")) {
             return;
         }
 
@@ -177,18 +180,17 @@ $(document).ready(function () {
             type: "POST",
             url: this.action,
             data: form.serialize(),
+            dataType: 'json',
 
             success: function (response) {
-                response = response.trim();
-
-                if (response === 'success') {
+                if (response.success) {
                     $('#products-table').DataTable().ajax.reload(null, false);
-                    alert("Produit supprimé avec succès.");
+                    showToast(response.message);
                 }
             },
 
-            error: function () {
-                alert("Une erreur est survenue.");
+            error: function (xhr) {
+                showToast(xhr.responseJSON?.message || "Une erreur est survenue.", 'error');
             }
         });
 
