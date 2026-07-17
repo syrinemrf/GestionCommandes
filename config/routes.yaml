@@ -41,11 +41,6 @@ user_list:
     controller: App\Controller\UserController::list
     methods: [GET]
 
-user_data:
-    path: /users/data
-    controller: App\Controller\UserController::data
-    methods: [GET]
-
 user_delete:
     path: /users/delete/{id}
     controller: App\Controller\UserController::delete
@@ -55,11 +50,6 @@ user_delete:
 product_list:
     path: /products
     controller: App\Controller\ProductController::list
-    methods: [GET]
-
-product_data:
-    path: /products/data
-    controller: App\Controller\ProductController::data
     methods: [GET]
 
 product_add:

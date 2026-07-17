@@ -8,7 +8,6 @@ use App\Service\ProductImageUploader;
 use App\Service\ProductService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -16,8 +15,43 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class ProductController extends AbstractController
 {
-    public function list(): Response
+    public function list(
+        Request $request,
+        ProductRepository $productRepository,
+    ): Response
     {
+        if ($request->query->getBoolean('datatable')) {
+            $start = $request->query->getInt('start', 0);
+            $length = $request->query->getInt('length', 20);
+            $search = $request->query->all('search')['value'] ?? '';
+
+            $fournisseur = $this->isGranted('ROLE_ADMIN')
+                ? null
+                : $this->getUser();
+
+            $result = $productRepository->findForDatatable(
+                $start,
+                $length,
+                $search,
+                $fournisseur,
+            );
+
+            foreach ($result['rows'] as &$row) {
+                $row['actions'] = $this->renderView(
+                    'product/_row_actions.html.twig',
+                    ['product' => ['id' => $row['id']]]
+                );
+            }
+            unset($row);
+
+            return $this->json([
+                'draw' => $request->query->getInt('draw', 1),
+                'recordsTotal' => (int) $result['total'],
+                'recordsFiltered' => (int) $result['filtered'],
+                'data' => $result['rows'],
+            ]);
+        }
+
         return $this->render('product/list.html.twig');
     }
 
@@ -181,45 +215,6 @@ class ProductController extends AbstractController
         return $this->render('product/edit.html.twig', [
             'product' => $product,
             'fournisseurs' => $fournisseurs,
-        ]);
-    }
-
-    public function data(
-        Request $request,
-        ProductRepository $productRepository
-    ): JsonResponse {
-        $start = $request->query->getInt('start', 0);
-        $length = $request->query->getInt('length', 20);
-        $search = $request->query->all('search')['value'] ?? '';
-
-        $fournisseur = null;
-
-        if (!$this->isGranted('ROLE_ADMIN')) {
-            $fournisseur = $this->getUser();
-        }
-
-        $result = $productRepository->findForDatatable($start, $length, $search, $fournisseur);
-
-        $html = 'product/_row_actions.html.twig';
-
-        foreach ($result['rows'] as &$row) {
-            $row['actions'] = $this->renderView(
-                $html,
-                [
-                    'product' => [
-                        'id' => $row['id'],
-                    ],
-                ]
-            );
-        }
-
-        unset($row);
-
-        return $this->json([
-            'draw' => $request->query->getInt('draw', 1),
-            'recordsTotal' => (int) $result['total'],
-            'recordsFiltered' => (int) $result['filtered'],
-            'data' => $result['rows'],
         ]);
     }
 

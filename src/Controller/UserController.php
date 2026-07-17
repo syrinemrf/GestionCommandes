@@ -10,7 +10,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -152,56 +151,50 @@ class UserController extends AbstractController
     }
 
     #[IsGranted('ROLE_ADMIN')]
-    public function list(): Response
+    public function list(
+        Request $request,
+        UserRepository $userRepository,
+    ): Response
     {
+        if ($request->query->getBoolean('datatable')) {
+            $start = $request->query->getInt('start', 0);
+            $length = $request->query->getInt('length', 20);
+            $search = $request->query->all('search')['value'] ?? '';
+
+            $result = $userRepository->findForDatatable($start, $length, $search);
+
+            foreach ($result['rows'] as &$row) {
+                $row['role_badge'] = $this->renderView(
+                    'user/_role_badge.html.twig',
+                    [
+                        'role_class' => $row['role'] === 'ROLE_ADMIN'
+                            ? 'role-admin'
+                            : 'role-fournisseur',
+                        'role_label' => $row['role'] === 'ROLE_ADMIN'
+                            ? 'Administrateur'
+                            : 'Fournisseur',
+                    ]
+                );
+
+                $row['actions'] = $this->renderView(
+                    'user/_row_actions.html.twig',
+                    ['user' => ['id' => $row['id']]]
+                );
+            }
+            unset($row);
+
+            return $this->json([
+                'draw' => $request->query->getInt('draw', 1),
+                'recordsTotal' => (int) $result['total'],
+                'recordsFiltered' => (int) $result['filtered'],
+                'data' => $result['rows'],
+            ]);
+        }
+
         return $this->render(
             'user/list.html.twig',
             []
         );
-    }
-
-    #[IsGranted('ROLE_ADMIN')]
-    public function data(Request $request, UserRepository $userRepository): JsonResponse
-    {
-        $start  = $request->query->getInt('start', 0);
-        $length = $request->query->getInt('length', 20);
-        $search = $request->query->all('search')['value'] ?? '';
-
-        $result = $userRepository->findForDatatable($start, $length, $search);
-
-        foreach ($result['rows'] as &$row) {
-
-            $row['role_badge'] = $this->renderView(
-                'user/_role_badge.html.twig',
-                [
-                    'role_class' => $row['role'] === 'ROLE_ADMIN'
-                        ? 'role-admin'
-                        : 'role-fournisseur',
-
-                    'role_label' => $row['role'] === 'ROLE_ADMIN'
-                        ? 'Administrateur'
-                        : 'Fournisseur',
-                ]
-            );
-
-            $row['actions'] = $this->renderView(
-                'user/_row_actions.html.twig',
-                [
-                    'user' => [
-                        'id' => $row['id']
-                    ]
-                ]
-            );
-
-        }
-        unset($row);
-
-        return $this->json([
-            'draw' => $request->query->getInt('draw'),
-            'recordsTotal' => $result['total'],
-            'recordsFiltered' => $result['filtered'],
-            'data' => $result['rows'],
-        ]);
     }
 
     #[IsGranted('ROLE_ADMIN')]

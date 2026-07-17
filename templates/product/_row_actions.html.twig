@@ -8,25 +8,13 @@
 
     </a>
 
-    <form
-        method="POST"
-        action="{{ path('product_delete', {'id': product.id}) }}"
-        class="delete-form"
-        data-product-id="{{ product.id }}">
-
-        <input
-            type="hidden"
-            name="_token"
-            value="{{ csrf_token('delete-product-' ~ product.id) }}">
-
-        <button
-            type="submit"
-            class="table-action table-action-danger">
+    <a
+        href="{{ path('product_delete', {'id': product.id}) }}"
+        class="table-action table-action-danger delete-product"
+        data-token="{{ csrf_token('delete-product-' ~ product.id) }}">
 
             Supprimer
 
-        </button>
-
-    </form>
+    </a>
 
 </div>

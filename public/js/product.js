@@ -56,7 +56,6 @@ $(document).ready(function () {
             data: formData,
             processData: false,
             contentType: false,
-            dataType: 'json',
 
             success: function (response) {
                 if (response.success) {
@@ -165,7 +164,6 @@ $(document).ready(function () {
             ajax: {
                 url: productsDataUrl,
                 type: 'GET',
-                dataType: 'json',
                 error: function (xhr) {
                     const message = xhr.responseJSON?.message
                         || 'Impossible de charger la liste des produits.';
@@ -179,7 +177,7 @@ $(document).ready(function () {
 
     }
 
-    $(document).on('submit', '.delete-form', async function (e) {
+    $(document).on('click', '.delete-product', async function (e) {
 
         e.preventDefault();
 
@@ -187,13 +185,14 @@ $(document).ready(function () {
             return;
         }
 
-        const form = $(this);
+        const link = $(this);
 
         $.ajax({
             type: "POST",
-            url: this.action,
-            data: form.serialize(),
-            dataType: 'json',
+            url: link.attr('href'),
+            data: {
+                _token: link.data('token')
+            },
 
             success: function (response) {
                 if (response.success) {

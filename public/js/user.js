@@ -19,7 +19,6 @@ $(document).ready(function () {
                 email: emailInput.val(),
                 id: emailInput.data('user-id')
             },
-            dataType: 'json',
 
             success: function (response) {
                 if (!response.available) {
@@ -46,7 +45,6 @@ $(document).ready(function () {
             type: "POST",
             url: this.action,
             data: form.serialize(),
-            dataType: 'json',
 
             success: function (response) {
                 if (response.success) {
@@ -106,7 +104,7 @@ $(document).ready(function () {
 
     }
 
-    $(document).on('submit', '.delete-form', async function (e) {
+    $(document).on('click', '.delete-user', async function (e) {
 
         e.preventDefault();
 
@@ -114,14 +112,14 @@ $(document).ready(function () {
             return;
         }
 
-        const form = $(this);
-        const userId = form.data('user-id');
+        const link = $(this);
 
         $.ajax({
             type: "POST",
-            url: this.action,
-            data: form.serialize(),
-            dataType: 'json',
+            url: link.attr('href'),
+            data: {
+                _token: link.data('token')
+            },
 
             success: function (response) {
                 if (response.success) {
