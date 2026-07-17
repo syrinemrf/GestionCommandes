@@ -96,7 +96,9 @@ $(document).ready(function () {
     if ($('#products-table').length) {
 
         const productsTable = $('#products-table');
-        const placeholderImage = productsTable.data('placeholder'); 
+        const productsDataUrl = productsTable.data('url');
+        const placeholderImage = productsTable.data('placeholder');
+        const productImagesBase = String(productsTable.data('image-base')).replace(/\/$/, '');
 
         const columns = [
 
@@ -111,7 +113,9 @@ $(document).ready(function () {
 
                     const image = document.createElement('img');
 
-                    image.src = data || placeholderImage;
+                    image.src = data
+                        ? productImagesBase + '/' + String(data).replace(/^\//, '')
+                        : placeholderImage;
                     image.className = 'product-image';
                     image.alt = data
                         ? 'Image du produit'
@@ -152,14 +156,23 @@ $(document).ready(function () {
         });
 
 
-        $('#products-table').DataTable({
+        productsTable.DataTable({
             processing: true,
             serverSide: true,
             pageLength: 5,
             lengthChange: false,
-            ajax: $('#products-table').data('url'),
-
             
+            ajax: {
+                url: productsDataUrl,
+                type: 'GET',
+                dataType: 'json',
+                error: function (xhr) {
+                    const message = xhr.responseJSON?.message
+                        || 'Impossible de charger la liste des produits.';
+
+                    showToast(message, 'error');
+                }
+            },
 
             columns: columns
         });

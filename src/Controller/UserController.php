@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
+use App\Service\UserService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -42,40 +43,19 @@ class UserController extends AbstractController
         EntityManagerInterface $entityManager,
         UserPasswordHasherInterface $passwordHasher,
         ValidatorInterface $validator,
+        UserService $userService,
     ): Response
     {
 
         if ($request->isMethod('POST')) {
-            if (!$this->isCsrfTokenValid('user-add', $request->request->get('_token'))) {
+            if (!$userService->isCsrfTokenValid('user-add', $request->request->get('_token'))) {
                 return $this->json(['success' => false, 'message' => 'Votre session a expiré. Rechargez la page.'], Response::HTTP_FORBIDDEN);
             }
 
-            $nom = trim((string) $request->request->get('nom'));
-            $prenom = trim((string) $request->request->get('prenom'));
-            $email = trim((string) $request->request->get('email'));
             $password = (string) $request->request->get('password');
-            $role = (string) $request->request->get('role');
 
             $user = new User();
-
-            $user->setNom(
-                $nom
-            );
-
-            $user->setPrenom(
-                $prenom
-            );
-
-            $user->setEmail(
-                $email
-            );
-
-            $user->setRole($role);
-            $user->setLibelle(
-                $role === 'ROLE_FOURNISSEUR'
-                    ? trim((string) $request->request->get('libelle'))
-                    : null
-            );
+            $userService->fillFromRequest($user, $request);
 
             $errors = $validator->validate($user);
             if (count($errors) > 0) {
@@ -119,7 +99,8 @@ class UserController extends AbstractController
         EntityManagerInterface $entityManager,
         UserPasswordHasherInterface $passwordHasher,
         UserRepository $userRepository,
-        ValidatorInterface $validator
+        ValidatorInterface $validator,
+        UserService $userService,
     ): Response
     {
         $user = $userRepository->find($id);
@@ -129,31 +110,11 @@ class UserController extends AbstractController
         }
 
         if ($request->isMethod('POST')) {
-            if (!$this->isCsrfTokenValid('user-edit-' . $user->getId(), $request->request->get('_token'))) {
+            if (!$userService->isCsrfTokenValid('user-edit-' . $user->getId(), $request->request->get('_token'))) {
                 return $this->json(['success' => false, 'message' => 'Votre session a expiré. Rechargez la page.'], Response::HTTP_FORBIDDEN);
             }
 
-            $email = $request->request->get('email');
-            $nom = trim((string) $request->request->get('nom'));
-            $prenom = trim((string) $request->request->get('prenom'));
-            $role = (string) $request->request->get('role');
-
-            $user->setNom(
-                $nom
-            );
-
-            $user->setPrenom(
-                $prenom
-            );
-
-            $user->setEmail($email);
-
-            $user->setRole($role);
-            $user->setLibelle(
-                $role === 'ROLE_FOURNISSEUR'
-                    ? trim((string) $request->request->get('libelle'))
-                    : null
-            );
+            $userService->fillFromRequest($user, $request);
 
             $errors = $validator->validate($user);
             if (count($errors) > 0) {
@@ -248,7 +209,8 @@ class UserController extends AbstractController
         int $id,
         Request $request,
         EntityManagerInterface $entityManager,
-        UserRepository $userRepository
+        UserRepository $userRepository,
+        UserService $userService,
     ): Response
     {
         $user = $userRepository->find($id);
@@ -257,7 +219,7 @@ class UserController extends AbstractController
             return new Response('user_not_found', 404);
         }
 
-        if (!$this->isCsrfTokenValid('delete-user-' . $user->getId(), $request->request->get('_token'))) {
+        if (!$userService->isCsrfTokenValid('delete-user-' . $user->getId(), $request->request->get('_token'))) {
             return $this->json(['success' => false, 'message' => 'Votre session a expiré. Rechargez la page.'], Response::HTTP_FORBIDDEN);
         }
 

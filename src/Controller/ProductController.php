@@ -4,8 +4,8 @@ namespace App\Controller;
 
 use App\Entity\Product;
 use App\Repository\ProductRepository;
-use App\Repository\UserRepository;
 use App\Service\ProductImageUploader;
+use App\Service\ProductService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -24,51 +24,28 @@ class ProductController extends AbstractController
     public function add(
         Request $request,
         EntityManagerInterface $entityManager,
-        UserRepository $userRepository,
+        ProductService $productService,
         ProductImageUploader $imageUploader,
         ValidatorInterface $validator
     ): Response {
 
         if ($request->isMethod('POST')) {
-            if (!$this->isCsrfTokenValid('product-add', $request->request->get('_token'))) {
+            if (!$productService->isCsrfTokenValid('product-add', $request->request->get('_token'))) {
                 return $this->json(['success' => false, 'message' => 'Votre session a expiré. Rechargez la page.'], Response::HTTP_FORBIDDEN);
             }
 
-            $libelle = trim((string) $request->request->get('libelle'));
-            $description = trim((string) $request->request->get('description'));
-            $prix = str_replace(',', '.', trim((string) $request->request->get('prix')));
-
             $product = new Product();
-
-            $product->setLibelle($libelle);
-            $product->setDescription($description);
-            $product->setPrix($prix);
+            $productService->fillFromRequest($product, $request);
 
             $errors = $validator->validate($product);
             if (count($errors) > 0) {
                 return $this->json(['success' => false, 'message' => $errors[0]->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
             }
 
-            $imageFile = $request->files->get('image');
-
-            if ($imageFile) {
-
-                $imagePath = $imageUploader->upload($imageFile);
-
-                if ($imagePath === null) {
-                    return $this->json(['success' => false, 'message' => 'L’image doit être au format JPEG, PNG ou WebP et ne pas dépasser 5 Mo.'], Response::HTTP_UNPROCESSABLE_ENTITY);
-                }
-
-                $product->setImage($imagePath);
-
-            }
-
             if ($this->isGranted('ROLE_ADMIN')) {
-                $fournisseur = $userRepository->findOneBy([
-                    'id' => $request->request->getInt('fournisseur'),
-                    'role' => 'ROLE_FOURNISSEUR',
-                    'isDeleted' => false,
-                ]);
+                $fournisseur = $productService->findActiveFournisseur(
+                    $request->request->getInt('fournisseur')
+                );
 
                 if (!$fournisseur) {
                     return $this->json(['success' => false, 'message' => 'Le fournisseur sélectionné est invalide.'], Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -82,6 +59,21 @@ class ProductController extends AbstractController
                 $product->setFournisseur($user);
             }
 
+            $imageFile = $request->files->get('image');
+
+            if ($imageFile) {
+                $imagePath = $imageUploader->upload(
+                    $imageFile,
+                    $product->getFournisseur()->getId(),
+                );
+
+                if ($imagePath === null) {
+                    return $this->json(['success' => false, 'message' => 'L’image doit être au format JPEG, PNG ou WebP et ne pas dépasser 5 Mo.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+                }
+
+                $product->setImage($imagePath);
+            }
+
             $product->setIsDeleted(false);
 
             $entityManager->persist($product);
@@ -93,10 +85,7 @@ class ProductController extends AbstractController
         $fournisseurs = [];
 
         if ($this->isGranted('ROLE_ADMIN')) {
-            $fournisseurs = $userRepository->findBy([
-                'role' => 'ROLE_FOURNISSEUR',
-                'isDeleted' => false,
-            ]);
+            $fournisseurs = $productService->findActiveFournisseurs();
         }
 
         return $this->render('product/add.html.twig', [
@@ -108,7 +97,7 @@ class ProductController extends AbstractController
         int $id,
         Request $request,
         EntityManagerInterface $entityManager,
-        UserRepository $userRepository,
+        ProductService $productService,
         ProductRepository $productRepository,
         ProductImageUploader $imageUploader,
         ValidatorInterface $validator
@@ -125,21 +114,28 @@ class ProductController extends AbstractController
         }
 
         if ($request->isMethod('POST')) {
-            if (!$this->isCsrfTokenValid('product-edit-' . $product->getId(), $request->request->get('_token'))) {
+            if (!$productService->isCsrfTokenValid('product-edit-' . $product->getId(), $request->request->get('_token'))) {
                 return $this->json(['success' => false, 'message' => 'Votre session a expiré. Rechargez la page.'], Response::HTTP_FORBIDDEN);
             }
 
-            $libelle = trim((string) $request->request->get('libelle'));
-            $description = trim((string) $request->request->get('description'));
-            $prix = str_replace(',', '.', trim((string) $request->request->get('prix')));
-
-            $product->setLibelle($libelle);
-            $product->setDescription($description);
-            $product->setPrix($prix);
+            $productService->fillFromRequest($product, $request);
 
             $errors = $validator->validate($product);
             if (count($errors) > 0) {
                 return $this->json(['success' => false, 'message' => $errors[0]->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            if ($this->isGranted('ROLE_ADMIN')) {
+                $fournisseur = $productService->findActiveFournisseur(
+                    $request->request->getInt('fournisseur')
+                );
+
+                if (!$fournisseur) {
+                    return $this->json(['success' => false, 'message' => 'Le fournisseur sélectionné est invalide.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+                }
+                $product->setFournisseur($fournisseur);
+            } else {
+                $product->setFournisseur($this->getUser());
             }
 
             $oldImage = $product->getImage();
@@ -151,30 +147,17 @@ class ProductController extends AbstractController
             $imageFile = $request->files->get('image');
 
             if ($imageFile) {
-
-                $imagePath = $imageUploader->upload($imageFile);
+                $imagePath = $imageUploader->upload(
+                    $imageFile,
+                    $product->getFournisseur()->getId(),
+                );
 
                 if ($imagePath === null) {
                     return $this->json(['success' => false, 'message' => 'L’image doit être au format JPEG, PNG ou WebP et ne pas dépasser 5 Mo.'], Response::HTTP_UNPROCESSABLE_ENTITY);
                 }
 
                 $product->setImage($imagePath);
-
-            }
-
-            if ($this->isGranted('ROLE_ADMIN')) {
-                $fournisseur = $userRepository->findOneBy([
-                    'id' => $request->request->getInt('fournisseur'),
-                    'role' => 'ROLE_FOURNISSEUR',
-                    'isDeleted' => false,
-                ]);
-
-                if (!$fournisseur) {
-                    return $this->json(['success' => false, 'message' => 'Le fournisseur sélectionné est invalide.'], Response::HTTP_UNPROCESSABLE_ENTITY);
-                }
-                $product->setFournisseur($fournisseur);
-            } else {
-                $product->setFournisseur($this->getUser());
+                
             }
 
             $entityManager->flush();
@@ -192,10 +175,7 @@ class ProductController extends AbstractController
         $fournisseurs = [];
 
         if ($this->isGranted('ROLE_ADMIN')) {
-            $fournisseurs = $userRepository->findBy([
-                'role' => 'ROLE_FOURNISSEUR',
-                'isDeleted' => false,
-            ]);
+            $fournisseurs = $productService->findActiveFournisseurs();
         }
 
         return $this->render('product/edit.html.twig', [
@@ -247,7 +227,8 @@ class ProductController extends AbstractController
         int $id,
         Request $request,
         EntityManagerInterface $entityManager,
-        ProductRepository $productRepository
+        ProductRepository $productRepository,
+        ProductService $productService,
     ): Response {
 
         $product = $productRepository->find($id);
@@ -260,7 +241,7 @@ class ProductController extends AbstractController
             throw $this->createAccessDeniedException('Vous ne pouvez pas supprimer ce produit.');
         }
 
-        if (!$this->isCsrfTokenValid('delete-product-' . $product->getId(), $request->request->get('_token'))) {
+        if (!$productService->isCsrfTokenValid('delete-product-' . $product->getId(), $request->request->get('_token'))) {
             return $this->json(['success' => false, 'message' => 'Votre session a expiré. Rechargez la page.'], Response::HTTP_FORBIDDEN);
         }
 

@@ -97,7 +97,7 @@ Modifier un produit
                     <img
                         id="image-preview"
                         class="image-preview"
-                        src="{{ product.image ? asset(product.image) : '' }}"
+                        src="{{ product.image ? asset(product_images_public_path ~ '/' ~ product.image) : '' }}"
                         alt="Aperçu du produit">
 
                     <button

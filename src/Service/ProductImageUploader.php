@@ -3,17 +3,20 @@
 namespace App\Service;
 
 use Symfony\Component\HttpFoundation\File\UploadedFile;
-use Symfony\Component\HttpKernel\KernelInterface;
 
 class ProductImageUploader
 {
     private const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
-    public function __construct(private KernelInterface $kernel)
-    {
+    public function __construct(
+        private string $productImagesDirectory,
+    ) {
     }
 
-    public function upload(?UploadedFile $imageFile): ?string
+    public function upload(
+        ?UploadedFile $imageFile,
+        int $fournisseurId,
+    ): ?string
     {
         if (!$imageFile || !$imageFile->isValid()) {
             return null;
@@ -33,19 +36,29 @@ class ProductImageUploader
         }
 
         $newFilename = bin2hex(random_bytes(16)) . '.' . $extension;
-        $uploadDir = $this->kernel->getProjectDir() . '/public/uploads/products';
+        $uploadDirectory = $this->productImagesDirectory
+            . DIRECTORY_SEPARATOR
+            . $fournisseurId;
 
-        if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true) && !is_dir($uploadDir)) {
+        if (
+            !is_dir($uploadDirectory)
+            && !mkdir($uploadDirectory, 0755, true)
+            && !is_dir($uploadDirectory)
+        ) {
             return null;
         }
 
         try {
-            $imageFile->move($uploadDir, $newFilename);
+            $imageFile->move($uploadDirectory, $newFilename);
         } catch (\Throwable) {
             return null;
         }
 
-        return 'uploads/products/' . $newFilename;
+        return sprintf(
+            '%d/%s',
+            $fournisseurId,
+            $newFilename,
+        );
     }
 
     public function delete(?string $imagePath): void
@@ -54,13 +67,24 @@ class ProductImageUploader
             return;
         }
 
-        $uploadDirectory = realpath($this->kernel->getProjectDir() . '/public/uploads/products');
-        $file = realpath($this->kernel->getProjectDir() . '/public/' . $imagePath);
+        $uploadDirectory = realpath($this->productImagesDirectory);
+
+        if ($uploadDirectory === false) {
+            return;
+        }
+
+        $file = realpath(
+            $this->productImagesDirectory
+            . DIRECTORY_SEPARATOR
+            . str_replace('/', DIRECTORY_SEPARATOR, $imagePath)
+        );
 
         if (
-            $uploadDirectory !== false
-            && $file !== false
-            && str_starts_with($file, $uploadDirectory . DIRECTORY_SEPARATOR)
+            $file !== false
+            && str_starts_with(
+                $file,
+                $uploadDirectory . DIRECTORY_SEPARATOR
+            )
             && is_file($file)
         ) {
             unlink($file);

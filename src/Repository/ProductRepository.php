@@ -48,7 +48,7 @@ class ProductRepository extends ServiceEntityRepository
                 'id' => $product->getId(),
                 'libelle' => $product->getLibelle(),
                 'description' => $product->getDescription(),
-                'image' => $product->getImage() ? '/' . $product->getImage() : null,
+                'image' => $product->getImage(),
                 'prix' => $product->getPrix(),
                 'fournisseur' => $product->getFournisseur()
                     ? $product->getFournisseur()->getPrenom()
