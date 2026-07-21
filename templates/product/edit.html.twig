@@ -141,12 +141,120 @@ Modifier un produit
 
 </div>
 
+<div class="form-card product-variations-card">
+
+            <div class="form-header">
+                <div>
+                    <h2>Variations</h2>
+                    <p>
+                        Stock total :
+                        <strong id="product-stock-total">{{ stockTotal }}</strong>
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    class="btn-primary"
+                    id="add-variation-button">
+                    Ajouter une variation
+                </button>
+            </div>
+
+            <div class="table-wrapper">
+                <table
+                    id="variations-table"
+                    class="user-table variation-table"
+                    data-url="{{ path('product_variation_list', {productId: product.id}) }}">
+                    <thead>
+                        <tr>
+                            <th>Libellé</th>
+                            <th>Caractéristiques</th>
+                            <th>Référence</th>
+                            <th>Supplément</th>
+                            <th>Prix final</th>
+                            <th>Stock</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+
+    </div>
+
+    <form
+        id="variation-form"
+        method="post"
+        action="{{ path('product_variation_add', {productId: product.id}) }}"
+        data-add-url="{{ path('product_variation_add', {productId: product.id}) }}"
+        data-add-token="{{ csrf_token('product-variation-add-' ~ product.id) }}"
+        hidden>
+        <input type="hidden" id="variation-token" name="_token" value="{{ csrf_token('product-variation-add-' ~ product.id) }}">
+
+        <div class="variation-form-header">
+            <h3 id="variation-form-title">Nouvelle variation</h3>
+            <p>Renseignez une ligne de stock et ses caractéristiques.</p>
+        </div>
+
+        <div class="form-group">
+            <label for="variation-libelle">Libellé</label>
+            <input type="text" id="variation-libelle" name="libelle" placeholder="Exemple : Rouge - Taille M" maxlength="255" required>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="variation-reference">Référence</label>
+                <input type="text" id="variation-reference" name="reference" placeholder="Exemple : TSH-ROU-M" maxlength="100">
+            </div>
+            <div class="form-group">
+                <label for="variation-prix">Supplément de prix</label>
+                <input type="text" id="variation-prix" name="prixSupplement" value="0.000" inputmode="decimal" required>
+            </div>
+            <div class="form-group">
+                <label for="variation-stock">Stock</label>
+                <input type="number" id="variation-stock" name="stock" value="0" min="0" required>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="attribute-section-header">
+                <label>Caractéristiques</label>
+                <button type="button" class="btn-secondary" id="add-attribute-button">
+                    Ajouter une caractéristique
+                </button>
+            </div>
+
+            <div id="attribute-list"></div>
+        </div>
+
+        <div class="form-actions">
+            <button type="button" class="btn-secondary" id="cancel-variation">Annuler</button>
+            <button type="submit" class="btn-primary">Enregistrer la variation</button>
+        </div>
+    </form>
+
+    <template id="attribute-row-template">
+        <div class="attribute-row">
+            <input type="text" name="attribut_nom[]" placeholder="Exemple : Couleur" aria-label="Nom de la caractéristique" required>
+            <input type="text" name="attribut_valeur[]" placeholder="Exemple : Rouge" aria-label="Valeur de la caractéristique" required>
+            <button type="button" class="remove-attribute-button" aria-label="Supprimer cette caractéristique">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+    </template>
+</div>
+
 {% endblock %}
 
 {% block javascripts %}
     {{ parent() }}
 
     <script src="{{ asset('vendor/jquery/jquery-3.7.1.min.js') }}"></script>
+    <script src="{{ asset('vendor/datatables/dataTables.min.js') }}"></script>
     <script src="{{ asset('js/app.js') }}"></script>
     <script src="{{ asset('js/product.js') }}"></script>
+{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ asset('vendor/datatables/dataTables.dataTables.min.css') }}">
 {% endblock %}

@@ -1,0 +1,9 @@
+<div class="variation-attributes">
+    {% for nom, valeur in variation.attributs %}
+        <span class="variation-attribute">
+            <strong>{{ nom }} :</strong> {{ valeur }}
+        </span>
+    {% else %}
+        <span class="variation-no-attribute">Aucune caractéristique</span>
+    {% endfor %}
+</div>

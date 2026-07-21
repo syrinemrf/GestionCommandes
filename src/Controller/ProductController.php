@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Product;
 use App\Repository\ProductRepository;
+use App\Repository\ProductVariationRepository;
 use App\Service\ProductImageUploader;
 use App\Service\ProductService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -133,6 +134,7 @@ class ProductController extends AbstractController
         EntityManagerInterface $entityManager,
         ProductService $productService,
         ProductRepository $productRepository,
+        ProductVariationRepository $variationRepository,
         ProductImageUploader $imageUploader,
         ValidatorInterface $validator
     ): Response {
@@ -215,6 +217,7 @@ class ProductController extends AbstractController
         return $this->render('product/edit.html.twig', [
             'product' => $product,
             'fournisseurs' => $fournisseurs,
+            'stockTotal' => $variationRepository->getTotalStock($product),
         ]);
     }
 

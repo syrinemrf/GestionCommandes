@@ -5,6 +5,9 @@ namespace App\Entity;
 use App\Repository\ProductRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
+
 
 #[ORM\Entity(repositoryClass: ProductRepository::class)]
 class Product
@@ -38,6 +41,36 @@ class Product
 
     #[ORM\Column(nullable: true)]
     private ?bool $isDeleted = false;
+
+    #[ORM\OneToMany(
+        mappedBy: 'product',
+        targetEntity: ProductVariation::class
+    )]
+    #[ORM\OrderBy(['id' => 'ASC'])]
+    private Collection $variations;
+
+    public function __construct()
+    {
+        $this->variations = new ArrayCollection();
+    }
+
+    /**
+     * @return Collection<int, ProductVariation>
+     */
+    public function getVariations(): Collection
+    {
+        return $this->variations;
+    }
+
+    public function addVariation(ProductVariation $variation): static
+    {
+        if (!$this->variations->contains($variation)) {
+            $this->variations->add($variation);
+            $variation->setProduct($this);
+        }
+
+        return $this;
+    }
 
     public function getId(): ?int
     {
@@ -114,5 +147,31 @@ class Product
         $this->isDeleted = $isDeleted;
 
         return $this;
+    }
+
+    public function getStockTotal(): int
+    {
+        $total = 0;
+
+        foreach ($this->variations as $variation) {
+            if (!$variation->isDeleted()) {
+                $total += $variation->getStock();
+            }
+        }
+
+        return $total;
+    }
+
+    /**
+     * @return ProductVariation[]
+     */
+    public function getActiveVariations(): array
+    {
+        return $this->variations
+            ->filter(
+                static fn (ProductVariation $variation): bool =>
+                    !$variation->isDeleted()
+            )
+            ->toArray();
     }
 }

@@ -66,3 +66,25 @@ product_delete:
     path: /products/delete/{id}
     controller: App\Controller\ProductController::delete
     methods: [POST]
+
+# Product variations
+product_variation_list:
+    path: /products/{productId}/variations
+    controller: App\Controller\ProductVariationController::list
+    methods: [GET]
+
+product_variation_add:
+    path: /products/{productId}/variations/add
+    controller: App\Controller\ProductVariationController::add
+    methods: [POST]
+
+product_variation_edit:
+    path: /product-variations/{id}/edit
+    controller: App\Controller\ProductVariationController::edit
+    methods: [POST]
+
+product_variation_delete:
+    path: /product-variations/{id}/delete
+    controller: App\Controller\ProductVariationController::delete
+    methods: [POST]
+

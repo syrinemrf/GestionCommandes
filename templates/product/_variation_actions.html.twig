@@ -1,0 +1,20 @@
+<div class="table-actions">
+    <button
+        type="button"
+        class="table-action edit-variation-button"
+        data-variation-id="{{ variation.id }}"
+        data-edit-url="{{ path('product_variation_edit', {id: variation.id}) }}"
+        data-edit-token="{{ csrf_token('product-variation-edit-' ~ variation.id) }}"
+        data-libelle="{{ variation.libelle }}"
+        data-reference="{{ variation.reference }}"
+        data-prix-supplement="{{ variation.prixSupplement }}"
+        data-stock="{{ variation.stock }}"
+        data-attributs="{{ variation.attributs|json_encode|e('html_attr') }}">
+        Modifier
+    </button>
+
+    <form method="post" action="{{ path('product_variation_delete', {id: variation.id}) }}" class="delete-variation-form">
+        <input type="hidden" name="_token" value="{{ csrf_token('product-variation-delete-' ~ variation.id) }}">
+        <button type="submit" class="table-action table-action-danger">Supprimer</button>
+    </form>
+</div>
