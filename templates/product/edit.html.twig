@@ -181,13 +181,18 @@ Modifier un produit
 
     </div>
 
-    <form
-        id="variation-form"
-        method="post"
-        action="{{ path('product_variation_add', {productId: product.id}) }}"
-        data-add-url="{{ path('product_variation_add', {productId: product.id}) }}"
-        data-add-token="{{ csrf_token('product-variation-add-' ~ product.id) }}"
-        hidden>
+<div id="variation-modal" class="variation-modal" role="dialog" aria-modal="true" aria-labelledby="variation-form-title" hidden>
+    <div class="variation-modal-dialog">
+        <button type="button" class="variation-modal-close" id="close-variation-modal" aria-label="Fermer">
+            <i class="bi bi-x-lg"></i>
+        </button>
+
+        <form
+            id="variation-form"
+            method="post"
+            action="{{ path('product_variation_add', {productId: product.id}) }}"
+            data-add-url="{{ path('product_variation_add', {productId: product.id}) }}"
+            data-add-token="{{ csrf_token('product-variation-add-' ~ product.id) }}">
         <input type="hidden" id="variation-token" name="_token" value="{{ csrf_token('product-variation-add-' ~ product.id) }}">
 
         <div class="variation-form-header">
@@ -217,7 +222,10 @@ Modifier un produit
 
         <div class="form-group">
             <div class="attribute-section-header">
-                <label>Caractéristiques</label>
+                <div>
+                    <label>Caractéristiques <small>(facultatif)</small></label>
+                    <p class="attribute-help">Laissez vide pour afficher « Standard ».</p>
+                </div>
                 <button type="button" class="btn-secondary" id="add-attribute-button">
                     Ajouter une caractéristique
                 </button>
@@ -230,18 +238,19 @@ Modifier un produit
             <button type="button" class="btn-secondary" id="cancel-variation">Annuler</button>
             <button type="submit" class="btn-primary">Enregistrer la variation</button>
         </div>
-    </form>
-
-    <template id="attribute-row-template">
-        <div class="attribute-row">
-            <input type="text" name="attribut_nom[]" placeholder="Exemple : Couleur" aria-label="Nom de la caractéristique" required>
-            <input type="text" name="attribut_valeur[]" placeholder="Exemple : Rouge" aria-label="Valeur de la caractéristique" required>
-            <button type="button" class="remove-attribute-button" aria-label="Supprimer cette caractéristique">
-                <i class="bi bi-x-lg"></i>
-            </button>
-        </div>
-    </template>
+        </form>
+    </div>
 </div>
+
+<template id="attribute-row-template">
+    <div class="attribute-row">
+        <input type="text" name="attribut_nom[]" placeholder="Exemple : Couleur" aria-label="Nom de la caractéristique">
+        <input type="text" name="attribut_valeur[]" placeholder="Exemple : Rouge" aria-label="Valeur de la caractéristique">
+        <button type="button" class="remove-attribute-button" aria-label="Supprimer cette caractéristique">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+</template>
 
 {% endblock %}
 

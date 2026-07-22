@@ -77,15 +77,52 @@
 .variation-attributes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .variation-attribute { padding: 6px 10px; border-radius: 999px; background: #e0f2fe; color: #075985; font-size: 13px; }
 .variation-no-attribute { color: #64748b; font-size: 13px; }
+.variation-standard { display: inline-block; padding: 6px 10px; border-radius: 999px; background: #f1f5f9; color: #475569; font-size: 13px; font-weight: 600; }
 .variation-table { min-width: 1050px; }
 .variation-table td { vertical-align: middle; }
 .variation-table .variation-attributes { margin-top: 0; min-width: 210px; }
 .variation-table .table-actions { flex-wrap: nowrap; }
-#variation-form { margin-top: 24px; padding-top: 24px; border-top: 1px solid #e2e8f0; }
-#variation-form[hidden] { display: none; }
+.variation-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(15, 23, 42, 0.6);
+}
+.variation-modal[hidden] { display: none; }
+.variation-modal-dialog {
+    position: relative;
+    width: min(820px, 100%);
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    padding: 30px;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.3);
+}
+.variation-modal-close {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    width: 38px;
+    height: 38px;
+    border: 0;
+    border-radius: 50%;
+    background: #f1f5f9;
+    color: #334155;
+    cursor: pointer;
+}
+.modal-open { overflow: hidden; }
+#variation-form { margin: 0; }
 .variation-form-header { margin-bottom: 22px; }
 .attribute-section-header,
 .form-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.attribute-section-header label { margin-bottom: 0; }
+.attribute-section-header label small { color: #64748b; font-weight: 500; }
+.attribute-help { margin: 5px 0 0; color: #64748b; font-size: 13px; }
 .attribute-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; margin-bottom: 10px; }
 .attribute-row input,
 #variation-form input[type="number"] { min-width: 0; padding: 12px 14px; border: 1px solid var(--color-gray-border); border-radius: 8px; font-size: 14px; }

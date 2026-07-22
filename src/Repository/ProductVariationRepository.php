@@ -98,5 +98,39 @@ class ProductVariationRepository extends ServiceEntityRepository
             ->getSingleScalarResult();
     }
 
+    /**
+     * @param int[] $productIds
+     * @return array<int, array{stockTotal: int, hasPriceSupplement: bool}>
+     */
+    public function getSummariesByProductIds(array $productIds): array
+    {
+        if ($productIds === []) {
+            return [];
+        }
+
+        $rows = $this->createQueryBuilder('variation')
+            ->select('IDENTITY(variation.product) AS productId')
+            ->addSelect('COALESCE(SUM(variation.stock), 0) AS stockTotal')
+            ->addSelect('MAX(variation.prixSupplement) AS maxPriceSupplement')
+            ->andWhere('IDENTITY(variation.product) IN (:productIds)')
+            ->andWhere('variation.isDeleted = :deleted')
+            ->setParameter('productIds', $productIds)
+            ->setParameter('deleted', false)
+            ->groupBy('variation.product')
+            ->getQuery()
+            ->getArrayResult();
+
+        $summaries = [];
+
+        foreach ($rows as $row) {
+            $summaries[(int) $row['productId']] = [
+                'stockTotal' => (int) $row['stockTotal'],
+                'hasPriceSupplement' => (float) $row['maxPriceSupplement'] > 0,
+            ];
+        }
+
+        return $summaries;
+    }
+
     
 }

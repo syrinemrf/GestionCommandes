@@ -131,9 +131,21 @@ $(document).ready(function () {
 
             {
                 data: 'prix',
-                render: function (data) {
-                    return parseFloat(data).toFixed(3) + ' TND';
+                render: function (data, type, row) {
+                    const formattedPrice = parseFloat(data).toFixed(3) + ' TND';
+
+                    if (type !== 'display') {
+                        return data;
+                    }
+
+                    return row.hasPriceSupplement
+                        ? 'À partir de ' + formattedPrice
+                        : formattedPrice;
                 }
+            },
+
+            {
+                data: 'stock'
             }
 
         ];
@@ -209,6 +221,7 @@ $(document).ready(function () {
     });
 
     const variationForm = $('#variation-form');
+    const variationModal = $('#variation-modal');
     const attributeList = $('#attribute-list');
     const attributeTemplate = document.querySelector('#attribute-row-template');
     let attributeRowId = 0;
@@ -279,9 +292,15 @@ $(document).ready(function () {
     }
 
     function openVariationForm() {
-        variationForm.prop('hidden', false);
+        variationModal.prop('hidden', false);
+        $('body').addClass('modal-open');
         $('#variation-libelle').trigger('focus');
-        variationForm[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function closeVariationForm() {
+        variationModal.prop('hidden', true);
+        $('body').removeClass('modal-open');
+        resetVariationForm();
     }
 
     $('#add-variation-button').on('click', function () {
@@ -290,8 +309,21 @@ $(document).ready(function () {
     });
 
     $('#cancel-variation').on('click', function () {
-        variationForm.prop('hidden', true);
-        resetVariationForm();
+        closeVariationForm();
+    });
+
+    $('#close-variation-modal').on('click', closeVariationForm);
+
+    variationModal.on('click', function (event) {
+        if (event.target === this) {
+            closeVariationForm();
+        }
+    });
+
+    $(document).on('keydown', function (event) {
+        if (event.key === 'Escape' && !variationModal.prop('hidden')) {
+            closeVariationForm();
+        }
     });
 
     $('#add-attribute-button').on('click', function () {
@@ -363,8 +395,7 @@ $(document).ready(function () {
                 }
 
                 $('#product-stock-total').text(response.stockTotal);
-                variationForm.prop('hidden', true);
-                resetVariationForm();
+                closeVariationForm();
             },
             error: function (xhr) {
                 showToast(xhr.responseJSON?.message || 'Impossible d’ajouter la variation.', 'error');

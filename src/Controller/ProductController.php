@@ -19,6 +19,7 @@ class ProductController extends AbstractController
     public function list(
         Request $request,
         ProductRepository $productRepository,
+        ProductVariationRepository $variationRepository,
     ): Response
     {
         if ($request->query->getBoolean('datatable')) {
@@ -37,7 +38,17 @@ class ProductController extends AbstractController
                 $fournisseur,
             );
 
+            $summaries = $variationRepository->getSummariesByProductIds(
+                array_column($result['rows'], 'id')
+            );
+
             foreach ($result['rows'] as &$row) {
+                $summary = $summaries[$row['id']] ?? [
+                    'stockTotal' => 0,
+                    'hasPriceSupplement' => false,
+                ];
+                $row['stock'] = $summary['stockTotal'];
+                $row['hasPriceSupplement'] = $summary['hasPriceSupplement'];
                 $row['actions'] = $this->renderView(
                     'product/_row_actions.html.twig',
                     ['product' => ['id' => $row['id']]]
