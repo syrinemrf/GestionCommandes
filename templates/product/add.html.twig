@@ -6,7 +6,7 @@ Ajouter un produit
 
 {% block body %}
 
-<div class="form-card">
+<div class="form-card product-form-card">
 
     <div class="form-header">
 
@@ -22,10 +22,13 @@ Ajouter un produit
 
         <input type="hidden" name="_token" value="{{ csrf_token('product-add') }}">
 
+        <div class="product-form-layout">
+            <div class="product-form-main">
+
         <div class="form-group">
 
             <label for="libelle">
-                Libellé
+                Libellé <span class="required-mark" aria-hidden="true">*</span>
             </label>
 
             <input
@@ -40,7 +43,7 @@ Ajouter un produit
         <div class="form-group">
 
             <label for="description">
-                Description
+                Description <span class="required-mark" aria-hidden="true">*</span>
             </label>
 
             <textarea
@@ -56,21 +59,39 @@ Ajouter un produit
             <div class="form-group">
 
                 <label for="prix">
-                    Prix
+                    Prix de base <span class="required-mark" aria-hidden="true">*</span>
                 </label>
 
-                <input
-                    type="text"
-                    id="prix"
-                    name="prix"
-                    placeholder="0.00"
-                    required>
+                <div class="input-with-addon">
+                    <input type="text" id="prix" name="prix" placeholder="0.000" inputmode="decimal" required>
+                    <span class="input-addon">TND</span>
+                </div>
 
             </div>
-        </div>
+            </div>
+
+        {% if is_granted('ROLE_ADMIN') %}
+            <div class="form-group">
+                <label for="fournisseur">
+                    Fournisseur <span class="required-mark" aria-hidden="true">*</span>
+                </label>
+                <select id="fournisseur" name="fournisseur" required>
+                    {% for fournisseur in fournisseurs %}
+                        <option value="{{ fournisseur.id }}">
+                            {{ fournisseur.nom }} {{ fournisseur.prenom }}
+                            {% if fournisseur.libelle %}({{ fournisseur.libelle }}){% endif %}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        {% endif %}
+
+            </div>
+
+            <aside class="product-form-sidebar">
 
         <div class="form-group product-image-field">
-            <label>Image du produit</label>
+            <label>Image du produit <small>(facultatif)</small></label>
 
             <div class="image-uploader" id="image-uploader">
                 <input
@@ -100,31 +121,15 @@ Ajouter un produit
             </div>
         </div>
 
-        {% if is_granted('ROLE_ADMIN') %}
-            <div class="form-group">
+            </aside>
+        </div>
 
-                <label for="fournisseur">
-                    Fournisseur
-                </label>
-
-                <select id="fournisseur" name="fournisseur">
-                    {% for fournisseur in fournisseurs %}
-                        <option value="{{ fournisseur.id }}">
-                            {{ fournisseur.nom }} {{ fournisseur.prenom }}
-                            {% if fournisseur.libelle %}
-                                ({{ fournisseur.libelle }})
-                            {% endif %}
-                        </option>
-                    {% endfor %}
-                </select>
-
-            </div>
-        {% endif %}
-
-
-        <button type="submit" class="btn-primary">
-            Créer
-        </button>
+        <div class="product-form-actions">
+            <button type="submit" class="btn-primary async-submit-button">
+                <span class="button-label">Créer le produit</span>
+                <span class="button-loading"><i class="bi bi-arrow-repeat"></i> Enregistrement...</span>
+            </button>
+        </div>
 
     </form>
 

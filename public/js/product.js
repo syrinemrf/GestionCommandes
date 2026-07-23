@@ -1,5 +1,11 @@
 $(document).ready(function () {
 
+    function setButtonLoading(button, loading) {
+        button.prop('disabled', loading);
+        button.find('.button-label').prop('hidden', loading);
+        button.find('.button-loading').prop('hidden', !loading);
+    }
+
     const imageInput = $('#image');
     const imagePreview = $('#image-preview');
     const imagePreviewContainer = $('#image-preview-container');
@@ -304,6 +310,7 @@ $(document).ready(function () {
     }
 
     $('#add-variation-button').on('click', function () {
+        $('#variation-submit-button .button-label').text('Ajouter la variation');
         resetVariationForm();
         openVariationForm();
     });
@@ -344,6 +351,7 @@ $(document).ready(function () {
     });
 
     $(document).on('click', '.edit-variation-button', function () {
+        $('#variation-submit-button .button-label').text('Enregistrer les modifications');
         const button = $(this);
         let attributes = {};
 
@@ -359,7 +367,6 @@ $(document).ready(function () {
         $('#variation-token').val(button.attr('data-edit-token'));
         $('#variation-form-title').text('Modifier la variation');
         $('#variation-libelle').val(button.attr('data-libelle'));
-        $('#variation-reference').val(button.attr('data-reference'));
         $('#variation-prix').val(button.attr('data-prix-supplement'));
         $('#variation-stock').val(button.attr('data-stock'));
         attributeList.empty();
@@ -380,7 +387,7 @@ $(document).ready(function () {
 
         const form = $(this);
         const submitButton = form.find('button[type="submit"]');
-        submitButton.prop('disabled', true);
+        setButtonLoading(submitButton, true);
 
         $.ajax({
             type: 'POST',
@@ -401,7 +408,7 @@ $(document).ready(function () {
                 showToast(xhr.responseJSON?.message || 'Impossible d’ajouter la variation.', 'error');
             },
             complete: function () {
-                submitButton.prop('disabled', false);
+                setButtonLoading(submitButton, false);
             }
         });
     });
@@ -415,7 +422,7 @@ $(document).ready(function () {
 
         const form = $(this);
         const submitButton = form.find('button[type="submit"]');
-        submitButton.prop('disabled', true);
+        setButtonLoading(submitButton, true);
 
         $.ajax({
             type: 'POST',
@@ -433,7 +440,7 @@ $(document).ready(function () {
             },
             error: function (xhr) {
                 showToast(xhr.responseJSON?.message || 'Impossible de supprimer la variation.', 'error');
-                submitButton.prop('disabled', false);
+                setButtonLoading(submitButton, false);
             }
         });
     });

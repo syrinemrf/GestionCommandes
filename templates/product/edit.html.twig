@@ -6,7 +6,7 @@ Modifier un produit
 
 {% block body %}
 
-<div class="form-card">
+<div class="form-card product-form-card">
 
     <div class="form-header">
 
@@ -22,10 +22,13 @@ Modifier un produit
 
         <input type="hidden" name="_token" value="{{ csrf_token('product-edit-' ~ product.id) }}">
 
+        <div class="product-form-layout">
+            <div class="product-form-main">
+
         <div class="form-group">
 
             <label for="libelle">
-                Libellé
+                Libellé <span class="required-mark" aria-hidden="true">*</span>
             </label>
 
             <input
@@ -41,7 +44,7 @@ Modifier un produit
         <div class="form-group">
 
             <label for="description">
-                Description
+                Description <span class="required-mark" aria-hidden="true">*</span>
             </label>
 
             <textarea
@@ -57,22 +60,39 @@ Modifier un produit
             <div class="form-group">
 
                 <label for="prix">
-                    Prix
+                    Prix de base <span class="required-mark" aria-hidden="true">*</span>
                 </label>
 
-                <input
-                    type="text"
-                    id="prix"
-                    name="prix"
-                    placeholder="0.00"
-                    value="{{ product.prix }}"
-                    required>
+                <div class="input-with-addon">
+                    <input type="text" id="prix" name="prix" placeholder="0.000" value="{{ product.prix }}" inputmode="decimal" required>
+                    <span class="input-addon">TND</span>
+                </div>
 
             </div>
-        </div>
+            </div>
+
+        {% if is_granted('ROLE_ADMIN') %}
+            <div class="form-group">
+                <label for="fournisseur">
+                    Fournisseur <span class="required-mark" aria-hidden="true">*</span>
+                </label>
+                <select id="fournisseur" name="fournisseur" required>
+                    {% for fournisseur in fournisseurs %}
+                        <option value="{{ fournisseur.id }}" {% if product.fournisseur and product.fournisseur.id == fournisseur.id %}selected{% endif %}>
+                            {{ fournisseur.nom }} {{ fournisseur.prenom }}
+                            {% if fournisseur.libelle %}({{ fournisseur.libelle }}){% endif %}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        {% endif %}
+
+            </div>
+
+            <aside class="product-form-sidebar">
 
         <div class="form-group product-image-field">
-            <label>Image du produit</label>
+            <label>Image du produit <small>(facultatif)</small></label>
 
             <div class="image-uploader" id="image-uploader">
                 <input
@@ -111,31 +131,15 @@ Modifier un produit
             </div>
         </div>
 
-        {% if is_granted('ROLE_ADMIN') %}
-            <div class="form-group">
+            </aside>
+        </div>
 
-                <label for="fournisseur">
-                    Fournisseur
-                </label>
-
-                <select id="fournisseur" name="fournisseur">
-                    {% for fournisseur in fournisseurs %}
-                        <option value="{{ fournisseur.id }}"
-                            {% if product.fournisseur and product.fournisseur.id == fournisseur.id %}selected{% endif %}>
-                            {{ fournisseur.nom }} {{ fournisseur.prenom }}
-                            {% if fournisseur.libelle %}
-                                ({{ fournisseur.libelle }})
-                            {% endif %}
-                        </option>
-                    {% endfor %}
-                </select>
-
-            </div>
-        {% endif %}
-
-        <button type="submit" class="btn-primary">
-            Modifier
-        </button>
+        <div class="product-form-actions">
+            <button type="submit" class="btn-primary async-submit-button">
+                <span class="button-label">Enregistrer les modifications</span>
+                <span class="button-loading"><i class="bi bi-arrow-repeat"></i> Enregistrement...</span>
+            </button>
+        </div>
 
     </form>
 
@@ -202,20 +206,20 @@ Modifier un produit
 
         <div class="form-group">
             <label for="variation-libelle">Libellé</label>
-            <input type="text" id="variation-libelle" name="libelle" placeholder="Exemple : Rouge - Taille M" maxlength="255" required>
+            <input type="text" id="variation-libelle" name="libelle" placeholder="Exemple : Rouge - Taille M" maxlength="255">
+            <small class="field-help">Facultatif : généré depuis les caractéristiques, ou depuis le produit pour une variation Standard. La référence est automatique.</small>
         </div>
 
         <div class="form-row">
             <div class="form-group">
-                <label for="variation-reference">Référence</label>
-                <input type="text" id="variation-reference" name="reference" placeholder="Exemple : TSH-ROU-M" maxlength="100">
+            <label for="variation-prix">Supplément de prix <span class="required-mark" aria-hidden="true">*</span></label>
+                <div class="input-with-addon">
+                    <input type="text" id="variation-prix" name="prixSupplement" value="0.000" inputmode="decimal" required>
+                    <span class="input-addon">TND</span>
+                </div>
             </div>
             <div class="form-group">
-                <label for="variation-prix">Supplément de prix</label>
-                <input type="text" id="variation-prix" name="prixSupplement" value="0.000" inputmode="decimal" required>
-            </div>
-            <div class="form-group">
-                <label for="variation-stock">Stock</label>
+                <label for="variation-stock">Stock <span class="required-mark" aria-hidden="true">*</span></label>
                 <input type="number" id="variation-stock" name="stock" value="0" min="0" required>
             </div>
         </div>
@@ -236,7 +240,10 @@ Modifier un produit
 
         <div class="form-actions">
             <button type="button" class="btn-secondary" id="cancel-variation">Annuler</button>
-            <button type="submit" class="btn-primary">Enregistrer la variation</button>
+            <button type="submit" class="btn-primary async-submit-button" id="variation-submit-button">
+                <span class="button-label">Ajouter la variation</span>
+                <span class="button-loading"><i class="bi bi-arrow-repeat"></i> Enregistrement...</span>
+            </button>
         </div>
         </form>
     </div>

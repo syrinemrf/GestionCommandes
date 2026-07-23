@@ -129,6 +129,7 @@ class ProductVariationController extends AbstractController
         $variation->setIsDeleted(false);
 
         $variationService->fillFromRequest($variation, $request);
+        $variationService->generateReference($variation);
 
         $errors = $validator->validate($variation);
 
@@ -201,6 +202,7 @@ class ProductVariationController extends AbstractController
         }
 
         $variationService->fillFromRequest($variation, $request);
+        $variationService->generateReference($variation);
 
         $errors = $validator->validate($variation);
 

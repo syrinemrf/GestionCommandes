@@ -3,14 +3,18 @@
 namespace App\Service;
 
 use App\Entity\ProductVariation;
+use App\Repository\ProductVariationRepository;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Symfony\Component\String\Slugger\SluggerInterface;
 
 class ProductVariationService
 {
     public function __construct(
         private CsrfTokenManagerInterface $csrfTokenManager,
+        private ProductVariationRepository $variationRepository,
+        private SluggerInterface $slugger,
     ) {
     }
 
@@ -18,9 +22,16 @@ class ProductVariationService
         ProductVariation $variation,
         Request $request
     ): void {
-        $variation->setLibelle(
-            trim((string) $request->request->get('libelle'))
-        );
+        $attributs = $this->extractAttributs($request);
+        $libelle = trim((string) $request->request->get('libelle'));
+
+        if ($libelle === '') {
+            $libelle = $attributs === []
+                ? (string) $variation->getProduct()?->getLibelle()
+                : implode(' - ', array_values($attributs));
+        }
+
+        $variation->setLibelle($libelle);
 
         $variation->setPrixSupplement(
             str_replace(
@@ -34,17 +45,43 @@ class ProductVariationService
             $request->request->getInt('stock')
         );
 
-        $reference = trim(
-            (string) $request->request->get('reference')
-        );
+        $variation->setAttributs($attributs);
+    }
 
-        $variation->setReference(
-            $reference !== '' ? $reference : null
-        );
+    public function generateReference(ProductVariation $variation): void
+    {
+        if ($variation->getReference() !== null) {
+            return;
+        }
 
-        $variation->setAttributs(
-            $this->extractAttributs($request)
+        $productId = $variation->getProduct()?->getId();
+
+        if ($productId === null) {
+            throw new \LogicException(
+                'Le produit doit être enregistré avant de générer la référence.'
+            );
+        }
+
+        $slug = strtoupper(
+            $this->slugger->slug((string) $variation->getLibelle())->toString()
         );
+        $slug = $slug !== '' ? $slug : 'STANDARD';
+        $prefix = sprintf('PRD-%06d-', $productId);
+        $baseReference = $prefix . mb_substr($slug, 0, 100 - strlen($prefix));
+        $reference = $baseReference;
+        $suffix = 2;
+
+        while ($this->variationRepository->findOneBy(['reference' => $reference])) {
+            $suffixText = '-' . str_pad((string) $suffix, 2, '0', STR_PAD_LEFT);
+            $reference = mb_substr(
+                $baseReference,
+                0,
+                100 - strlen($suffixText)
+            ) . $suffixText;
+            ++$suffix;
+        }
+
+        $variation->setReference($reference);
     }
 
     public function isCsrfTokenValid(
