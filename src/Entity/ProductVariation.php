@@ -47,6 +47,12 @@ class ProductVariation
     )]
     private int $stock = 0;
 
+    #[ORM\Column(options: ['default' => 0])]
+    #[Assert\PositiveOrZero(
+        message: 'Le stock utilisé doit être positif ou égal à zéro.'
+    )]
+    private int $stockUtilise = 0;
+
     #[ORM\Column(length: 100, nullable: true)]
     #[Assert\Length(
         max: 100,
@@ -118,6 +124,18 @@ class ProductVariation
     public function setStock(int $stock): static
     {
         $this->stock = $stock;
+
+        return $this;
+    }
+
+    public function getStockUtilise(): int
+    {
+        return $this->stockUtilise;
+    }
+
+    public function setStockUtilise(int $stockUtilise): static
+    {
+        $this->stockUtilise = $stockUtilise;
 
         return $this;
     }

@@ -15,6 +15,7 @@
 .form-group input[type="text"],
 .form-group input[type="email"],
 .form-group input[type="password"],
+.form-group input[type="number"],
 .form-group textarea,
 .form-group select {
     padding: 12px 14px;
@@ -26,6 +27,7 @@
 .form-group input[type="text"]:focus,
 .form-group input[type="email"]:focus,
 .form-group input[type="password"]:focus,
+.form-group input[type="number"]:focus,
 .form-group textarea:focus,
 .form-group select:focus {
     outline: none;

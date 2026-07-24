@@ -75,6 +75,7 @@ $(document).ready(function () {
 
                     if (form.data('reset-form')) {
                         form[0].reset();
+                        updateProductTypeFields();
                         imagePreview.attr('src', '');
                         imagePreviewContainer.prop('hidden', true);
                         imageUploadZone.prop('hidden', false);
@@ -226,6 +227,27 @@ $(document).ready(function () {
 
     });
 
+    const productTypeInputs = $('input[name="product_type"]');
+    const standardStockField = $('#standard-stock-field');
+    const standardStockInput = $('#stock');
+    const variationsNextStep = $('#variations-next-step');
+
+    function updateProductTypeFields() {
+        const selectedType = productTypeInputs.filter(':checked').val();
+        const isStandard = selectedType === 'standard';
+
+        standardStockField.prop('hidden', !isStandard);
+        standardStockInput.prop('disabled', !isStandard);
+        standardStockInput.prop('required', isStandard);
+        variationsNextStep.prop('hidden', selectedType !== 'variations');
+    }
+
+    productTypeInputs.on('change', updateProductTypeFields);
+
+    if (productTypeInputs.length) {
+        updateProductTypeFields();
+    }
+
     const variationForm = $('#variation-form');
     const variationModal = $('#variation-modal');
     const attributeList = $('#attribute-list');
@@ -314,6 +336,14 @@ $(document).ready(function () {
         resetVariationForm();
         openVariationForm();
     });
+
+    if (window.location.hash === '#variations' && $('#add-variation-button').length) {
+        document.querySelector('#variations')?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+        $('#add-variation-button').trigger('click');
+    }
 
     $('#cancel-variation').on('click', function () {
         closeVariationForm();

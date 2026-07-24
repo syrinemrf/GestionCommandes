@@ -3,10 +3,12 @@
 namespace App\Controller;
 
 use App\Entity\Product;
+use App\Entity\ProductVariation;
 use App\Repository\ProductRepository;
 use App\Repository\ProductVariationRepository;
 use App\Service\ProductImageUploader;
 use App\Service\ProductService;
+use App\Service\ProductVariationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -71,6 +73,7 @@ class ProductController extends AbstractController
         Request $request,
         EntityManagerInterface $entityManager,
         ProductService $productService,
+        ProductVariationService $variationService,
         ProductImageUploader $imageUploader,
         ValidatorInterface $validator
     ): Response {
@@ -82,6 +85,24 @@ class ProductController extends AbstractController
 
             $product = new Product();
             $productService->fillFromRequest($product, $request);
+
+            $productType = (string) $request->request->get('product_type', '');
+
+            if (!in_array($productType, ['standard', 'variations'], true)) {
+                return $this->json(
+                    ['success' => false, 'message' => 'Le type de produit sélectionné est invalide.'],
+                    Response::HTTP_UNPROCESSABLE_ENTITY
+                );
+            }
+
+            $initialStock = $request->request->getInt('stock');
+
+            if ($productType === 'standard' && $initialStock < 0) {
+                return $this->json(
+                    ['success' => false, 'message' => 'Le stock doit être positif ou égal à zéro.'],
+                    Response::HTTP_UNPROCESSABLE_ENTITY
+                );
+            }
 
             $errors = $validator->validate($product);
             if (count($errors) > 0) {
@@ -125,7 +146,44 @@ class ProductController extends AbstractController
             $entityManager->persist($product);
             $entityManager->flush();
 
-            return $this->json(['success' => true, 'message' => 'Produit ajouté avec succès.']);
+            if ($productType === 'standard') {
+                $variation = new ProductVariation();
+                $variation
+                    ->setProduct($product)
+                    ->setLibelle((string) $product->getLibelle())
+                    ->setAttributs([])
+                    ->setPrixSupplement('0.000')
+                    ->setStock($initialStock)
+                    ->setStockUtilise(0)
+                    ->setIsDeleted(false);
+
+                $variationService->generateReference($variation);
+
+                $variationErrors = $validator->validate($variation);
+                if (count($variationErrors) > 0) {
+                    return $this->json(
+                        ['success' => false, 'message' => $variationErrors[0]->getMessage()],
+                        Response::HTTP_UNPROCESSABLE_ENTITY
+                    );
+                }
+
+                $entityManager->persist($variation);
+                $entityManager->flush();
+            }
+
+            $response = [
+                'success' => true,
+                'message' => 'Produit ajouté avec succès.',
+            ];
+
+            if ($productType === 'variations') {
+                $response['redirectUrl'] = $this->generateUrl(
+                    'product_edit',
+                    ['id' => $product->getId()]
+                ) . '#variations';
+            }
+
+            return $this->json($response);
         }
 
         $fournisseurs = [];
