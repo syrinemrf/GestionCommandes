@@ -46,6 +46,13 @@ class Commande
     #[ORM\JoinColumn(nullable: false)]
     private ?User $user = null;
 
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?User $fournisseur = null;
+
+    #[ORM\ManyToOne]
+    private ?Client $client = null;
+
     /**
      * @var Collection<int, LigneCommande>
      */
@@ -136,6 +143,30 @@ class Commande
     public function setUser(?User $user): static
     {
         $this->user = $user;
+
+        return $this;
+    }
+
+    public function getFournisseur(): ?User
+    {
+        return $this->fournisseur;
+    }
+
+    public function setFournisseur(?User $fournisseur): static
+    {
+        $this->fournisseur = $fournisseur;
+
+        return $this;
+    }
+
+    public function getClient(): ?Client
+    {
+        return $this->client;
+    }
+
+    public function setClient(?Client $client): static
+    {
+        $this->client = $client;
 
         return $this;
     }
