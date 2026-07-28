@@ -6,11 +6,45 @@
 
     <div class="navbar-right">
         {% if app.user %}
+            <nav class="navbar-quick-actions" aria-label="Actions rapides">
+                {% if is_granted('ROLE_ADMIN') %}
+                    <a
+                        href="{{ path('user_add') }}"
+                        class="navbar-quick-action navbar-quick-action-primary"
+                        aria-label="Ajouter un utilisateur"
+                        title="Ajouter un utilisateur">
+                        <span class="navbar-action-plus" aria-hidden="true">+</span>
+                        <i class="bi bi-person-plus navbar-action-mobile-icon" aria-hidden="true"></i>
+                        <span class="navbar-action-label">Utilisateur</span>
+                    </a>
+                {% elseif is_granted('ROLE_FOURNISSEUR') %}
+                    <a
+                        href="{{ path('commande_add') }}"
+                        class="navbar-quick-action navbar-quick-action-primary"
+                        aria-label="Ajouter une commande"
+                        title="Ajouter une commande">
+                        <span class="navbar-action-plus" aria-hidden="true">+</span>
+                        <i class="bi bi-cart-plus navbar-action-mobile-icon" aria-hidden="true"></i>
+                        <span class="navbar-action-label">Commande</span>
+                    </a>
+
+                    <a
+                        href="{{ path('product_add') }}"
+                        class="navbar-quick-action navbar-quick-action-secondary"
+                        aria-label="Ajouter un produit"
+                        title="Ajouter un produit">
+                        <span class="navbar-action-plus" aria-hidden="true">+</span>
+                        <i class="bi bi-box-seam navbar-action-mobile-icon" aria-hidden="true"></i>
+                        <span class="navbar-action-label">Produit</span>
+                    </a>
+                {% endif %}
+            </nav>
+
             <div class="profile">
                 <span class="user-email">{{ app.user.email }}</span>
-                <a href="{{ path('app_logout') }}" class="logout-btn">
+                <a href="{{ path('app_logout') }}" class="logout-btn logout-confirm">
                     <i class="bi bi-box-arrow-right"></i>
-                    Déconnexion
+                    <span>Déconnexion</span>
                 </a>
             </div>
         {% else %}

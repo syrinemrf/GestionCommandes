@@ -37,6 +37,56 @@
 .roles { display: flex; gap: 30px; margin: 20px 0; }
 .roles label { display: flex; align-items: center; gap: 8px; font-weight: 500; cursor: pointer; }
 
+/* Profile */
+.profile-card { width: 100%; max-width: 860px; }
+.profile-header { margin-bottom: 8px; }
+.profile-header h1 { margin-bottom: 6px; }
+.profile-header p,
+.profile-section-header p {
+    margin: 0;
+    color: #64748b;
+    line-height: 1.5;
+}
+.profile-section { padding: 28px 0; }
+.profile-section + .profile-section { border-top: 1px solid #e5e7eb; }
+.profile-section-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+.profile-section-header > i {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    border-radius: 10px;
+    background: #ecfdf5;
+    color: var(--color-primary);
+    font-size: 18px;
+}
+.profile-section-header h2 {
+    margin: 0 0 4px;
+    color: var(--color-text);
+    font-size: 18px;
+}
+.profile-readonly-value {
+    min-height: 43px;
+    padding: 12px 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #64748b;
+}
+.profile-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 4px;
+}
+.profile-actions button:disabled { cursor: wait; opacity: 0.65; }
+
 /* Authentication */
 .auth-page {
     min-height: 100vh;

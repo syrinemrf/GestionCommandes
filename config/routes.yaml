@@ -20,6 +20,11 @@ app_logout:
     path: /logout
     controller: App\Controller\LoginController::logout
 
+app_profile:
+    path: /profil
+    controller: App\Controller\UserController::profile
+    methods: [GET, POST]
+
 #users:
 user_add:
     path: /users/add

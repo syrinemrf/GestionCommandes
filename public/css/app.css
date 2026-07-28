@@ -32,8 +32,11 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 768px) {
     .app-container { flex-direction: column; }
     .sidebar {
+        position: static;
         width: 100%;
+        height: auto;
         min-height: auto;
+        overflow-y: visible;
         flex-direction: row;
         align-items: center;
         padding: 15px 20px;
@@ -45,11 +48,35 @@ a { color: inherit; text-decoration: none; }
         border-left: 1px solid rgba(255, 255, 255, 0.2);
         margin-left: 20px;
     }
+    .sidebar-profile {
+        padding: 8px;
+        margin: 0;
+    }
+    .sidebar-profile-action {
+        width: 30px;
+        height: 30px;
+        flex-basis: 30px;
+    }
     .hero-content { padding: 40px 20px; }
     .hero-content h1 { font-size: 32px; }
     .hero-buttons { flex-direction: column; }
     .hero-buttons .btn { width: 100%; }
     .form-row { flex-direction: column; }
+    .profile-card { padding: 24px 20px; }
+    .profile-actions .btn-primary { width: 100%; }
+    .navbar { padding: 0 16px; }
+    .navbar-left h2 { font-size: 18px; }
     .navbar-right { gap: 10px; font-size: 12px; }
+    .navbar-quick-action,
+    .logout-btn {
+        width: 38px;
+        height: 38px;
+        min-height: 38px;
+        padding: 0;
+    }
+    .navbar-action-plus,
+    .navbar-action-label,
+    .logout-btn span { display: none; }
+    .navbar-action-mobile-icon { display: inline-block; }
     .user-email { display: none; }
 }

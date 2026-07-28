@@ -35,4 +35,11 @@ class UserService
                 : null
         );
     }
+
+    public function fillProfileFromRequest(User $user, Request $request): void
+    {
+        $user->setNom(trim((string) $request->request->get('nom')));
+        $user->setPrenom(trim((string) $request->request->get('prenom')));
+        $user->setEmail(trim((string) $request->request->get('email')));
+    }
 }

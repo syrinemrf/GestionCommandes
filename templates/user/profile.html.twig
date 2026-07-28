@@ -1,0 +1,155 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}
+Mon profil
+{% endblock %}
+
+{% block body %}
+
+<div class="form-card profile-card">
+
+    <div class="form-header profile-header">
+        <div>
+            <h1>Mon profil</h1>
+            <p>Gérez vos informations personnelles et la sécurité de votre compte.</p>
+        </div>
+    </div>
+
+    <form id="profile-form" method="POST" action="{{ path('app_profile') }}">
+
+        <input type="hidden" name="_token" value="{{ csrf_token('profile-edit') }}">
+
+        <section class="profile-section">
+
+            <div class="profile-section-header">
+                <i class="bi bi-person" aria-hidden="true"></i>
+                <div>
+                    <h2>Informations personnelles</h2>
+                    <p>Ces informations permettent de vous identifier dans l’application.</p>
+                </div>
+            </div>
+
+            <div class="form-row">
+
+                <div class="form-group">
+                    <label for="prenom">Prénom</label>
+                    <input
+                        type="text"
+                        id="prenom"
+                        name="prenom"
+                        value="{{ user.prenom }}"
+                        autocomplete="given-name"
+                        required>
+                </div>
+
+                <div class="form-group">
+                    <label for="nom">Nom</label>
+                    <input
+                        type="text"
+                        id="nom"
+                        name="nom"
+                        value="{{ user.nom }}"
+                        autocomplete="family-name"
+                        required>
+                </div>
+
+            </div>
+
+            <div class="form-row">
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        value="{{ user.email }}"
+                        autocomplete="email"
+                        required>
+                </div>
+
+                <div class="form-group">
+                    <label>Rôle</label>
+                    <div class="profile-readonly-value">
+                        {% if user.role == 'ROLE_ADMIN' %}
+                            Administrateur
+                        {% else %}
+                            Fournisseur
+                        {% endif %}
+                    </div>
+                </div>
+
+            </div>
+
+            {% if user.role == 'ROLE_FOURNISSEUR' %}
+                <div class="form-group">
+                    <label>Fournisseur</label>
+                    <div class="profile-readonly-value">{{ user.libelle }}</div>
+                </div>
+            {% endif %}
+
+        </section>
+
+        <section class="profile-section profile-password-section">
+
+            <div class="profile-section-header">
+                <i class="bi bi-shield-lock" aria-hidden="true"></i>
+                <div>
+                    <h2>Mot de passe</h2>
+                    <p>Laissez ces champs vides si vous ne souhaitez pas modifier votre mot de passe.</p>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="current-password">Mot de passe actuel</label>
+                <input
+                    type="password"
+                    id="current-password"
+                    name="current_password"
+                    autocomplete="current-password">
+            </div>
+
+            <div class="form-row">
+
+                <div class="form-group">
+                    <label for="new-password">Nouveau mot de passe</label>
+                    <input
+                        type="password"
+                        id="new-password"
+                        name="new_password"
+                        minlength="8"
+                        autocomplete="new-password">
+                </div>
+
+                <div class="form-group">
+                    <label for="password-confirmation">Confirmer le mot de passe</label>
+                    <input
+                        type="password"
+                        id="password-confirmation"
+                        name="password_confirmation"
+                        minlength="8"
+                        autocomplete="new-password">
+                </div>
+
+            </div>
+
+        </section>
+
+        <div class="profile-actions">
+            <button type="submit" class="btn-primary">
+                Enregistrer les modifications
+            </button>
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+
+    <script src="{{ asset('vendor/jquery/jquery-3.7.1.min.js') }}"></script>
+    <script src="{{ asset('js/profile.js') }}"></script>
+{% endblock %}

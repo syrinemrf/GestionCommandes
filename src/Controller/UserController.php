@@ -16,6 +16,77 @@ use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 class UserController extends AbstractController
 {
+    #[IsGranted('IS_AUTHENTICATED')]
+    public function profile(
+        Request $request,
+        EntityManagerInterface $entityManager,
+        UserPasswordHasherInterface $passwordHasher,
+        ValidatorInterface $validator,
+        UserService $userService,
+    ): Response
+    {
+        $user = $this->getUser();
+
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException();
+        }
+
+        if ($request->isMethod('POST')) {
+            if (!$userService->isCsrfTokenValid('profile-edit', $request->request->get('_token'))) {
+                return $this->json(['success' => false, 'message' => 'Votre session a expiré. Rechargez la page.'], Response::HTTP_FORBIDDEN);
+            }
+
+            $userService->fillProfileFromRequest($user, $request);
+
+            $errors = $validator->validate($user);
+            if (count($errors) > 0) {
+                return $this->json(['success' => false, 'message' => $errors[0]->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            $currentPassword = (string) $request->request->get('current_password');
+            $newPassword = (string) $request->request->get('new_password');
+            $passwordConfirmation = (string) $request->request->get('password_confirmation');
+            $passwordChangeRequested = $currentPassword !== ''
+                || $newPassword !== ''
+                || $passwordConfirmation !== '';
+
+            if ($passwordChangeRequested) {
+                if (!$passwordHasher->isPasswordValid($user, $currentPassword)) {
+                    return $this->json(['success' => false, 'message' => 'Le mot de passe actuel est incorrect.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+                }
+
+                $passwordErrors = $validator->validate($newPassword, [
+                    new Assert\NotBlank(message: 'Le nouveau mot de passe est obligatoire.'),
+                    new Assert\Length(min: 8, minMessage: 'Le nouveau mot de passe doit contenir au moins {{ limit }} caractères.'),
+                ]);
+                if (count($passwordErrors) > 0) {
+                    return $this->json(['success' => false, 'message' => $passwordErrors[0]->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
+                }
+
+                if ($newPassword !== $passwordConfirmation) {
+                    return $this->json(['success' => false, 'message' => 'La confirmation du nouveau mot de passe ne correspond pas.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+                }
+
+                $user->setPassword($passwordHasher->hashPassword($user, $newPassword));
+            }
+
+            $entityManager->flush();
+
+            return $this->json([
+                'success' => true,
+                'message' => 'Profil modifié avec succès.',
+                'user' => [
+                    'fullName' => $user->getPrenom() . ' ' . $user->getNom(),
+                    'email' => $user->getEmail(),
+                ],
+            ]);
+        }
+
+        return $this->render('user/profile.html.twig', [
+            'user' => $user,
+        ]);
+    }
+
     #[IsGranted('ROLE_ADMIN')]
     public function checkEmail(
         Request $request,

@@ -72,3 +72,19 @@ window.confirmAction = function (message) {
         overlay.querySelector('.confirm-accept').focus();
     });
 };
+
+document.addEventListener('click', async (event) => {
+    const logoutLink = event.target.closest('.logout-confirm');
+
+    if (!logoutLink) {
+        return;
+    }
+
+    event.preventDefault();
+
+    const confirmed = await window.confirmAction('Voulez-vous vraiment vous déconnecter ?');
+
+    if (confirmed) {
+        window.location.href = logoutLink.href;
+    }
+});
