@@ -1,0 +1,117 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}
+Liste des commandes
+{% endblock %}
+
+{% block body %}
+
+<div class="list-card">
+    <div class="list-header">
+        <div>
+            <h1>Commandes</h1>
+            <p>Liste des commandes enregistrées</p>
+        </div>
+
+        <a
+            href="{{ path('commande_add') }}"
+            class="btn-primary commande-add-button"
+            aria-label="Nouvelle commande"
+            title="Nouvelle commande">
+            <i class="bi bi-plus-lg" aria-hidden="true"></i>
+            <span>Nouvelle commande</span>
+        </a>
+    </div>
+
+    <div class="table-wrapper">
+        <div id="commande-table-filters" class="commande-table-filters" hidden>
+            <label for="commande-status-filter">
+                <span>Statut</span>
+                <select id="commande-status-filter">
+                    <option value="">Tous</option>
+                    {% for value, label in statuts %}
+                        <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <label for="commande-date-from">
+                <span>Du</span>
+                <input type="date" id="commande-date-from">
+            </label>
+
+            <label for="commande-date-to">
+                <span>Au</span>
+                <input type="date" id="commande-date-to">
+            </label>
+
+            <button
+                type="button"
+                class="commande-clear-filters"
+                id="commande-clear-filters"
+                title="Réinitialiser les filtres"
+                aria-label="Réinitialiser les filtres">
+                <i class="bi bi-arrow-counterclockwise"></i>
+            </button>
+        </div>
+
+        <table
+            id="commandes-table"
+            class="user-table commande-table"
+            data-url="{{ path('commande_list', {datatable: 1}) }}"
+            data-is-admin="{{ is_granted('ROLE_ADMIN') ? 1 : 0 }}">
+            <thead>
+                <tr>
+                    <th>Numéro</th>
+                    <th>Date</th>
+                    <th>Client</th>
+                    <th>Total HT</th>
+                    <th>Total TTC</th>
+                    <th>Statut</th>
+
+                    {% if is_granted('ROLE_ADMIN') %}
+                        <th>Fournisseur</th>
+                        <th>Enregistrée par</th>
+                    {% endif %}
+
+                    <th></th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+<div
+    id="commande-details-modal"
+    class="commande-details-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="commande-details-title"
+    hidden>
+    <div class="commande-details-dialog">
+        <button
+            type="button"
+            class="commande-details-close"
+            id="close-commande-details"
+            aria-label="Fermer">
+            <i class="bi bi-x-lg"></i>
+        </button>
+
+        <div id="commande-details-content" aria-live="polite"></div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script src="{{ asset('vendor/jquery/jquery-3.7.1.min.js') }}"></script>
+    <script src="{{ asset('vendor/datatables/dataTables.min.js') }}"></script>
+    <script src="{{ asset('js/app.js') }}"></script>
+    <script src="{{ asset('js/commande.js') }}"></script>
+{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ asset('vendor/datatables/dataTables.dataTables.min.css') }}">
+{% endblock %}

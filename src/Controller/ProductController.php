@@ -47,9 +47,14 @@ class ProductController extends AbstractController
             foreach ($result['rows'] as &$row) {
                 $summary = $summaries[$row['id']] ?? [
                     'stockTotal' => 0,
+                    'stockUtilise' => 0,
                     'hasPriceSupplement' => false,
                 ];
-                $row['stock'] = $summary['stockTotal'];
+                $row['stockInitial'] = $summary['stockTotal'];
+                $row['stockRestant'] = max(
+                    0,
+                    $summary['stockTotal'] - $summary['stockUtilise']
+                );
                 $row['hasPriceSupplement'] = $summary['hasPriceSupplement'];
                 $row['actions'] = $this->renderView(
                     'product/_row_actions.html.twig',

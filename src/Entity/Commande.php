@@ -36,6 +36,12 @@ class Commande
     #[Assert\PositiveOrZero(message: 'Le total HT doit être positif ou égal à zéro.')]
     private string $totalHt = '0.000';
 
+    #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 3)]
+    private string $tauxTva = '19.000';
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $note = null;
+
     #[ORM\Column(length: 30, options: ['default' => self::STATUT_EN_ATTENTE_CONFIRMATION])]
     private string $statut = self::STATUT_EN_ATTENTE_CONFIRMATION;
 
@@ -107,6 +113,38 @@ class Commande
     public function setTotalHt(string $totalHt): static
     {
         $this->totalHt = $totalHt;
+
+        return $this;
+    }
+
+    public function getTauxTva(): string
+    {
+        return $this->tauxTva;
+    }
+
+    public function setTauxTva(string $tauxTva): static
+    {
+        $this->tauxTva = $tauxTva;
+
+        return $this;
+    }
+
+    public function getTotalTtc(): string
+    {
+        $totalTtc = (float) $this->totalHt
+            * (1 + ((float) $this->tauxTva / 100));
+
+        return number_format($totalTtc, 3, '.', '');
+    }
+
+    public function getNote(): ?string
+    {
+        return $this->note;
+    }
+
+    public function setNote(?string $note): static
+    {
+        $this->note = $note;
 
         return $this;
     }

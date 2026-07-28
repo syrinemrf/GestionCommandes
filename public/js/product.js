@@ -152,7 +152,11 @@ $(document).ready(function () {
             },
 
             {
-                data: 'stock'
+                data: 'stockInitial'
+            },
+
+            {
+                data: 'stockRestant'
             }
 
         ];

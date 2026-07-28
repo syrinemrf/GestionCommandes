@@ -1,0 +1,21 @@
+{% set labels = {
+    'EN_ATTENTE_CONFIRMATION': 'En attente de confirmation',
+    'EN_PREPARATION': 'En préparation',
+    'PRETE': 'Prête',
+    'EXPEDIEE': 'Expédiée',
+    'EN_LIVRAISON': 'En livraison',
+    'ANNULEE': 'Annulée'
+} %}
+{% set icons = {
+    'EN_ATTENTE_CONFIRMATION': 'bi-clock-history',
+    'EN_PREPARATION': 'bi-gear',
+    'PRETE': 'bi-check-circle',
+    'EXPEDIEE': 'bi-box-arrow-up-right',
+    'EN_LIVRAISON': 'bi-truck',
+    'ANNULEE': 'bi-x-circle'
+} %}
+
+<span class="commande-status commande-status-{{ statut|lower }}">
+    <i class="bi {{ icons[statut] ?? 'bi-circle' }}" aria-hidden="true"></i>
+    {{ labels[statut] ?? statut }}
+</span>

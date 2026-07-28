@@ -1,0 +1,31 @@
+<div class="table-actions">
+    <button
+        type="button"
+        class="table-action commande-details-button"
+        data-url="{{ path('commande_details', {id: commande.id}) }}">
+        Détails
+    </button>
+
+    <a
+        href="{{ path('commande_edit', {id: commande.id}) }}"
+        class="table-action">
+        Modifier
+    </a>
+
+    <form
+        method="post"
+        action="{{ path('commande_delete', {id: commande.id}) }}"
+        class="delete-commande-form">
+        <input
+            type="hidden"
+            name="_token"
+            value="{{ csrf_token('commande-delete-' ~ commande.id) }}">
+        <button
+            type="submit"
+            class="commande-delete-icon"
+            aria-label="Supprimer la commande"
+            title="Supprimer">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+    </form>
+</div>

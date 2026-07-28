@@ -1,0 +1,200 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}
+Modifier une commande
+{% endblock %}
+
+{% block body %}
+
+<div class="form-card commande-page-card">
+    <div class="form-header">
+        <div>
+            <h1>Modifier la commande CMD-{{ '%06d'|format(commande.numero) }}</h1>
+            <p>Modifiez les produits ou les informations de la commande.</p>
+        </div>
+        <a href="{{ path('commande_list') }}" class="btn-secondary">Retour</a>
+    </div>
+
+    <form
+        id="commande-form"
+        method="post"
+        action="{{ path('commande_edit', {id: commande.id}) }}"
+        data-products-url="{{ path('commande_products') }}"
+        data-is-admin="{{ is_granted('ROLE_ADMIN') ? 1 : 0 }}"
+        data-default-tva="{{ commande.tauxTva }}"
+        data-current-fournisseur="{{ commande.fournisseur.id }}"
+        data-command-id="{{ commande.id }}"
+        data-initial-lines="{{ lignesInitiales|json_encode|e('html_attr') }}"
+        data-placeholder="{{ asset('images/product-placeholder.jpg') }}"
+        data-image-base="{{ asset(product_images_public_path) }}"
+        data-redirect-url="{{ path('commande_list') }}">
+
+        <input type="hidden" name="_token" value="{{ csrf_token('commande-edit-' ~ commande.id) }}">
+
+        <div class="commande-page-layout">
+            <div class="commande-page-main">
+                <section class="commande-section">
+                    <h2>Informations de la commande</h2>
+
+                    <div class="form-row">
+                        {% if is_granted('ROLE_ADMIN') %}
+                            <div class="form-group">
+                                <label for="commande-fournisseur">
+                                    Fournisseur <span class="required-mark">*</span>
+                                </label>
+                                <select id="commande-fournisseur" name="fournisseur" required>
+                                    {% for fournisseur in fournisseurs %}
+                                        <option
+                                            value="{{ fournisseur.id }}"
+                                            {% if commande.fournisseur.id == fournisseur.id %}selected{% endif %}>
+                                            {{ fournisseur.prenom }} {{ fournisseur.nom }}
+                                            {% if fournisseur.libelle %}({{ fournisseur.libelle }}){% endif %}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        {% endif %}
+
+                        <div class="form-group">
+                            <label for="commande-statut">Statut</label>
+                            <select id="commande-statut" name="statut">
+                                {% for value, label in statuts %}
+                                    <option value="{{ value }}" {% if commande.statut == value %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="commande-note">Note <small>(facultatif)</small></label>
+                        <textarea id="commande-note" name="note" rows="3">{{ commande.note }}</textarea>
+                    </div>
+                </section>
+
+                <section class="commande-section">
+                    <div class="commande-lines-header">
+                        <div>
+                            <h2>Produits</h2>
+                            <p>Modifiez les produits et les quantités de la commande.</p>
+                        </div>
+                        <button type="button" class="btn-secondary" id="add-commande-line">
+                            Ajouter un produit
+                        </button>
+                    </div>
+                    <div id="commande-lines"></div>
+                </section>
+            </div>
+
+            <aside class="commande-page-sidebar">
+                <section class="commande-section commande-client-section">
+                    <h2>Coordonnées du client</h2>
+                    <p class="commande-section-help">Facultatif</p>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="client-prenom">Prénom</label>
+                            <input type="text" id="client-prenom" name="client_prenom" value="{{ client ? client.prenom : '' }}">
+                        </div>
+                        <div class="form-group">
+                            <label for="client-nom">Nom</label>
+                            <input type="text" id="client-nom" name="client_nom" value="{{ client ? client.nom : '' }}">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="client-societe">Société</label>
+                        <input type="text" id="client-societe" name="client_societe" value="{{ client ? client.societe : '' }}">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="client-telephone">Téléphone</label>
+                            <input type="text" id="client-telephone" name="client_telephone" value="{{ client ? client.telephone : '' }}">
+                        </div>
+                        <div class="form-group">
+                            <label for="client-email">Email</label>
+                            <input type="email" id="client-email" name="client_email" value="{{ client ? client.email : '' }}">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="client-rue">Rue et adresse</label>
+                        <input type="text" id="client-rue" name="client_rue" value="{{ client ? client.rue : '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="client-complement">Complément d’adresse</label>
+                        <input type="text" id="client-complement" name="client_complement" value="{{ client ? client.complementAdresse : '' }}">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="client-ville">Ville</label>
+                            <input type="text" id="client-ville" name="client_ville" value="{{ client ? client.ville : '' }}">
+                        </div>
+                        <div class="form-group">
+                            <label for="client-code-postal">Code postal</label>
+                            <input type="text" id="client-code-postal" name="client_code_postal" value="{{ client ? client.codePostal : '' }}">
+                        </div>
+                    </div>
+                </section>
+
+                <section class="commande-section commande-summary">
+                    <h2>Récapitulatif</h2>
+                    <div><span>Total HT</span><strong id="commande-total-ht">{{ commande.totalHt }} TND</strong></div>
+                    <div>
+                        <span>TVA (<span id="commande-tva-label">{{ commande.tauxTva }}</span> %)</span>
+                        <strong id="commande-total-tva">0.000 TND</strong>
+                    </div>
+                    <div class="commande-summary-total">
+                        <span>Total TTC</span>
+                        <strong id="commande-total-ttc">{{ commande.totalTtc }} TND</strong>
+                    </div>
+                </section>
+            </aside>
+        </div>
+
+        <div class="commande-page-actions">
+            <a href="{{ path('commande_list') }}" class="btn-secondary">Annuler</a>
+            <button type="submit" class="btn-primary async-submit-button">
+                <span class="button-label">Enregistrer les modifications</span>
+                <span class="button-loading"><i class="bi bi-arrow-repeat"></i> Enregistrement...</span>
+            </button>
+        </div>
+    </form>
+</div>
+
+<template id="commande-line-template">
+    <div class="commande-line">
+        <div class="commande-product-thumbnail">
+            <img class="commande-product-image" src="{{ asset('images/product-placeholder.jpg') }}" alt="">
+        </div>
+        <div class="form-group commande-product-field">
+            <label>Produit</label>
+            <select name="produit[]" class="commande-product" required><option value="">Sélectionner</option></select>
+        </div>
+        <div class="form-group commande-variation-field">
+            <label>Variation</label>
+            <select name="variation[]" class="commande-variation" required><option value="">Sélectionner</option></select>
+        </div>
+        <div class="form-group commande-stock-field">
+            <label>Disponible</label><output class="commande-stock">—</output>
+        </div>
+        <div class="form-group commande-quantity-field">
+            <label>Quantité</label><input type="number" name="quantite[]" class="commande-quantity" value="1" min="1" required>
+        </div>
+        <div class="form-group commande-price-field">
+            <label>Prix HT</label><output class="commande-price">0.000 TND</output>
+        </div>
+        <div class="form-group commande-line-total-field">
+            <label>Total HT</label><output class="commande-line-total">0.000 TND</output>
+        </div>
+        <button type="button" class="remove-commande-line" aria-label="Supprimer cette ligne"><i class="bi bi-x-lg"></i></button>
+    </div>
+</template>
+
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script src="{{ asset('vendor/jquery/jquery-3.7.1.min.js') }}"></script>
+    <script src="{{ asset('js/app.js') }}"></script>
+    <script src="{{ asset('js/commande.js') }}"></script>
+{% endblock %}

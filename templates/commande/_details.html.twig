@@ -1,0 +1,127 @@
+<div class="commande-details-header">
+    <div>
+        <p class="commande-details-eyebrow">Détails de la commande</p>
+        <h2 id="commande-details-title">
+            CMD-{{ '%06d'|format(commande.numero) }}
+        </h2>
+        <p>{{ commande.date|date('d/m/Y à H:i') }}</p>
+    </div>
+
+    {% include 'commande/_status_badge.html.twig' with {
+        statut: commande.statut
+    } only %}
+</div>
+
+<div class="commande-details-information">
+    {% if is_granted('ROLE_ADMIN') %}
+        <div>
+            <span>Fournisseur</span>
+            <strong>
+                {{ commande.fournisseur.prenom }} {{ commande.fournisseur.nom }}
+                {% if commande.fournisseur.libelle %}
+                    ({{ commande.fournisseur.libelle }})
+                {% endif %}
+            </strong>
+        </div>
+        <div>
+            <span>Enregistrée par</span>
+            <strong>{{ commande.user.prenom }} {{ commande.user.nom }}</strong>
+        </div>
+    {% endif %}
+
+    <div>
+        <span>TVA appliquée</span>
+        <strong>{{ commande.tauxTva|number_format(3, ',', ' ') }} %</strong>
+    </div>
+</div>
+
+<section class="commande-details-section">
+    <h3>Produits commandés</h3>
+
+    <div class="commande-details-table-wrapper">
+        <table class="commande-details-table">
+            <thead>
+                <tr>
+                    <th>Produit</th>
+                    <th>Variation</th>
+                    <th>Prix unitaire HT</th>
+                    <th>Quantité</th>
+                    <th>Total HT</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ligne in commande.lignes %}
+                    <tr>
+                        <td>
+                            <div class="commande-details-product">
+                                <img
+                                    src="{{ ligne.produit.image
+                                        ? asset(product_images_public_path ~ '/' ~ ligne.produit.image)
+                                        : asset('images/product-placeholder.jpg') }}"
+                                    alt="">
+                                <strong>{{ ligne.nomProduit }}</strong>
+                            </div>
+                        </td>
+                        <td>{{ ligne.nomVariation }}</td>
+                        <td>{{ ligne.prixUnitaire|number_format(3, ',', ' ') }} TND</td>
+                        <td>{{ ligne.quantite }}</td>
+                        <td>{{ ligne.totalHt|number_format(3, ',', ' ') }} TND</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<div class="commande-details-lower">
+    <section class="commande-details-section">
+        <h3>Client</h3>
+
+        {% if commande.client %}
+            {% set client = commande.client %}
+            <div class="commande-details-client">
+                <strong>
+                    {{ [client.prenom, client.nom]|filter(value => value)|join(' ')|default('Client non nommé') }}
+                </strong>
+
+                {% if client.societe %}<span>{{ client.societe }}</span>{% endif %}
+                {% if client.telephone %}<span>{{ client.telephone }}</span>{% endif %}
+                {% if client.email %}<span>{{ client.email }}</span>{% endif %}
+
+                {% set adresse = [
+                    client.rue,
+                    client.complementAdresse,
+                    [client.codePostal, client.ville]|filter(value => value)|join(' ')
+                ]|filter(value => value)|join(', ') %}
+
+                {% if adresse %}<span>{{ adresse }}</span>{% endif %}
+            </div>
+        {% else %}
+            <p class="commande-details-empty">Aucun client renseigné.</p>
+        {% endif %}
+
+        {% if commande.note %}
+            <div class="commande-details-note">
+                <span>Note</span>
+                <p>{{ commande.note|nl2br }}</p>
+            </div>
+        {% endif %}
+    </section>
+
+    <section class="commande-details-totals" aria-label="Totaux">
+        <div>
+            <span>Total HT</span>
+            <strong>{{ commande.totalHt|number_format(3, ',', ' ') }} TND</strong>
+        </div>
+        <div>
+            <span>TVA</span>
+            <strong>
+                {{ (commande.totalTtc - commande.totalHt)|number_format(3, ',', ' ') }} TND
+            </strong>
+        </div>
+        <div class="commande-details-total-ttc">
+            <span>Total TTC</span>
+            <strong>{{ commande.totalTtc|number_format(3, ',', ' ') }} TND</strong>
+        </div>
+    </section>
+</div>

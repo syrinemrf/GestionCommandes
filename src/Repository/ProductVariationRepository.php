@@ -100,7 +100,11 @@ class ProductVariationRepository extends ServiceEntityRepository
 
     /**
      * @param int[] $productIds
-     * @return array<int, array{stockTotal: int, hasPriceSupplement: bool}>
+     * @return array<int, array{
+     *     stockTotal: int,
+     *     stockUtilise: int,
+     *     hasPriceSupplement: bool
+     * }>
      */
     public function getSummariesByProductIds(array $productIds): array
     {
@@ -111,6 +115,7 @@ class ProductVariationRepository extends ServiceEntityRepository
         $rows = $this->createQueryBuilder('variation')
             ->select('IDENTITY(variation.product) AS productId')
             ->addSelect('COALESCE(SUM(variation.stock), 0) AS stockTotal')
+            ->addSelect('COALESCE(SUM(variation.stockUtilise), 0) AS stockUtilise')
             ->addSelect('MAX(variation.prixSupplement) AS maxPriceSupplement')
             ->andWhere('IDENTITY(variation.product) IN (:productIds)')
             ->andWhere('variation.isDeleted = :deleted')
@@ -125,6 +130,7 @@ class ProductVariationRepository extends ServiceEntityRepository
         foreach ($rows as $row) {
             $summaries[(int) $row['productId']] = [
                 'stockTotal' => (int) $row['stockTotal'],
+                'stockUtilise' => (int) $row['stockUtilise'],
                 'hasPriceSupplement' => (float) $row['maxPriceSupplement'] > 0,
             ];
         }

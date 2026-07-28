@@ -1,0 +1,15 @@
+<select
+    class="commande-status-select commande-status-select-{{ commande.statut|lower }}"
+    data-id="{{ commande.id }}"
+    data-url="{{ path('commande_update_status', {id: commande.id}) }}"
+    data-token="{{ csrf_token('commande-status-' ~ commande.id) }}"
+    data-current-status="{{ commande.statut }}"
+    aria-label="Statut de la commande CMD-{{ '%06d'|format(commande.numero) }}">
+    {% for value, label in statuts %}
+        <option
+            value="{{ value }}"
+            {{ value == commande.statut ? 'selected' : '' }}>
+            {{ label }}
+        </option>
+    {% endfor %}
+</select>

@@ -4,7 +4,6 @@ namespace App\Entity;
 
 use App\Repository\ClientRepository;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ClientRepository::class)]
 class Client
@@ -18,24 +17,32 @@ class Client
     #[ORM\JoinColumn(nullable: false)]
     private ?User $fournisseur = null;
 
-    #[ORM\Column(length: 255)]
-    #[Assert\NotBlank(message: 'Le nom du client est obligatoire.')]
+    #[ORM\Column(length: 255, nullable: true)]
     private ?string $nom = null;
 
-    #[ORM\Column(length: 255)]
-    #[Assert\NotBlank(message: 'Le prénom du client est obligatoire.')]
+    #[ORM\Column(length: 255, nullable: true)]
     private ?string $prenom = null;
 
-    #[ORM\Column(length: 30)]
-    #[Assert\NotBlank(message: 'Le téléphone du client est obligatoire.')]
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $societe = null;
+
+    #[ORM\Column(length: 30, nullable: true)]
     private ?string $telephone = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Assert\Email(message: 'L’adresse email est invalide.')]
     private ?string $email = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
-    private ?string $adresse = null;
+    private ?string $rue = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $complementAdresse = null;
+
+    #[ORM\Column(length: 150, nullable: true)]
+    private ?string $ville = null;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $codePostal = null;
 
     #[ORM\Column(options: ['default' => false])]
     private bool $isDeleted = false;
@@ -62,7 +69,7 @@ class Client
         return $this->nom;
     }
 
-    public function setNom(string $nom): static
+    public function setNom(?string $nom): static
     {
         $this->nom = $nom;
 
@@ -74,9 +81,21 @@ class Client
         return $this->prenom;
     }
 
-    public function setPrenom(string $prenom): static
+    public function setPrenom(?string $prenom): static
     {
         $this->prenom = $prenom;
+
+        return $this;
+    }
+
+    public function getSociete(): ?string
+    {
+        return $this->societe;
+    }
+
+    public function setSociete(?string $societe): static
+    {
+        $this->societe = $societe;
 
         return $this;
     }
@@ -86,7 +105,7 @@ class Client
         return $this->telephone;
     }
 
-    public function setTelephone(string $telephone): static
+    public function setTelephone(?string $telephone): static
     {
         $this->telephone = $telephone;
 
@@ -105,14 +124,50 @@ class Client
         return $this;
     }
 
-    public function getAdresse(): ?string
+    public function getRue(): ?string
     {
-        return $this->adresse;
+        return $this->rue;
     }
 
-    public function setAdresse(?string $adresse): static
+    public function setRue(?string $rue): static
     {
-        $this->adresse = $adresse;
+        $this->rue = $rue;
+
+        return $this;
+    }
+
+    public function getComplementAdresse(): ?string
+    {
+        return $this->complementAdresse;
+    }
+
+    public function setComplementAdresse(?string $complementAdresse): static
+    {
+        $this->complementAdresse = $complementAdresse;
+
+        return $this;
+    }
+
+    public function getVille(): ?string
+    {
+        return $this->ville;
+    }
+
+    public function setVille(?string $ville): static
+    {
+        $this->ville = $ville;
+
+        return $this;
+    }
+
+    public function getCodePostal(): ?string
+    {
+        return $this->codePostal;
+    }
+
+    public function setCodePostal(?string $codePostal): static
+    {
+        $this->codePostal = $codePostal;
 
         return $this;
     }

@@ -2,6 +2,7 @@
 @import url('./components.css');
 @import url('./forms.css');
 @import url('./products.css');
+@import url('./commandes.css');
 
 :root {
     --color-primary: #047857;

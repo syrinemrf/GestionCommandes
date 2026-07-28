@@ -88,3 +88,38 @@ product_variation_delete:
     controller: App\Controller\ProductVariationController::delete
     methods: [POST]
 
+# Commandes
+commande_list:
+    path: /commandes
+    controller: App\Controller\CommandeController::list
+    methods: [GET]
+
+commande_products:
+    path: /commandes/products
+    controller: App\Controller\CommandeController::products
+    methods: [GET]
+
+commande_add:
+    path: /commandes/add
+    controller: App\Controller\CommandeController::add
+    methods: [GET, POST]
+
+commande_details:
+    path: /commandes/{id}/details
+    controller: App\Controller\CommandeController::details
+    methods: [GET]
+
+commande_update_status:
+    path: /commandes/{id}/status
+    controller: App\Controller\CommandeController::updateStatus
+    methods: [POST]
+
+commande_edit:
+    path: /commandes/{id}/edit
+    controller: App\Controller\CommandeController::edit
+    methods: [GET, POST]
+
+commande_delete:
+    path: /commandes/{id}/delete
+    controller: App\Controller\CommandeController::delete
+    methods: [POST]
