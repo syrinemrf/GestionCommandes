@@ -41,7 +41,7 @@ $(document).ready(function () {
         commandesTable = tableElement.DataTable({
             processing: true,
             serverSide: true,
-            pageLength: 5,
+            pageLength: 15,
             lengthChange: false,
             ajax: {
                 url: tableElement.data('url'),

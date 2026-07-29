@@ -43,6 +43,8 @@ security:
     access_control:
     - { path: ^/users, roles: ROLE_ADMIN }
     - { path: ^/products, roles: [ROLE_ADMIN, ROLE_FOURNISSEUR] }
+    - { path: ^/product-variations, roles: [ROLE_ADMIN, ROLE_FOURNISSEUR] }
+    - { path: ^/commandes, roles: [ROLE_ADMIN, ROLE_FOURNISSEUR] }
 
 when@test:
     security:
