@@ -1,14 +1,14 @@
 <div class="table-actions">
     <button
         type="button"
-        class="table-action commande-details-button"
+        class="table-action table-action-details commande-details-button"
         data-url="{{ path('commande_details', {id: commande.id}) }}">
         Détails
     </button>
 
     <a
         href="{{ path('commande_edit', {id: commande.id}) }}"
-        class="table-action">
+        class="table-action table-action-edit">
         Modifier
     </a>
 

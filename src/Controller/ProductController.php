@@ -202,6 +202,43 @@ class ProductController extends AbstractController
         ]);
     }
 
+    public function details(
+        int $id,
+        ProductRepository $productRepository,
+        ProductVariationRepository $variationRepository,
+    ): Response {
+        $product = $productRepository->find($id);
+
+        if (!$product || $product->isDeleted()) {
+            throw $this->createNotFoundException('Produit introuvable.');
+        }
+
+        if (
+            !$this->isGranted('ROLE_ADMIN')
+            && $product->getFournisseur()?->getId() !== $this->getUser()?->getId()
+        ) {
+            throw $this->createAccessDeniedException(
+                'Vous ne pouvez pas consulter ce produit.'
+            );
+        }
+
+        $variations = $variationRepository->findActiveByProduct($product);
+        $stockInitial = 0;
+        $stockUtilise = 0;
+
+        foreach ($variations as $variation) {
+            $stockInitial += $variation->getStock();
+            $stockUtilise += $variation->getStockUtilise();
+        }
+
+        return $this->render('product/_details.html.twig', [
+            'product' => $product,
+            'variations' => $variations,
+            'stockInitial' => $stockInitial,
+            'stockUtilise' => $stockUtilise,
+        ]);
+    }
+
     public function edit(
         int $id,
         Request $request,

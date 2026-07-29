@@ -1,20 +1,35 @@
 <div class="table-actions">
 
+    <button
+        type="button"
+        class="table-action table-action-details product-details-button"
+        data-url="{{ path('product_details', {'id': product.id}) }}">
+        Détails
+    </button>
+
     <a
         href="{{ path('product_edit', {'id': product.id}) }}"
-        class="table-action">
+        class="table-action table-action-edit">
 
         Modifier
 
     </a>
 
-    <a
-        href="{{ path('product_delete', {'id': product.id}) }}"
-        class="table-action table-action-danger delete-product"
-        data-token="{{ csrf_token('delete-product-' ~ product.id) }}">
-
-            Supprimer
-
-    </a>
+    <form
+        method="post"
+        action="{{ path('product_delete', {'id': product.id}) }}"
+        class="delete-product-form">
+        <input
+            type="hidden"
+            name="_token"
+            value="{{ csrf_token('delete-product-' ~ product.id) }}">
+        <button
+            type="submit"
+            class="product-delete-icon"
+            aria-label="Supprimer le produit"
+            title="Supprimer">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+    </form>
 
 </div>

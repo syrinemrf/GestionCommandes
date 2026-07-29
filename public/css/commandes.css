@@ -53,54 +53,52 @@
 .commande-status {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
     padding: 6px 10px;
-    border: 1px solid transparent;
-    border-radius: 999px;
+    border: 1px solid;
+    border-radius: 8px;
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 600;
     white-space: nowrap;
 }
-.commande-status i { font-size: 14px; }
 .commande-status-en_attente_confirmation {
-    border-color: #fcd34d;
-    background: #fffbeb;
-    color: #92400e;
+    border-color: #fed7aa;
+    background: #fff7ed;
+    color: #9a3412;
 }
 .commande-status-en_preparation {
-    border-color: #93c5fd;
+    border-color: #bfdbfe;
     background: #eff6ff;
-    color: #1e40af;
+    color: #1d4ed8;
 }
 .commande-status-prete {
-    border-color: #6ee7b7;
+    border-color: #a7f3d0;
     background: #ecfdf5;
-    color: #065f46;
+    color: #047857;
 }
 .commande-status-expediee {
-    border-color: #c4b5fd;
-    background: #f5f3ff;
-    color: #5b21b6;
+    border-color: #c7d2fe;
+    background: #eef2ff;
+    color: #4338ca;
 }
 .commande-status-en_livraison {
-    border-color: #67e8f9;
-    background: #ecfeff;
-    color: #155e75;
+    border-color: #bae6fd;
+    background: #f0f9ff;
+    color: #0369a1;
 }
 .commande-status-annulee {
-    border-color: #fca5a5;
-    background: #fef2f2;
-    color: #991b1b;
+    border-color: #fecdd3;
+    background: #fff1f2;
+    color: #be123c;
 }
 .commande-status-select {
     min-width: 195px;
     padding: 7px 10px;
-    border: 1px solid transparent;
-    border-radius: 999px;
+    border: 1px solid;
+    border-radius: 8px;
     cursor: pointer;
     font-family: inherit;
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 600;
 }
 .commande-status-select:focus {
     outline: none;
@@ -111,34 +109,34 @@
     opacity: .65;
 }
 .commande-status-select-en_attente_confirmation {
-    border-color: #fcd34d;
-    background: #fffbeb;
-    color: #92400e;
+    border-color: #fed7aa;
+    background: #fff7ed;
+    color: #9a3412;
 }
 .commande-status-select-en_preparation {
-    border-color: #93c5fd;
+    border-color: #bfdbfe;
     background: #eff6ff;
-    color: #1e40af;
+    color: #1d4ed8;
 }
 .commande-status-select-prete {
-    border-color: #6ee7b7;
+    border-color: #a7f3d0;
     background: #ecfdf5;
-    color: #065f46;
+    color: #047857;
 }
 .commande-status-select-expediee {
-    border-color: #c4b5fd;
-    background: #f5f3ff;
-    color: #5b21b6;
+    border-color: #c7d2fe;
+    background: #eef2ff;
+    color: #4338ca;
 }
 .commande-status-select-en_livraison {
-    border-color: #67e8f9;
-    background: #ecfeff;
-    color: #155e75;
+    border-color: #bae6fd;
+    background: #f0f9ff;
+    color: #0369a1;
 }
 .commande-status-select-annulee {
-    border-color: #fca5a5;
-    background: #fef2f2;
-    color: #991b1b;
+    border-color: #fecdd3;
+    background: #fff1f2;
+    color: #be123c;
 }
 
 .commande-page-card {

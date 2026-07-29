@@ -62,6 +62,11 @@ product_add:
     controller: App\Controller\ProductController::add
     methods: [GET, POST]
 
+product_details:
+    path: /products/{id}/details
+    controller: App\Controller\ProductController::details
+    methods: [GET]
+
 product_edit:
     path: /products/edit/{id}
     controller: App\Controller\ProductController::edit

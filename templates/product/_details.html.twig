@@ -1,0 +1,111 @@
+<div class="product-details-header">
+    <div>
+        <p class="product-details-eyebrow">Détails du produit</p>
+        <h2 id="product-details-title">{{ product.libelle }}</h2>
+
+        {% if is_granted('ROLE_ADMIN') %}
+            <p>
+                {{ product.fournisseur.prenom }} {{ product.fournisseur.nom }}
+                {% if product.fournisseur.libelle %}
+                    · {{ product.fournisseur.libelle }}
+                {% endif %}
+            </p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="product-details-overview">
+
+    <div class="product-details-image-wrapper">
+        <img
+            src="{{ product.image
+                ? asset(product_images_public_path ~ '/' ~ product.image)
+                : asset('images/product-placeholder.jpg') }}"
+            alt="{{ product.libelle }}"
+            class="product-details-image">
+    </div>
+
+    <div class="product-details-summary">
+
+        <section class="product-details-description">
+            <h3>Description</h3>
+            <p>{{ product.description|nl2br }}</p>
+        </section>
+
+        <div class="product-details-metrics">
+            <div>
+                <span>Prix de base</span>
+                <strong>{{ product.prix|number_format(3, ',', ' ') }} TND</strong>
+            </div>
+            <div>
+                <span>Variations</span>
+                <strong>{{ variations|length }}</strong>
+            </div>
+            <div>
+                <span>Stock initial</span>
+                <strong>{{ stockInitial }}</strong>
+            </div>
+            <div>
+                <span>Stock utilisé</span>
+                <strong>{{ stockUtilise }}</strong>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<section class="product-details-variations">
+    <div class="product-details-section-header">
+        <div>
+            <h3>Variations</h3>
+            <p>Détail des références, des prix et des quantités en stock.</p>
+        </div>
+    </div>
+
+    {% if variations is not empty %}
+        <div class="product-details-table-wrapper">
+            <table class="product-details-table">
+                <thead>
+                    <tr>
+                        <th>Variation</th>
+                        <th>Caractéristiques</th>
+                        <th>Référence</th>
+                        <th>Prix final</th>
+                        <th>Stock initial</th>
+                        <th>Utilisé</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for variation in variations %}
+                        <tr>
+                            <td><strong>{{ variation.libelle }}</strong></td>
+                            <td>
+                                {% if variation.attributs is not empty %}
+                                    <div class="product-details-attributes">
+                                        {% for name, value in variation.attributs %}
+                                            <span>{{ name }} : {{ value }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <span class="product-details-standard">Standard</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ variation.reference ?: '—' }}</td>
+                            <td>
+                                {{ (product.prix + variation.prixSupplement)|number_format(3, ',', ' ') }}
+                                TND
+                            </td>
+                            <td>{{ variation.stock }}</td>
+                            <td>{{ variation.stockUtilise }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="product-details-empty">
+            Aucune variation active n’est enregistrée pour ce produit.
+        </p>
+    {% endif %}
+</section>

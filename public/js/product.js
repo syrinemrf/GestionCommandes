@@ -195,12 +195,15 @@ $(document).ready(function () {
                 }
             },
 
-            columns: columns
+            columns: columns,
+            createdRow: function (row, data) {
+                $(row).attr('data-id', data.id);
+            }
         });
 
     }
 
-    $(document).on('click', '.delete-product', async function (e) {
+    $(document).on('submit', '.delete-product-form', async function (e) {
 
         e.preventDefault();
 
@@ -208,14 +211,12 @@ $(document).ready(function () {
             return;
         }
 
-        const link = $(this);
+        const form = $(this);
 
         $.ajax({
             type: "POST",
-            url: link.attr('href'),
-            data: {
-                _token: link.data('token')
-            },
+            url: this.action,
+            data: form.serialize(),
 
             success: function (response) {
                 if (response.success) {
@@ -229,6 +230,62 @@ $(document).ready(function () {
             }
         });
 
+    });
+
+    const productDetailsModal = $('#product-details-modal');
+    const productDetailsContent = $('#product-details-content');
+
+    function closeProductDetailsModal() {
+        productDetailsModal.prop('hidden', true);
+        productDetailsContent.empty();
+        $('body').removeClass('modal-open');
+    }
+
+    $(document).on('click', '.product-details-button', function () {
+        productDetailsContent.html(
+            '<div class="product-details-loading">'
+            + '<span class="spinner"></span>'
+            + '<span>Chargement des détails...</span>'
+            + '</div>'
+        );
+        productDetailsModal.prop('hidden', false);
+        $('body').addClass('modal-open');
+        $('#close-product-details').trigger('focus');
+
+        $.ajax({
+            url: $(this).data('url'),
+            type: 'GET',
+            dataType: 'html',
+            success: function (html) {
+                productDetailsContent.html(html);
+            },
+            error: function (xhr) {
+                closeProductDetailsModal();
+                showToast(
+                    xhr.responseJSON?.message
+                    || 'Impossible de charger les détails du produit.',
+                    'error'
+                );
+            }
+        });
+    });
+
+    $('#close-product-details').on('click', closeProductDetailsModal);
+
+    productDetailsModal.on('click', function (event) {
+        if (event.target === this) {
+            closeProductDetailsModal();
+        }
+    });
+
+    $(document).on('keydown', function (event) {
+        if (
+            event.key === 'Escape'
+            && productDetailsModal.length
+            && !productDetailsModal.prop('hidden')
+        ) {
+            closeProductDetailsModal();
+        }
     });
 
     const productTypeInputs = $('input[name="product_type"]');
@@ -362,7 +419,11 @@ $(document).ready(function () {
     });
 
     $(document).on('keydown', function (event) {
-        if (event.key === 'Escape' && !variationModal.prop('hidden')) {
+        if (
+            event.key === 'Escape'
+            && variationModal.length
+            && !variationModal.prop('hidden')
+        ) {
             closeVariationForm();
         }
     });
