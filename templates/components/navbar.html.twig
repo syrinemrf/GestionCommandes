@@ -1,9 +1,5 @@
 <header class="navbar">
 
-    <div class="navbar-left">
-        <h2>Gestion des Commandes</h2>
-    </div>
-
     <div class="navbar-right">
         {% if app.user %}
             <nav class="navbar-quick-actions" aria-label="Actions rapides">
@@ -39,6 +35,16 @@
                     </a>
                 {% endif %}
             </nav>
+
+            {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_FOURNISSEUR') %}
+                <a
+                    href="{{ path('support_home') }}"
+                    class="navbar-support-link{% if app.request.attributes.get('_route') starts with 'support_' %} is-active{% endif %}"
+                    aria-label="Accéder au support"
+                    title="Support">
+                    <i class="bi bi-headset" aria-hidden="true"></i>
+                </a>
+            {% endif %}
 
             <div class="profile">
                 <span class="user-email">{{ app.user.email }}</span>
