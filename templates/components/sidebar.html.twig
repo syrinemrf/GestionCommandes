@@ -29,6 +29,17 @@
 
     </nav>
 
+    {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_FOURNISSEUR') %}
+        <div class="sidebar-secondary">
+            <a
+                href="{{ path('support_home') }}"
+                class="{% if app.request.attributes.get('_route') starts with 'support_' %}is-active{% endif %}">
+                <i class="bi bi-headset" aria-hidden="true"></i>
+                <span>Support</span>
+            </a>
+        </div>
+    {% endif %}
+
     {% if app.user %}
         <div class="sidebar-footer">
             <a

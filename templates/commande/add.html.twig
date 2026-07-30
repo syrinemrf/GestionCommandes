@@ -32,47 +32,6 @@ Ajouter une commande
         <div class="commande-page-layout">
             <div class="commande-page-main">
                 <section class="commande-section">
-                    <h2>Informations de la commande</h2>
-
-                    <div class="form-row">
-                        {% if is_granted('ROLE_ADMIN') %}
-                            <div class="form-group">
-                                <label for="commande-fournisseur">
-                                    Fournisseur <span class="required-mark">*</span>
-                                </label>
-                                <select id="commande-fournisseur" name="fournisseur" required>
-                                    <option value="">Sélectionner un fournisseur</option>
-                                    {% for fournisseur in fournisseurs %}
-                                        <option value="{{ fournisseur.id }}">
-                                            {{ fournisseur.prenom }} {{ fournisseur.nom }}
-                                            {% if fournisseur.libelle %}({{ fournisseur.libelle }}){% endif %}
-                                        </option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        {% endif %}
-
-                        <div class="form-group">
-                            <label for="commande-statut">Statut</label>
-                            <select id="commande-statut" name="statut">
-                                {% for value, label in statuts %}
-                                    <option value="{{ value }}">{{ label }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="commande-note">Note <small>(facultatif)</small></label>
-                        <textarea
-                            id="commande-note"
-                            name="note"
-                            rows="3"
-                            placeholder="Informations complémentaires"></textarea>
-                    </div>
-                </section>
-
-                <section class="commande-section">
                     <div class="commande-lines-header">
                         <div>
                             <h2>Produits</h2>
@@ -83,7 +42,46 @@ Ajouter une commande
                         </button>
                     </div>
 
+                    {% if is_granted('ROLE_ADMIN') %}
+                        <div class="form-group">
+                            <label for="commande-fournisseur">
+                                Fournisseur <span class="required-mark">*</span>
+                            </label>
+                            <select id="commande-fournisseur" name="fournisseur" required>
+                                <option value="">Sélectionner un fournisseur</option>
+                                {% for fournisseur in fournisseurs %}
+                                    <option value="{{ fournisseur.id }}">
+                                        {{ fournisseur.prenom }} {{ fournisseur.nom }}
+                                        {% if fournisseur.libelle %}({{ fournisseur.libelle }}){% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    {% endif %}
+
                     <div id="commande-lines"></div>
+                </section>
+
+                <section class="commande-section">
+                    <h2>Informations de la commande</h2>
+
+                    <div class="form-group">
+                        <label for="commande-statut">Statut</label>
+                        <select id="commande-statut" name="statut">
+                            {% for value, label in statuts %}
+                                <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="commande-note">Note <small>(facultatif)</small></label>
+                        <textarea
+                            id="commande-note"
+                            name="note"
+                            rows="3"
+                            placeholder="Informations complémentaires"></textarea>
+                    </div>
                 </section>
             </div>
 

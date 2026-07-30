@@ -1,0 +1,93 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouvelle demande{% endblock %}
+
+{% block body %}
+
+<div class="form-card support-form-card">
+    <div class="form-header">
+        <div>
+            <h1>Nouvelle demande</h1>
+            <p>Décrivez clairement le problème rencontré.</p>
+        </div>
+        <a href="{{ path('support_home') }}" class="btn-secondary">Retour</a>
+    </div>
+
+    <form
+        id="support-request-form"
+        class="support-ajax-form"
+        method="post"
+        action="{{ path('support_add') }}">
+        <input type="hidden" name="_token" value="{{ csrf_token('support-add') }}">
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="support-categorie">Catégorie</label>
+                <select id="support-categorie" name="categorie" required>
+                    {% for value, label in categories %}
+                        <option
+                            value="{{ value }}"
+                            {% if value == categorieSelectionnee %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="support-priorite">Priorité</label>
+                <select id="support-priorite" name="priorite" required>
+                    {% for value, label in priorites %}
+                        <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+                <small class="field-help">
+                    Réservez « Urgente » aux problèmes qui bloquent votre activité.
+                </small>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="support-objet">Objet</label>
+            <input
+                type="text"
+                id="support-objet"
+                name="objet"
+                maxlength="255"
+                placeholder="Exemple : stock incorrect sur une variation"
+                required>
+        </div>
+
+        <div class="form-group">
+            <label for="support-description">Description</label>
+            <textarea
+                id="support-description"
+                name="description"
+                rows="7"
+                placeholder="Indiquez les références utiles et les étapes qui ont provoqué le problème."
+                required></textarea>
+        </div>
+
+        <div class="support-form-note">
+            Ne communiquez jamais votre mot de passe dans une demande.
+        </div>
+
+        <div class="form-actions support-form-actions">
+            <a href="{{ path('support_home') }}" class="btn-secondary">Annuler</a>
+            <button type="submit" class="btn-primary async-submit-button">
+                <span class="button-label">Envoyer la demande</span>
+                <span class="button-loading">
+                    <i class="bi bi-arrow-repeat"></i> Envoi...
+                </span>
+            </button>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script src="{{ asset('vendor/jquery/jquery-3.7.1.min.js') }}"></script>
+    <script src="{{ asset('js/support.js') }}"></script>
+{% endblock %}

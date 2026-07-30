@@ -315,13 +315,21 @@ $(document).ready(function () {
             $('<option>', { value: '', text: 'Sélectionner' })
         );
 
-        (product?.variations || []).forEach(function (variation) {
+        const variations = product?.variations || [];
+        const variationId = selectedVariationId
+            || (
+                product?.isStandard && variations.length === 1
+                    ? variations[0].id
+                    : null
+            );
+
+        variations.forEach(function (variation) {
             select.append(
                 $('<option>', {
                     value: variation.id,
                     text: variation.libelle,
                     selected: Number(variation.id)
-                        === Number(selectedVariationId)
+                        === Number(variationId)
                 }).attr({
                     'data-price': variation.prix,
                     'data-stock': variation.stockDisponible

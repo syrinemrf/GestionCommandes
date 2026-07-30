@@ -133,3 +133,39 @@ commande_delete:
     path: /commandes/{id}/delete
     controller: App\Controller\CommandeController::delete
     methods: [POST]
+
+# Support
+support_home:
+    path: /support
+    controller: App\Controller\ReclamationController::index
+    methods: [GET]
+
+support_data:
+    path: /support/data
+    controller: App\Controller\ReclamationController::data
+    methods: [GET]
+
+support_my_requests:
+    path: /support/mes-demandes
+    controller: App\Controller\ReclamationController::myRequests
+    methods: [GET]
+
+support_add:
+    path: /support/nouveau
+    controller: App\Controller\ReclamationController::add
+    methods: [GET, POST]
+
+support_reply:
+    path: /support/{id}/repondre
+    controller: App\Controller\ReclamationController::reply
+    methods: [POST]
+
+support_update:
+    path: /support/{id}/modifier
+    controller: App\Controller\ReclamationController::update
+    methods: [POST]
+
+support_details:
+    path: /support/{id}
+    controller: App\Controller\ReclamationController::details
+    methods: [GET]

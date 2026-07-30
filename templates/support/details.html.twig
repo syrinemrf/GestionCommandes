@@ -1,0 +1,213 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}
+SUP-{{ '%06d'|format(reclamation.id) }}
+{% endblock %}
+
+{% block body %}
+
+<div class="support-details">
+    <header class="support-details-header">
+        <div>
+            <a
+                href="{{ is_granted('ROLE_ADMIN')
+                    ? path('support_home')
+                    : path('support_my_requests') }}"
+                class="support-back-link">
+                Retour aux demandes
+            </a>
+            <p class="support-ticket-number">
+                SUP-{{ '%06d'|format(reclamation.id) }}
+            </p>
+            <h1>{{ reclamation.objet }}</h1>
+            <p>
+                Créée le {{ reclamation.createdAt|date('d/m/Y à H:i') }}
+                · {{ categories[reclamation.categorie] }}
+            </p>
+        </div>
+
+        <div class="support-details-badges">
+            {% include 'support/_badge.html.twig' with {
+                type: 'priorite',
+                value: reclamation.priorite,
+                label: priorites[reclamation.priorite]
+            } only %}
+            {% include 'support/_badge.html.twig' with {
+                type: 'statut',
+                value: reclamation.statut,
+                label: statuts[reclamation.statut]
+            } only %}
+        </div>
+    </header>
+
+    <div class="support-details-layout">
+        <main class="support-conversation">
+            <h2>Suivi de la demande</h2>
+
+            <article class="support-message support-message-supplier">
+                <div class="support-message-header">
+                    <strong>
+                        {{ reclamation.fournisseur.prenom }}
+                        {{ reclamation.fournisseur.nom }}
+                    </strong>
+                    <time>{{ reclamation.createdAt|date('d/m/Y à H:i') }}</time>
+                </div>
+                <p>{{ reclamation.description|nl2br }}</p>
+            </article>
+
+            {% for message in reclamation.messages %}
+                <article class="support-message {{ message.auteur.role == 'ROLE_ADMIN'
+                    ? 'support-message-admin'
+                    : 'support-message-supplier' }}">
+                    <div class="support-message-header">
+                        <strong>
+                            {{ message.auteur.prenom }} {{ message.auteur.nom }}
+                            {% if message.auteur.role == 'ROLE_ADMIN' %}
+                                <span>Administration</span>
+                            {% endif %}
+                        </strong>
+                        <time>{{ message.createdAt|date('d/m/Y à H:i') }}</time>
+                    </div>
+                    <p>{{ message.contenu|nl2br }}</p>
+                </article>
+            {% endfor %}
+
+            {% if reclamation.statut != 'FERMEE' %}
+                <form
+                    class="support-reply-form support-ajax-form"
+                    method="post"
+                    action="{{ path('support_reply', {id: reclamation.id}) }}"
+                    data-reload="true">
+                    <input
+                        type="hidden"
+                        name="_token"
+                        value="{{ csrf_token('support-reply-' ~ reclamation.id) }}">
+                    <div class="form-group">
+                        <label for="support-reply">Répondre</label>
+                        <textarea
+                            id="support-reply"
+                            name="contenu"
+                            rows="4"
+                            placeholder="Écrivez votre réponse..."
+                            required></textarea>
+                    </div>
+                    <button type="submit" class="btn-primary">
+                        Envoyer la réponse
+                    </button>
+                </form>
+            {% else %}
+                <p class="support-closed-message">
+                    Cette demande est fermée. Il n’est plus possible d’y répondre.
+                </p>
+            {% endif %}
+        </main>
+
+        <aside class="support-details-sidebar">
+            {% if is_granted('ROLE_ADMIN') %}
+                <section class="support-management-card">
+                    <h2>Gestion de la demande</h2>
+                    <form
+                        class="support-ajax-form"
+                        method="post"
+                        action="{{ path('support_update', {id: reclamation.id}) }}"
+                        data-reload="true">
+                        <input
+                            type="hidden"
+                            name="_token"
+                            value="{{ csrf_token('support-update-' ~ reclamation.id) }}">
+
+                        <div class="form-group">
+                            <label for="support-status">Statut</label>
+                            <select id="support-status" name="statut">
+                                {% for value, label in statuts %}
+                                    <option
+                                        value="{{ value }}"
+                                        {% if value == reclamation.statut %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="support-priority">Priorité</label>
+                            <select id="support-priority" name="priorite">
+                                {% for value, label in priorites %}
+                                    <option
+                                        value="{{ value }}"
+                                        {% if value == reclamation.priorite %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="support-admin">Assignée à</label>
+                            <select id="support-admin" name="admin">
+                                <option value="">Non assignée</option>
+                                {% for admin in admins %}
+                                    <option
+                                        value="{{ admin.id }}"
+                                        {% if reclamation.adminAssigne
+                                            and reclamation.adminAssigne.id == admin.id %}
+                                            selected
+                                        {% endif %}>
+                                        {{ admin.prenom }} {{ admin.nom }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn-primary btn-block">
+                            Mettre à jour
+                        </button>
+                    </form>
+                </section>
+            {% endif %}
+
+            <section class="support-information-card">
+                <h2>Informations</h2>
+                {% if is_granted('ROLE_ADMIN') %}
+                    <div>
+                        <span>Fournisseur</span>
+                        <strong>
+                            {{ reclamation.fournisseur.prenom }}
+                            {{ reclamation.fournisseur.nom }}
+                        </strong>
+                        {% if reclamation.fournisseur.libelle %}
+                            <small>{{ reclamation.fournisseur.libelle }}</small>
+                        {% endif %}
+                    </div>
+                {% endif %}
+                <div>
+                    <span>Catégorie</span>
+                    <strong>{{ categories[reclamation.categorie] }}</strong>
+                </div>
+                <div>
+                    <span>Dernière mise à jour</span>
+                    <strong>{{ reclamation.updatedAt|date('d/m/Y à H:i') }}</strong>
+                </div>
+                <div>
+                    <span>Assignée à</span>
+                    <strong>
+                        {% if reclamation.adminAssigne %}
+                            {{ reclamation.adminAssigne.prenom }}
+                            {{ reclamation.adminAssigne.nom }}
+                        {% else %}
+                            Non assignée
+                        {% endif %}
+                    </strong>
+                </div>
+            </section>
+        </aside>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script src="{{ asset('vendor/jquery/jquery-3.7.1.min.js') }}"></script>
+    <script src="{{ asset('js/support.js') }}"></script>
+{% endblock %}

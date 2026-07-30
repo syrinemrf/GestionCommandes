@@ -45,6 +45,7 @@ security:
     - { path: ^/products, roles: [ROLE_ADMIN, ROLE_FOURNISSEUR] }
     - { path: ^/product-variations, roles: [ROLE_ADMIN, ROLE_FOURNISSEUR] }
     - { path: ^/commandes, roles: [ROLE_ADMIN, ROLE_FOURNISSEUR] }
+    - { path: ^/support, roles: [ROLE_ADMIN, ROLE_FOURNISSEUR] }
 
 when@test:
     security:

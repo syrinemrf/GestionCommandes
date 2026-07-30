@@ -1,0 +1,152 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Support{% endblock %}
+
+{% block body %}
+
+<div class="support-home">
+    <section class="support-welcome">
+        <div class="support-welcome-content">
+            <p class="support-eyebrow">Support</p>
+            <h1>Besoin d’aide ?</h1>
+            <p>
+                Décrivez votre problème et suivez sa prise en charge directement
+                depuis votre espace fournisseur.
+            </p>
+            <a href="{{ path('support_add') }}" class="btn-primary support-primary-action">
+                <span aria-hidden="true">+</span>
+                Nouvelle demande
+            </a>
+        </div>
+
+        <aside class="support-guidance">
+            <h2>Pour une réponse plus précise</h2>
+            <p>
+                Indiquez la commande, le produit ou la référence concernée et
+                décrivez les étapes qui ont provoqué le problème.
+            </p>
+            <p class="support-security-note">
+                Ne communiquez jamais votre mot de passe.
+            </p>
+        </aside>
+    </section>
+
+    <section class="support-section">
+        <div class="support-section-heading">
+            <div>
+                <h2>Quel est le sujet de votre demande ?</h2>
+                <p>Choisissez une catégorie pour préparer votre demande.</p>
+            </div>
+        </div>
+
+        <div class="support-category-grid">
+            {% set categoryIcons = {
+                'COMMANDE': 'bi-receipt',
+                'PRODUIT': 'bi-box-seam',
+                'STOCK': 'bi-boxes',
+                'COMPTE': 'bi-person',
+                'TECHNIQUE': 'bi-tools',
+                'AUTRE': 'bi-chat-left-text'
+            } %}
+
+            {% for value, label in categories %}
+                <a
+                    href="{{ path('support_add', {categorie: value}) }}"
+                    class="support-category-card">
+                    <i class="bi {{ categoryIcons[value] }}" aria-hidden="true"></i>
+                    <span>{{ label }}</span>
+                </a>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="support-section support-process-section">
+        <div class="support-section-heading">
+            <div>
+                <h2>Comment ça fonctionne ?</h2>
+                <p>Votre demande reste consultable jusqu’à sa résolution.</p>
+            </div>
+        </div>
+
+        <div class="support-process">
+            <div>
+                <span>1</span>
+                <strong>Envoyez votre demande</strong>
+                <p>Expliquez le problème rencontré.</p>
+            </div>
+            <div>
+                <span>2</span>
+                <strong>Prise en charge</strong>
+                <p>L’administration analyse votre demande.</p>
+            </div>
+            <div>
+                <span>3</span>
+                <strong>Suivez la résolution</strong>
+                <p>Échangez depuis la page de suivi.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="support-section">
+        <div class="support-section-heading support-recent-heading">
+            <div>
+                <h2>Mes demandes</h2>
+                <p>Un aperçu de vos demandes les plus récentes.</p>
+            </div>
+            <a href="{{ path('support_my_requests') }}" class="support-text-link">
+                Voir toutes mes demandes
+            </a>
+        </div>
+
+        <div class="support-stats">
+            <div>
+                <span>Ouvertes</span>
+                <strong>{{ nombreOuvertes }}</strong>
+            </div>
+            <div>
+                <span>En cours</span>
+                <strong>{{ nombreEnCours }}</strong>
+            </div>
+            <div>
+                <span>Résolues</span>
+                <strong>{{ nombreResolues }}</strong>
+            </div>
+        </div>
+
+        {% if recentes is not empty %}
+            <div class="support-recent-list">
+                {% for reclamation in recentes %}
+                    <a
+                        href="{{ path('support_details', {id: reclamation.id}) }}"
+                        class="support-recent-item">
+                        <div>
+                            <span class="support-ticket-number">
+                                SUP-{{ '%06d'|format(reclamation.id) }}
+                            </span>
+                            <strong>{{ reclamation.objet }}</strong>
+                            <small>
+                                Mise à jour le
+                                {{ reclamation.updatedAt|date('d/m/Y à H:i') }}
+                            </small>
+                        </div>
+                        {% include 'support/_badge.html.twig' with {
+                            type: 'statut',
+                            value: reclamation.statut,
+                            label: statuts[reclamation.statut]
+                        } only %}
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="support-empty-state">
+                <h3>Aucune demande pour le moment</h3>
+                <p>Créez une demande lorsque vous avez besoin de notre aide.</p>
+                <a href="{{ path('support_add') }}" class="btn-secondary">
+                    Créer ma première demande
+                </a>
+            </div>
+        {% endif %}
+    </section>
+</div>
+
+{% endblock %}

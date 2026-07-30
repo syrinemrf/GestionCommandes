@@ -151,8 +151,10 @@ class CommandeController extends AbstractController
 
         foreach ($products as $product) {
             $variations = [];
+            $activeVariations = $variationRepository
+                ->findActiveByProduct($product);
 
-            foreach ($variationRepository->findActiveByProduct($product) as $variation) {
+            foreach ($activeVariations as $variation) {
                 $variations[] = [
                     'id' => $variation->getId(),
                     'libelle' => $variation->getLibelle(),
@@ -177,6 +179,8 @@ class CommandeController extends AbstractController
                     'libelle' => $product->getLibelle(),
                     'image' => $product->getImage(),
                     'variations' => $variations,
+                    'isStandard' => count($activeVariations) === 1
+                        && $activeVariations[0]->getAttributs() === [],
                 ];
             }
         }
