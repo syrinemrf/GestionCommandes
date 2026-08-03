@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Tests PHP 8.2
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      mariadb:
+        image: mariadb:10.4
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: gestion_commandes_test
+          MARIADB_USER: app
+          MARIADB_PASSWORD: app
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uapp -papp"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      APP_ENV: test
+      APP_SECRET: ci-test-secret
+      DATABASE_URL: "mysql://app:app@127.0.0.1:3306/gestion_commandes?serverVersion=mariadb-10.4.32&charset=utf8mb4"
+
+    steps:
+      - name: Recuperer le code
+        uses: actions/checkout@v5
+
+      - name: Installer PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: ctype, iconv, pdo_mysql
+          coverage: none
+          tools: composer:v2
+
+      - name: Valider Composer
+        run: composer validate --no-check-publish
+
+      - name: Installer les dependances
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Verifier la configuration Symfony
+        run: |
+          php bin/console lint:yaml config
+          php bin/console lint:twig templates
+          php bin/console lint:container
+
+      - name: Preparer la base de test
+        run: |
+          php bin/console doctrine:migrations:migrate --env=test --no-interaction
+          php bin/console doctrine:schema:validate --env=test
+
+      - name: Executer les tests
+        run: composer test
