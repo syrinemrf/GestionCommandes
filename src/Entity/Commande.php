@@ -19,6 +19,7 @@ class Commande
     public const STATUT_PRETE = 'PRETE';
     public const STATUT_EXPEDIEE = 'EXPEDIEE';
     public const STATUT_EN_LIVRAISON = 'EN_LIVRAISON';
+    public const STATUT_LIVREE = 'LIVREE';
     public const STATUT_ANNULEE = 'ANNULEE';
 
     #[ORM\Id]
@@ -159,6 +160,11 @@ class Commande
         $this->statut = $statut;
 
         return $this;
+    }
+
+    public function isModifiable(): bool
+    {
+        return $this->statut === self::STATUT_EN_ATTENTE_CONFIRMATION;
     }
 
     public function isDeleted(): bool

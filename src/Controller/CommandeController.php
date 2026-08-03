@@ -20,6 +20,7 @@ class CommandeController extends AbstractController
     public function list(
         Request $request,
         CommandeRepository $commandeRepository,
+        CommandeService $commandeService,
         UserRepository $userRepository,
     ): Response {
         $user = $this->getCurrentUser();
@@ -87,6 +88,13 @@ class CommandeController extends AbstractController
                     $clientLabel = $client->getSociete();
                 }
 
+                $statutsDisponibles = array_intersect_key(
+                    $statusLabels,
+                    array_flip(
+                        $commandeService->getAvailableStatuses($commande)
+                    )
+                );
+
                 $rows[] = [
                     'id' => $commande->getId(),
                     'numero' => sprintf('CMD-%06d', $commande->getNumero()),
@@ -100,7 +108,7 @@ class CommandeController extends AbstractController
                         'commande/_status_select.html.twig',
                         [
                             'commande' => $commande,
-                            'statuts' => $statusLabels,
+                            'statuts' => $statutsDisponibles,
                         ]
                     ),
                     'fournisseur' => $this->formatUser(
@@ -229,7 +237,12 @@ class CommandeController extends AbstractController
                     : [],
                 'tva' => $parametreRepository->findOneBy([])?->getTva()
                     ?? '0.000',
-                'statuts' => $this->getStatusLabels(),
+                'statuts' => [
+                    Commande::STATUT_EN_ATTENTE_CONFIRMATION =>
+                        $this->getStatusLabels()[
+                            Commande::STATUT_EN_ATTENTE_CONFIRMATION
+                        ],
+                ],
             ]);
         }
 
@@ -328,6 +341,12 @@ class CommandeController extends AbstractController
         $commande = $this->getAccessibleCommande($id, $commandeRepository);
 
         if ($request->isMethod('GET')) {
+            if (!$commande->isModifiable()) {
+                throw $this->createAccessDeniedException(
+                    'Une commande confirmée ne peut plus être modifiée.'
+                );
+            }
+
             $client = $commande->getClient();
             $lignes = [];
 
@@ -349,7 +368,12 @@ class CommandeController extends AbstractController
                         'isDeleted' => false,
                     ])
                     : [],
-                'statuts' => $this->getStatusLabels(),
+                'statuts' => array_intersect_key(
+                    $this->getStatusLabels(),
+                    array_flip(
+                        $commandeService->getAvailableStatuses($commande)
+                    )
+                ),
             ]);
         }
 
@@ -500,6 +524,7 @@ class CommandeController extends AbstractController
             Commande::STATUT_PRETE => 'Prête',
             Commande::STATUT_EXPEDIEE => 'Expédiée',
             Commande::STATUT_EN_LIVRAISON => 'En livraison',
+            Commande::STATUT_LIVREE => 'Livrée',
             Commande::STATUT_ANNULEE => 'Annulée',
         ];
     }

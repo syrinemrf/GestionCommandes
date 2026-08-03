@@ -14,16 +14,17 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Symfony\Component\Workflow\WorkflowInterface;
 
 class CommandeService
 {
-    private const STATUTS = [
-        Commande::STATUT_EN_ATTENTE_CONFIRMATION,
-        Commande::STATUT_EN_PREPARATION,
-        Commande::STATUT_PRETE,
-        Commande::STATUT_EXPEDIEE,
-        Commande::STATUT_EN_LIVRAISON,
-        Commande::STATUT_ANNULEE,
+    private const TRANSITIONS_PAR_STATUT = [
+        Commande::STATUT_EN_PREPARATION => 'confirmer',
+        Commande::STATUT_PRETE => 'preparer',
+        Commande::STATUT_EXPEDIEE => 'expedier',
+        Commande::STATUT_EN_LIVRAISON => 'mettre_en_livraison',
+        Commande::STATUT_LIVREE => 'livrer',
+        Commande::STATUT_ANNULEE => 'annuler',
     ];
 
     public function __construct(
@@ -32,6 +33,7 @@ class CommandeService
         private ProductRepository $productRepository,
         private ProductVariationRepository $variationRepository,
         private CsrfTokenManagerInterface $csrfTokenManager,
+        private WorkflowInterface $commandeWorkflow,
     ) {
     }
 
@@ -49,6 +51,12 @@ class CommandeService
         User $fournisseur,
         bool $isNew,
     ): void {
+        if (!$isNew && !$commande->isModifiable()) {
+            throw new \DomainException(
+                'Une commande confirmée ne peut plus être modifiée.'
+            );
+        }
+
         $parametre = $this->getParametre();
 
         if ($isNew) {
@@ -69,21 +77,23 @@ class CommandeService
             ->setNote($this->nullableValue($request->request->get('note')));
 
         $ancienStatut = $commande->getStatut();
+        $statut = $isNew
+            ? Commande::STATUT_EN_ATTENTE_CONFIRMATION
+            : (string) $request->request->get('statut', $ancienStatut);
+        $transition = $isNew || $statut === $ancienStatut
+            ? null
+            : $this->getEnabledTransition($commande, $statut);
 
         if (!$isNew && $this->statusUsesStock($ancienStatut)) {
             $this->restoreStock($commande);
         }
 
-        $statut = (string) $request->request->get(
-            'statut',
-            Commande::STATUT_EN_ATTENTE_CONFIRMATION
-        );
-
-        if (!in_array($statut, self::STATUTS, true)) {
-            throw new \DomainException('Le statut sélectionné est invalide.');
+        if ($isNew) {
+            $commande->setStatut(Commande::STATUT_EN_ATTENTE_CONFIRMATION);
+        } elseif ($transition !== null) {
+            $this->commandeWorkflow->apply($commande, $transition);
         }
 
-        $commande->setStatut($statut);
         $this->fillClient($commande, $request, $fournisseur);
         $this->fillLignes($commande, $request, $fournisseur);
 
@@ -108,15 +118,13 @@ class CommandeService
 
     public function updateStatus(Commande $commande, string $statut): void
     {
-        if (!in_array($statut, self::STATUTS, true)) {
-            throw new \DomainException('Le statut sélectionné est invalide.');
-        }
-
         $ancienStatut = $commande->getStatut();
 
         if ($statut === $ancienStatut) {
             return;
         }
+
+        $transition = $this->getEnabledTransition($commande, $statut);
 
         $ancienStatutUtiliseStock = $this->statusUsesStock($ancienStatut);
         $nouveauStatutUtiliseStock = $this->statusUsesStock($statut);
@@ -127,8 +135,21 @@ class CommandeService
             $this->consumeStock($commande);
         }
 
-        $commande->setStatut($statut);
+        $this->commandeWorkflow->apply($commande, $transition);
         $this->entityManager->flush();
+    }
+
+    public function getAvailableStatuses(Commande $commande): array
+    {
+        $statuts = [$commande->getStatut()];
+
+        foreach ($this->commandeWorkflow->getEnabledTransitions($commande) as $transition) {
+            foreach ($transition->getTos() as $statut) {
+                $statuts[] = $statut;
+            }
+        }
+
+        return array_values(array_unique($statuts));
     }
 
     private function getParametre(): Parametre
@@ -295,7 +316,26 @@ class CommandeService
             Commande::STATUT_PRETE,
             Commande::STATUT_EXPEDIEE,
             Commande::STATUT_EN_LIVRAISON,
+            Commande::STATUT_LIVREE,
         ], true);
+    }
+
+    private function getEnabledTransition(
+        Commande $commande,
+        string $statut
+    ): string {
+        $transition = self::TRANSITIONS_PAR_STATUT[$statut] ?? null;
+
+        if (
+            $transition === null
+            || !$this->commandeWorkflow->can($commande, $transition)
+        ) {
+            throw new \DomainException(
+                'Ce changement de statut n’est pas autorisé.'
+            );
+        }
+
+        return $transition;
     }
 
     private function consumeStock(Commande $commande): void

@@ -6,11 +6,13 @@
         Détails
     </button>
 
-    <a
-        href="{{ path('commande_edit', {id: commande.id}) }}"
-        class="table-action table-action-edit">
-        Modifier
-    </a>
+    {% if commande.modifiable %}
+        <a
+            href="{{ path('commande_edit', {id: commande.id}) }}"
+            class="table-action table-action-edit">
+            Modifier
+        </a>
+    {% endif %}
 
     <form
         method="post"

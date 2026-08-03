@@ -1,0 +1,39 @@
+framework:
+    workflows:
+        commande:
+            type: state_machine
+            supports:
+                - App\Entity\Commande
+            marking_store:
+                type: method
+                property: statut
+            initial_marking: EN_ATTENTE_CONFIRMATION
+            places:
+                - EN_ATTENTE_CONFIRMATION
+                - EN_PREPARATION
+                - PRETE
+                - EXPEDIEE
+                - EN_LIVRAISON
+                - LIVREE
+                - ANNULEE
+            transitions:
+                confirmer:
+                    from: EN_ATTENTE_CONFIRMATION
+                    to: EN_PREPARATION
+                annuler:
+                    from:
+                        - EN_ATTENTE_CONFIRMATION
+                        - EN_PREPARATION
+                    to: ANNULEE
+                preparer:
+                    from: EN_PREPARATION
+                    to: PRETE
+                expedier:
+                    from: PRETE
+                    to: EXPEDIEE
+                mettre_en_livraison:
+                    from: EXPEDIEE
+                    to: EN_LIVRAISON
+                livrer:
+                    from: EN_LIVRAISON
+                    to: LIVREE

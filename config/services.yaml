@@ -28,3 +28,7 @@ services:
     App\Service\ProductImageUploader:
         arguments:
             $productImagesDirectory: '%product_images_directory%'
+
+    App\Service\CommandeService:
+        arguments:
+            $commandeWorkflow: '@state_machine.commande'
