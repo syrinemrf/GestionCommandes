@@ -200,7 +200,7 @@ class CommandeController extends AbstractController
                     ),
                     'stockDisponible' => max(
                         0,
-                        $variation->getStock() - $variation->getStockUtilise()
+                        $variation->getStockDisponible()
                         + ($quantitesCommande[$variation->getId()] ?? 0)
                     ),
                 ];
@@ -316,7 +316,8 @@ class CommandeController extends AbstractController
         try {
             $commandeService->updateStatus(
                 $commande,
-                (string) $request->request->get('statut')
+                (string) $request->request->get('statut'),
+                $this->getCurrentUser()
             );
 
             return $this->json([
@@ -437,7 +438,10 @@ class CommandeController extends AbstractController
             );
         }
 
-        $commandeService->softDelete($commande);
+        $commandeService->softDelete(
+            $commande,
+            $this->getCurrentUser()
+        );
 
         return $this->json([
             'success' => true,

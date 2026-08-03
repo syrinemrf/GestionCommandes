@@ -1,33 +1,43 @@
-<div class="table-actions">
+<div class="row-actions-menu">
     <button
         type="button"
-        class="table-action table-action-details commande-details-button"
-        data-url="{{ path('commande_details', {id: commande.id}) }}">
-        Détails
-    </button>
+        class="row-actions-trigger"
+        aria-label="Afficher les actions de la commande"
+        aria-haspopup="menu"
+        aria-expanded="false">&hellip;</button>
 
-    {% if commande.modifiable %}
-        <a
-            href="{{ path('commande_edit', {id: commande.id}) }}"
-            class="table-action table-action-edit">
-            Modifier
-        </a>
-    {% endif %}
-
-    <form
-        method="post"
-        action="{{ path('commande_delete', {id: commande.id}) }}"
-        class="delete-commande-form">
-        <input
-            type="hidden"
-            name="_token"
-            value="{{ csrf_token('commande-delete-' ~ commande.id) }}">
+    <div class="row-actions-dropdown" role="menu" hidden>
         <button
-            type="submit"
-            class="commande-delete-icon"
-            aria-label="Supprimer la commande"
-            title="Supprimer">
-            <i class="bi bi-x-lg" aria-hidden="true"></i>
+            type="button"
+            class="row-action-item commande-details-button"
+            data-url="{{ path('commande_details', {id: commande.id}) }}"
+            role="menuitem">
+            Détails
         </button>
-    </form>
+
+        {% if commande.modifiable %}
+            <a
+                href="{{ path('commande_edit', {id: commande.id}) }}"
+                class="row-action-item"
+                role="menuitem">
+                Modifier
+            </a>
+        {% endif %}
+
+        <form
+            method="post"
+            action="{{ path('commande_delete', {id: commande.id}) }}"
+            class="delete-commande-form">
+            <input
+                type="hidden"
+                name="_token"
+                value="{{ csrf_token('commande-delete-' ~ commande.id) }}">
+            <button
+                type="submit"
+                class="row-action-item row-action-danger"
+                role="menuitem">
+                Supprimer
+            </button>
+        </form>
+    </div>
 </div>

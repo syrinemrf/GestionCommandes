@@ -317,6 +317,124 @@ $(document).ready(function () {
         }
     });
 
+    const restockModal = $('#product-restock-modal');
+    const restockForm = $('#product-restock-form');
+    const restockVariation = $('#product-restock-variation');
+
+    function updateRestockStockLabel() {
+        const selectedOption = restockVariation.find('option:selected');
+        $('#product-restock-current-stock').text(
+            selectedOption.data('stock') ?? 0
+        );
+    }
+
+    function closeRestockModal() {
+        restockModal.prop('hidden', true);
+        restockForm[0]?.reset();
+        restockVariation.empty();
+        $('body').removeClass('modal-open');
+    }
+
+    $(document).on('click', '.product-restock-button', function () {
+        const button = $(this);
+        let variations = [];
+
+        try {
+            variations = JSON.parse(button.attr('data-variations'));
+        } catch (error) {
+            showToast('Impossible de charger les variations du produit.', 'error');
+            return;
+        }
+
+        if (!Array.isArray(variations) || variations.length === 0) {
+            showToast('Ce produit ne possède aucune variation active.', 'error');
+            return;
+        }
+
+        restockForm.attr('action', button.data('url'));
+        $('#product-restock-token').val(button.data('token'));
+        $('#product-restock-name').text(button.data('product-label'));
+        restockVariation.empty();
+
+        variations.forEach(function (variation) {
+            restockVariation.append(
+                $('<option>', {
+                    value: variation.id,
+                    text: variation.libelle
+                }).attr('data-stock', variation.stockDisponible)
+            );
+        });
+
+        const hasSingleVariation = variations.length === 1;
+        $('#product-restock-variation-field').prop(
+            'hidden',
+            hasSingleVariation
+        );
+        $('.product-restock-selected').prop(
+            'hidden',
+            !hasSingleVariation
+        );
+        $('#product-restock-selected-label').text(
+            hasSingleVariation ? variations[0].libelle : ''
+        );
+        $('#product-restock-quantity').val(1);
+        $('#product-restock-comment').val('');
+        updateRestockStockLabel();
+
+        restockModal.prop('hidden', false);
+        $('body').addClass('modal-open');
+        $('#product-restock-quantity').trigger('focus');
+    });
+
+    restockVariation.on('change', updateRestockStockLabel);
+    $('#close-product-restock, #cancel-product-restock')
+        .on('click', closeRestockModal);
+
+    restockModal.on('click', function (event) {
+        if (event.target === this) {
+            closeRestockModal();
+        }
+    });
+
+    restockForm.on('submit', function (event) {
+        event.preventDefault();
+
+        const submitButton = restockForm.find('button[type="submit"]');
+        setButtonLoading(submitButton, true);
+
+        $.ajax({
+            url: this.action,
+            type: 'POST',
+            data: restockForm.serialize(),
+            dataType: 'json',
+            success: function (response) {
+                $('#products-table').DataTable().ajax.reload(null, false);
+                closeRestockModal();
+                showToast(response.message);
+            },
+            error: function (xhr) {
+                showToast(
+                    xhr.responseJSON?.message
+                    || 'Impossible de réapprovisionner le produit.',
+                    'error'
+                );
+            },
+            complete: function () {
+                setButtonLoading(submitButton, false);
+            }
+        });
+    });
+
+    $(document).on('keydown', function (event) {
+        if (
+            event.key === 'Escape'
+            && restockModal.length
+            && !restockModal.prop('hidden')
+        ) {
+            closeRestockModal();
+        }
+    });
+
     const productTypeInputs = $('input[name="product_type"]');
     const productPriceField = $('#product-price-field');
     const productPriceInput = $('#prix');

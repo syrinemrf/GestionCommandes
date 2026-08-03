@@ -42,12 +42,16 @@
                 <strong>{{ variations|length }}</strong>
             </div>
             <div>
-                <span>Stock initial</span>
+                <span>Stock total</span>
                 <strong>{{ stockInitial }}</strong>
             </div>
             <div>
                 <span>Stock utilisé</span>
                 <strong>{{ stockUtilise }}</strong>
+            </div>
+            <div>
+                <span>Stock réservé</span>
+                <strong>{{ stockReserve }}</strong>
             </div>
         </div>
 
@@ -72,8 +76,9 @@
                         <th>Caractéristiques</th>
                         <th>Référence</th>
                         <th>Prix final</th>
-                        <th>Stock initial</th>
+                        <th>Stock total</th>
                         <th>Utilisé</th>
+                        <th>Réservé</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -98,6 +103,7 @@
                             </td>
                             <td>{{ variation.stock }}</td>
                             <td>{{ variation.stockUtilise }}</td>
+                            <td>{{ variation.stockReserve }}</td>
                         </tr>
                     {% endfor %}
                 </tbody>

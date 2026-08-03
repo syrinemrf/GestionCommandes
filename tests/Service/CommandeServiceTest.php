@@ -3,7 +3,9 @@
 namespace App\Tests\Service;
 
 use App\Entity\Commande;
+use App\Entity\HistoriqueStatutCommande;
 use App\Entity\LigneCommande;
+use App\Entity\MouvementStock;
 use App\Entity\Parametre;
 use App\Entity\Product;
 use App\Entity\ProductVariation;
@@ -12,6 +14,7 @@ use App\Repository\ParametreRepository;
 use App\Repository\ProductRepository;
 use App\Repository\ProductVariationRepository;
 use App\Service\CommandeService;
+use App\Service\StockMovementService;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -48,6 +51,7 @@ final class CommandeServiceTest extends KernelTestCase
             $this->variationRepository,
             $this->csrfTokenManager,
             $workflow,
+            new StockMovementService($this->entityManager),
         );
     }
 
@@ -58,6 +62,15 @@ final class CommandeServiceTest extends KernelTestCase
         $parametre = (new Parametre())
             ->setNumeroCommande(42)
             ->setTva('19.000');
+        $persistedEntities = [];
+
+        $this->entityManager
+            ->method('persist')
+            ->willReturnCallback(
+                static function (object $entity) use (&$persistedEntities): void {
+                    $persistedEntities[] = $entity;
+                }
+            );
 
         $this->parametreRepository
             ->expects(self::once())
@@ -76,10 +89,6 @@ final class CommandeServiceTest extends KernelTestCase
             ->willReturn($variation);
         $this->entityManager
             ->expects(self::once())
-            ->method('persist')
-            ->with(self::isInstanceOf(Commande::class));
-        $this->entityManager
-            ->expects(self::once())
             ->method('flush');
 
         $commande = new Commande();
@@ -95,8 +104,18 @@ final class CommandeServiceTest extends KernelTestCase
         self::assertSame(43, $parametre->getNumeroCommande());
         self::assertSame('75.000', $commande->getTotalHt());
         self::assertSame('89.250', $commande->getTotalTtc());
-        self::assertSame(3, $variation->getStockUtilise());
+        self::assertSame(0, $variation->getStockUtilise());
+        self::assertSame(3, $variation->getStockReserve());
+        self::assertSame(7, $variation->getStockDisponible());
         self::assertCount(1, $commande->getLignes());
+        self::assertContains(
+            MouvementStock::class,
+            array_map('get_class', $persistedEntities)
+        );
+        self::assertContains(
+            HistoriqueStatutCommande::class,
+            array_map('get_class', $persistedEntities)
+        );
     }
 
     public function testCreerUneCommandeRefuseUnStockInsuffisant(): void
@@ -129,14 +148,14 @@ final class CommandeServiceTest extends KernelTestCase
                 true,
             );
         } finally {
-            self::assertSame(0, $variation->getStockUtilise());
+            self::assertSame(0, $variation->getStockReserve());
         }
     }
 
     public function testAnnulerUneCommandeLibereLeStock(): void
     {
-        [, , , $variation] = $this->createOrderContext(10);
-        $variation->setStockUtilise(3);
+        [$actor, , , $variation] = $this->createOrderContext(10);
+        $variation->setStockReserve(3);
 
         $ligne = (new LigneCommande())
             ->setVariation($variation)
@@ -152,15 +171,18 @@ final class CommandeServiceTest extends KernelTestCase
         $this->service->updateStatus(
             $commande,
             Commande::STATUT_ANNULEE,
+            $actor,
         );
 
         self::assertSame(Commande::STATUT_ANNULEE, $commande->getStatut());
+        self::assertSame(0, $variation->getStockReserve());
         self::assertSame(0, $variation->getStockUtilise());
     }
 
     public function testUnSautDeStatutEstRefuse(): void
     {
         $commande = new Commande();
+        $actor = new User();
 
         $this->entityManager
             ->expects(self::never())
@@ -172,7 +194,35 @@ final class CommandeServiceTest extends KernelTestCase
         $this->service->updateStatus(
             $commande,
             Commande::STATUT_PRETE,
+            $actor,
         );
+    }
+
+    public function testLivrerUneCommandeTransformeLaReservationEnSortie(): void
+    {
+        [$actor, , , $variation] = $this->createOrderContext(10);
+        $variation->setStockReserve(3);
+        $ligne = (new LigneCommande())
+            ->setVariation($variation)
+            ->setQuantite(3);
+        $commande = (new Commande())
+            ->setStatut(Commande::STATUT_EN_LIVRAISON)
+            ->addLigne($ligne);
+
+        $this->entityManager
+            ->expects(self::once())
+            ->method('flush');
+
+        $this->service->updateStatus(
+            $commande,
+            Commande::STATUT_LIVREE,
+            $actor,
+        );
+
+        self::assertSame(Commande::STATUT_LIVREE, $commande->getStatut());
+        self::assertSame(0, $variation->getStockReserve());
+        self::assertSame(3, $variation->getStockUtilise());
+        self::assertSame(7, $variation->getStockDisponible());
     }
 
     /**
@@ -199,6 +249,7 @@ final class CommandeServiceTest extends KernelTestCase
             ->setPrixSupplement('5.000')
             ->setStock($stock)
             ->setStockUtilise(0)
+            ->setStockReserve(0)
             ->setIsDeleted(false);
         $this->setEntityId($variation, 10);
 

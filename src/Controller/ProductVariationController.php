@@ -7,6 +7,7 @@ use App\Entity\User;
 use App\Repository\ProductRepository;
 use App\Repository\ProductVariationRepository;
 use App\Service\ProductVariationService;
+use App\Service\StockMovementService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -94,6 +95,7 @@ class ProductVariationController extends AbstractController
         ProductRepository $productRepository,
         ProductVariationRepository $variationRepository,
         ProductVariationService $variationService,
+        StockMovementService $stockMovementService,
         EntityManagerInterface $entityManager,
         ValidatorInterface $validator,
     ): JsonResponse {
@@ -144,6 +146,10 @@ class ProductVariationController extends AbstractController
         }
 
         $entityManager->persist($variation);
+        $stockMovementService->enregistrerStockInitial(
+            $variation,
+            $this->getCurrentUser()
+        );
         $entityManager->flush();
 
         return $this->json([
@@ -159,6 +165,7 @@ class ProductVariationController extends AbstractController
         Request $request,
         ProductVariationRepository $variationRepository,
         ProductVariationService $variationService,
+        StockMovementService $stockMovementService,
         EntityManagerInterface $entityManager,
         ValidatorInterface $validator,
     ): JsonResponse {
@@ -201,8 +208,28 @@ class ProductVariationController extends AbstractController
             );
         }
 
+        $ancienStock = $variation->getStock();
         $variationService->fillFromRequest($variation, $request);
+        $nouveauStock = $variation->getStock();
+        $variation->setStock($ancienStock);
         $variationService->generateReference($variation);
+
+        try {
+            $stockMovementService->ajusterStock(
+                $variation,
+                $nouveauStock,
+                $this->getCurrentUser(),
+                'Modification de la variation'
+            );
+        } catch (\DomainException $exception) {
+            return $this->json(
+                [
+                    'success' => false,
+                    'message' => $exception->getMessage(),
+                ],
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        }
 
         $errors = $validator->validate($variation);
 
@@ -300,5 +327,16 @@ class ProductVariationController extends AbstractController
                 'Vous ne pouvez pas gérer les variations de ce produit.'
             );
         }
+    }
+
+    private function getCurrentUser(): User
+    {
+        $user = $this->getUser();
+
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException();
+        }
+
+        return $user;
     }
 }

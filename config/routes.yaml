@@ -67,6 +67,11 @@ product_details:
     controller: App\Controller\ProductController::details
     methods: [GET]
 
+product_restock:
+    path: /products/{id}/restock
+    controller: App\Controller\ProductController::restock
+    methods: [POST]
+
 product_edit:
     path: /products/edit/{id}
     controller: App\Controller\ProductController::edit

@@ -60,7 +60,7 @@ Liste des produits
                     <th>Image</th>
                     <th>Libellé</th>
                     <th>Prix</th>
-                    <th>Stock initial</th>
+                    <th>Stock total</th>
                     <th>Stock restant</th>
 
                     {% if is_granted('ROLE_ADMIN') %}
@@ -74,6 +74,88 @@ Liste des produits
         </table>
     </div>
 
+</div>
+
+<div
+    id="product-restock-modal"
+    class="product-restock-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="product-restock-title"
+    hidden>
+    <div class="product-restock-dialog">
+        <button
+            type="button"
+            class="product-details-close"
+            id="close-product-restock"
+            aria-label="Fermer">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+
+        <div class="product-restock-header">
+            <p>Gestion du stock</p>
+            <h2 id="product-restock-title">Réapprovisionner</h2>
+            <span id="product-restock-name"></span>
+        </div>
+
+        <form id="product-restock-form" method="post">
+            <input type="hidden" name="_token" id="product-restock-token">
+
+            <div class="form-group" id="product-restock-variation-field">
+                <label for="product-restock-variation">Variation</label>
+                <select
+                    id="product-restock-variation"
+                    name="variation"
+                    required></select>
+            </div>
+
+            <div class="product-restock-selected" hidden>
+                <span>Variation</span>
+                <strong id="product-restock-selected-label"></strong>
+            </div>
+
+            <p class="product-restock-current">
+                Stock disponible :
+                <strong id="product-restock-current-stock">0</strong>
+            </p>
+
+            <div class="form-group">
+                <label for="product-restock-quantity">Quantité à ajouter</label>
+                <input
+                    type="number"
+                    id="product-restock-quantity"
+                    name="quantite"
+                    min="1"
+                    value="1"
+                    required>
+            </div>
+
+            <div class="form-group">
+                <label for="product-restock-comment">
+                    Commentaire <span>(facultatif)</span>
+                </label>
+                <textarea
+                    id="product-restock-comment"
+                    name="commentaire"
+                    rows="3"
+                    maxlength="500"
+                    placeholder="Exemple : livraison fournisseur du jour"></textarea>
+            </div>
+
+            <div class="product-restock-actions">
+                <button
+                    type="button"
+                    class="btn-secondary"
+                    id="cancel-product-restock">
+                    Annuler
+                </button>
+                <button type="submit" class="btn-primary">
+                    <span class="button-label">Ajouter au stock</span>
+                    <span class="button-loading" hidden>Enregistrement...</span>
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <div

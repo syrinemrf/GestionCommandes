@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Entity\Client;
 use App\Entity\Commande;
+use App\Entity\HistoriqueStatutCommande;
 use App\Entity\LigneCommande;
 use App\Entity\Parametre;
 use App\Entity\User;
@@ -34,6 +35,7 @@ class CommandeService
         private ProductVariationRepository $variationRepository,
         private CsrfTokenManagerInterface $csrfTokenManager,
         private WorkflowInterface $commandeWorkflow,
+        private StockMovementService $stockMovementService,
     ) {
     }
 
@@ -84,8 +86,11 @@ class CommandeService
             ? null
             : $this->getEnabledTransition($commande, $statut);
 
-        if (!$isNew && $this->statusUsesStock($ancienStatut)) {
-            $this->restoreStock($commande);
+        if (!$isNew && $this->statusReservesStock($ancienStatut)) {
+            $this->stockMovementService->libererReservation(
+                $commande,
+                $actor
+            );
         }
 
         if ($isNew) {
@@ -97,18 +102,40 @@ class CommandeService
         $this->fillClient($commande, $request, $fournisseur);
         $this->fillLignes($commande, $request, $fournisseur);
 
-        if ($this->statusUsesStock($statut)) {
-            $this->consumeStock($commande);
+        if ($this->statusReservesStock($statut)) {
+            $this->stockMovementService->reserverCommande(
+                $commande,
+                $actor
+            );
+        }
+
+        if ($isNew) {
+            $this->recordStatusChange(
+                $commande,
+                null,
+                Commande::STATUT_EN_ATTENTE_CONFIRMATION,
+                $actor
+            );
+        } elseif ($transition !== null) {
+            $this->recordStatusChange(
+                $commande,
+                $ancienStatut,
+                $commande->getStatut(),
+                $actor
+            );
         }
 
         $this->entityManager->persist($commande);
         $this->entityManager->flush();
     }
 
-    public function softDelete(Commande $commande): void
+    public function softDelete(Commande $commande, User $actor): void
     {
-        if ($this->statusUsesStock($commande->getStatut())) {
-            $this->restoreStock($commande);
+        if ($this->statusReservesStock($commande->getStatut())) {
+            $this->stockMovementService->libererReservation(
+                $commande,
+                $actor
+            );
         }
 
         $commande->getClient()?->setIsDeleted(true);
@@ -116,7 +143,11 @@ class CommandeService
         $this->entityManager->flush();
     }
 
-    public function updateStatus(Commande $commande, string $statut): void
+    public function updateStatus(
+        Commande $commande,
+        string $statut,
+        User $actor,
+    ): void
     {
         $ancienStatut = $commande->getStatut();
 
@@ -126,16 +157,30 @@ class CommandeService
 
         $transition = $this->getEnabledTransition($commande, $statut);
 
-        $ancienStatutUtiliseStock = $this->statusUsesStock($ancienStatut);
-        $nouveauStatutUtiliseStock = $this->statusUsesStock($statut);
+        if (
+            $statut === Commande::STATUT_ANNULEE
+            && $this->statusReservesStock($ancienStatut)
+        ) {
+            $this->stockMovementService->libererReservation(
+                $commande,
+                $actor
+            );
+        }
 
-        if ($ancienStatutUtiliseStock && !$nouveauStatutUtiliseStock) {
-            $this->restoreStock($commande);
-        } elseif (!$ancienStatutUtiliseStock && $nouveauStatutUtiliseStock) {
-            $this->consumeStock($commande);
+        if ($statut === Commande::STATUT_LIVREE) {
+            $this->stockMovementService->sortirCommande(
+                $commande,
+                $actor
+            );
         }
 
         $this->commandeWorkflow->apply($commande, $transition);
+        $this->recordStatusChange(
+            $commande,
+            $ancienStatut,
+            $commande->getStatut(),
+            $actor
+        );
         $this->entityManager->flush();
     }
 
@@ -272,8 +317,7 @@ class CommandeService
             $variationId = (int) $variation->getId();
             $quantitesParVariation[$variationId] =
                 ($quantitesParVariation[$variationId] ?? 0) + $quantite;
-            $stockDisponible = $variation->getStock()
-                - $variation->getStockUtilise();
+            $stockDisponible = $variation->getStockDisponible();
 
             if ($quantitesParVariation[$variationId] > $stockDisponible) {
                 throw new \DomainException(
@@ -308,7 +352,7 @@ class CommandeService
         return $value === '' ? null : $value;
     }
 
-    private function statusUsesStock(string $statut): bool
+    private function statusReservesStock(string $statut): bool
     {
         return in_array($statut, [
             Commande::STATUT_EN_ATTENTE_CONFIRMATION,
@@ -316,7 +360,6 @@ class CommandeService
             Commande::STATUT_PRETE,
             Commande::STATUT_EXPEDIEE,
             Commande::STATUT_EN_LIVRAISON,
-            Commande::STATUT_LIVREE,
         ], true);
     }
 
@@ -338,64 +381,19 @@ class CommandeService
         return $transition;
     }
 
-    private function consumeStock(Commande $commande): void
+    private function recordStatusChange(
+        Commande $commande,
+        ?string $ancienStatut,
+        string $nouveauStatut,
+        User $actor,
+    ): void
     {
-        $quantitesParVariation = [];
+        $historique = (new HistoriqueStatutCommande())
+            ->setCommande($commande)
+            ->setAncienStatut($ancienStatut)
+            ->setNouveauStatut($nouveauStatut)
+            ->setChangedBy($actor);
 
-        foreach ($commande->getLignes() as $ligne) {
-            $variation = $ligne->getVariation();
-
-            if (!$variation) {
-                continue;
-            }
-
-            $variationId = (int) $variation->getId();
-
-            if (!isset($quantitesParVariation[$variationId])) {
-                $quantitesParVariation[$variationId] = [
-                    'variation' => $variation,
-                    'quantite' => 0,
-                ];
-            }
-
-            $quantitesParVariation[$variationId]['quantite'] +=
-                $ligne->getQuantite();
-        }
-
-        foreach ($quantitesParVariation as $stockCommande) {
-            $variation = $stockCommande['variation'];
-            $quantite = $stockCommande['quantite'];
-            $stockDisponible = $variation->getStock()
-                - $variation->getStockUtilise();
-
-            if ($quantite > $stockDisponible) {
-                throw new \DomainException(
-                    'Stock insuffisant pour ' . $variation->getLibelle() . '.'
-                );
-            }
-        }
-
-        foreach ($quantitesParVariation as $stockCommande) {
-            $variation = $stockCommande['variation'];
-            $variation->setStockUtilise(
-                $variation->getStockUtilise() + $stockCommande['quantite']
-            );
-        }
-    }
-
-    private function restoreStock(Commande $commande): void
-    {
-        foreach ($commande->getLignes() as $ligne) {
-            $variation = $ligne->getVariation();
-
-            if (!$variation) {
-                continue;
-            }
-
-            $variation->setStockUtilise(max(
-                0,
-                $variation->getStockUtilise() - $ligne->getQuantite()
-            ));
-        }
+        $this->entityManager->persist($historique);
     }
 }

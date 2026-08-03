@@ -10,6 +10,7 @@ use App\Repository\UserRepository;
 use App\Service\ProductImageUploader;
 use App\Service\ProductService;
 use App\Service\ProductVariationService;
+use App\Service\StockMovementService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -60,22 +61,43 @@ class ProductController extends AbstractController
             $summaries = $variationRepository->getSummariesByProductIds(
                 array_column($result['rows'], 'id')
             );
+            $variationsByProduct =
+                $variationRepository->findActiveGroupedByProductIds(
+                    array_column($result['rows'], 'id')
+                );
 
             foreach ($result['rows'] as &$row) {
                 $summary = $summaries[$row['id']] ?? [
                     'stockTotal' => 0,
                     'stockUtilise' => 0,
+                    'stockReserve' => 0,
                     'hasPriceSupplement' => false,
                 ];
                 $row['stockInitial'] = $summary['stockTotal'];
                 $row['stockRestant'] = max(
                     0,
-                    $summary['stockTotal'] - $summary['stockUtilise']
+                    $summary['stockTotal']
+                    - $summary['stockUtilise']
+                    - $summary['stockReserve']
                 );
                 $row['hasPriceSupplement'] = $summary['hasPriceSupplement'];
                 $row['actions'] = $this->renderView(
                     'product/_row_actions.html.twig',
-                    ['product' => ['id' => $row['id']]]
+                    [
+                        'product' => [
+                            'id' => $row['id'],
+                            'libelle' => $row['libelle'],
+                        ],
+                        'variations' => array_map(
+                            static fn (ProductVariation $variation): array => [
+                                'id' => $variation->getId(),
+                                'libelle' => $variation->getLibelle(),
+                                'stockDisponible' =>
+                                    $variation->getStockDisponible(),
+                            ],
+                            $variationsByProduct[$row['id']] ?? []
+                        ),
+                    ]
                 );
             }
             unset($row);
@@ -103,6 +125,7 @@ class ProductController extends AbstractController
         EntityManagerInterface $entityManager,
         ProductService $productService,
         ProductVariationService $variationService,
+        StockMovementService $stockMovementService,
         ProductImageUploader $imageUploader,
         ValidatorInterface $validator
     ): Response {
@@ -184,6 +207,7 @@ class ProductController extends AbstractController
                     ->setPrixSupplement('0.000')
                     ->setStock($initialStock)
                     ->setStockUtilise(0)
+                    ->setStockReserve(0)
                     ->setIsDeleted(false);
 
                 $variationService->generateReference($variation);
@@ -197,6 +221,14 @@ class ProductController extends AbstractController
                 }
 
                 $entityManager->persist($variation);
+                $actor = $this->getUser();
+
+                if ($actor instanceof \App\Entity\User) {
+                    $stockMovementService->enregistrerStockInitial(
+                        $variation,
+                        $actor
+                    );
+                }
                 $entityManager->flush();
             }
 
@@ -249,10 +281,12 @@ class ProductController extends AbstractController
         $variations = $variationRepository->findActiveByProduct($product);
         $stockInitial = 0;
         $stockUtilise = 0;
+        $stockReserve = 0;
 
         foreach ($variations as $variation) {
             $stockInitial += $variation->getStock();
             $stockUtilise += $variation->getStockUtilise();
+            $stockReserve += $variation->getStockReserve();
         }
 
         return $this->render('product/_details.html.twig', [
@@ -260,7 +294,88 @@ class ProductController extends AbstractController
             'variations' => $variations,
             'stockInitial' => $stockInitial,
             'stockUtilise' => $stockUtilise,
+            'stockReserve' => $stockReserve,
         ]);
+    }
+
+    public function restock(
+        int $id,
+        Request $request,
+        ProductRepository $productRepository,
+        ProductVariationRepository $variationRepository,
+        ProductService $productService,
+        StockMovementService $stockMovementService,
+        EntityManagerInterface $entityManager,
+    ): Response {
+        $product = $productRepository->find($id);
+
+        if (!$product || $product->isDeleted()) {
+            return $this->json(
+                ['success' => false, 'message' => 'Produit introuvable.'],
+                Response::HTTP_NOT_FOUND
+            );
+        }
+
+        if (
+            !$this->isGranted('ROLE_ADMIN')
+            && $product->getFournisseur()?->getId() !== $this->getUser()?->getId()
+        ) {
+            throw $this->createAccessDeniedException(
+                'Vous ne pouvez pas réapprovisionner ce produit.'
+            );
+        }
+
+        if (!$productService->isCsrfTokenValid(
+            'product-restock-' . $product->getId(),
+            $request->request->get('_token')
+        )) {
+            return $this->json(
+                ['success' => false, 'message' => 'Votre session a expiré. Rechargez la page.'],
+                Response::HTTP_FORBIDDEN
+            );
+        }
+
+        $variation = $variationRepository->find(
+            $request->request->getInt('variation')
+        );
+
+        if (
+            !$variation
+            || $variation->isDeleted()
+            || $variation->getProduct()?->getId() !== $product->getId()
+        ) {
+            return $this->json(
+                ['success' => false, 'message' => 'La variation sélectionnée est invalide.'],
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        }
+
+        $actor = $this->getUser();
+
+        if (!$actor instanceof \App\Entity\User) {
+            throw $this->createAccessDeniedException();
+        }
+
+        try {
+            $stockMovementService->reapprovisionner(
+                $variation,
+                $request->request->getInt('quantite'),
+                $actor,
+                (string) $request->request->get('commentaire')
+            );
+            $entityManager->flush();
+
+            return $this->json([
+                'success' => true,
+                'message' => 'Stock réapprovisionné avec succès.',
+                'stockDisponible' => $variation->getStockDisponible(),
+            ]);
+        } catch (\DomainException $exception) {
+            return $this->json(
+                ['success' => false, 'message' => $exception->getMessage()],
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        }
     }
 
     public function edit(

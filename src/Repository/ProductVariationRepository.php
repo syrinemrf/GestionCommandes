@@ -103,6 +103,7 @@ class ProductVariationRepository extends ServiceEntityRepository
      * @return array<int, array{
      *     stockTotal: int,
      *     stockUtilise: int,
+     *     stockReserve: int,
      *     hasPriceSupplement: bool
      * }>
      */
@@ -116,6 +117,7 @@ class ProductVariationRepository extends ServiceEntityRepository
             ->select('IDENTITY(variation.product) AS productId')
             ->addSelect('COALESCE(SUM(variation.stock), 0) AS stockTotal')
             ->addSelect('COALESCE(SUM(variation.stockUtilise), 0) AS stockUtilise')
+            ->addSelect('COALESCE(SUM(variation.stockReserve), 0) AS stockReserve')
             ->addSelect('MAX(variation.prixSupplement) AS maxPriceSupplement')
             ->andWhere('IDENTITY(variation.product) IN (:productIds)')
             ->andWhere('variation.isDeleted = :deleted')
@@ -131,11 +133,44 @@ class ProductVariationRepository extends ServiceEntityRepository
             $summaries[(int) $row['productId']] = [
                 'stockTotal' => (int) $row['stockTotal'],
                 'stockUtilise' => (int) $row['stockUtilise'],
+                'stockReserve' => (int) $row['stockReserve'],
                 'hasPriceSupplement' => (float) $row['maxPriceSupplement'] > 0,
             ];
         }
 
         return $summaries;
+    }
+
+    /**
+     * @param int[] $productIds
+     * @return array<int, ProductVariation[]>
+     */
+    public function findActiveGroupedByProductIds(array $productIds): array
+    {
+        if ($productIds === []) {
+            return [];
+        }
+
+        $variations = $this->createQueryBuilder('variation')
+            ->andWhere('IDENTITY(variation.product) IN (:productIds)')
+            ->andWhere('variation.isDeleted = :deleted')
+            ->setParameter('productIds', $productIds)
+            ->setParameter('deleted', false)
+            ->orderBy('variation.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        $grouped = [];
+
+        foreach ($variations as $variation) {
+            $productId = $variation->getProduct()?->getId();
+
+            if ($productId !== null) {
+                $grouped[$productId][] = $variation;
+            }
+        }
+
+        return $grouped;
     }
 
     

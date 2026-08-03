@@ -88,3 +88,84 @@ document.addEventListener('click', async (event) => {
         window.location.href = logoutLink.href;
     }
 });
+
+let activeRowActionsMenu = null;
+
+function closeRowActionsMenu() {
+    if (!activeRowActionsMenu) {
+        return;
+    }
+
+    activeRowActionsMenu.dropdown.hidden = true;
+    activeRowActionsMenu.trigger.setAttribute('aria-expanded', 'false');
+    activeRowActionsMenu = null;
+}
+
+function positionRowActionsMenu(trigger, dropdown) {
+    const triggerRect = trigger.getBoundingClientRect();
+    const menuWidth = dropdown.offsetWidth;
+    const menuHeight = dropdown.offsetHeight;
+    const gap = 6;
+    const viewportGap = 10;
+    let left = triggerRect.right - menuWidth;
+    let top = triggerRect.bottom + gap;
+
+    left = Math.max(
+        viewportGap,
+        Math.min(left, window.innerWidth - menuWidth - viewportGap)
+    );
+
+    if (top + menuHeight > window.innerHeight - viewportGap) {
+        top = Math.max(
+            viewportGap,
+            triggerRect.top - menuHeight - gap
+        );
+    }
+
+    dropdown.style.left = `${left}px`;
+    dropdown.style.top = `${top}px`;
+}
+
+document.addEventListener('click', (event) => {
+    const trigger = event.target.closest('.row-actions-trigger');
+
+    if (trigger) {
+        const dropdown = trigger
+            .closest('.row-actions-menu')
+            ?.querySelector('.row-actions-dropdown');
+
+        if (!dropdown) {
+            return;
+        }
+
+        const isCurrentMenu = activeRowActionsMenu?.trigger === trigger;
+        closeRowActionsMenu();
+
+        if (!isCurrentMenu) {
+            dropdown.hidden = false;
+            trigger.setAttribute('aria-expanded', 'true');
+            positionRowActionsMenu(trigger, dropdown);
+            activeRowActionsMenu = { trigger, dropdown };
+        }
+
+        return;
+    }
+
+    if (!event.target.closest('.row-actions-dropdown')) {
+        closeRowActionsMenu();
+        return;
+    }
+
+    if (event.target.closest('.row-action-item')) {
+        closeRowActionsMenu();
+    }
+});
+
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+        closeRowActionsMenu();
+    }
+});
+
+window.addEventListener('resize', closeRowActionsMenu);
+window.addEventListener('scroll', closeRowActionsMenu, true);

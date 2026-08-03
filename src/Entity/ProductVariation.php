@@ -53,6 +53,12 @@ class ProductVariation
     )]
     private int $stockUtilise = 0;
 
+    #[ORM\Column(options: ['default' => 0])]
+    #[Assert\PositiveOrZero(
+        message: 'Le stock réservé doit être positif ou égal à zéro.'
+    )]
+    private int $stockReserve = 0;
+
     #[ORM\Column(length: 100, nullable: true)]
     #[Assert\Length(
         max: 100,
@@ -138,6 +144,31 @@ class ProductVariation
         $this->stockUtilise = $stockUtilise;
 
         return $this;
+    }
+
+    public function getStockReserve(): int
+    {
+        return $this->stockReserve;
+    }
+
+    public function setStockReserve(int $stockReserve): static
+    {
+        $this->stockReserve = $stockReserve;
+
+        return $this;
+    }
+
+    public function getStockPhysique(): int
+    {
+        return max(0, $this->stock - $this->stockUtilise);
+    }
+
+    public function getStockDisponible(): int
+    {
+        return max(
+            0,
+            $this->stock - $this->stockUtilise - $this->stockReserve
+        );
     }
 
     public function getReference(): ?string
