@@ -225,6 +225,10 @@
     grid-column: 3;
     grid-row: 1;
 }
+.commande-variation-field[hidden] { display: none; }
+.commande-line-without-variation .commande-product-field {
+    grid-column: 2 / 4;
+}
 .commande-quantity-field {
     grid-column: 4;
     grid-row: 1;

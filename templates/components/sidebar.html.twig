@@ -1,5 +1,7 @@
 <aside class="sidebar">
 
+    {% set currentRoute = app.request.attributes.get('_route')|default('') %}
+
     <div class="logo">
         <a href="{{ path('app_home') }}" aria-label="Accueil Komdely">
             <img
@@ -12,19 +14,25 @@
     <nav>
 
         {% if is_granted('ROLE_ADMIN') %}
-            <a href="{{ path('user_list') }}">
+            <a
+                href="{{ path('user_list') }}"
+                class="{% if currentRoute starts with 'user_' %}is-active{% endif %}">
                 <i class="bi bi-people"></i>
                 <span>Utilisateurs</span>
             </a>
         {% endif %}
 
         {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_FOURNISSEUR') %}
-            <a href="{{ path('product_list') }}">
+            <a
+                href="{{ path('product_list') }}"
+                class="{% if currentRoute starts with 'product_' %}is-active{% endif %}">
                 <i class="bi bi-box-seam"></i>
                 <span>Produits</span>
             </a>
 
-            <a href="{{ path('commande_list') }}">
+            <a
+                href="{{ path('commande_list') }}"
+                class="{% if currentRoute starts with 'commande_' %}is-active{% endif %}">
                 <i class="bi bi-receipt"></i>
                 <span>Commandes</span>
             </a>
@@ -36,7 +44,7 @@
         <div class="sidebar-secondary">
             <a
                 href="{{ path('support_home') }}"
-                class="{% if app.request.attributes.get('_route') starts with 'support_' %}is-active{% endif %}">
+                class="{% if currentRoute starts with 'support_' %}is-active{% endif %}">
                 <i class="bi bi-headset" aria-hidden="true"></i>
                 <span>Support</span>
             </a>
@@ -47,7 +55,7 @@
         <div class="sidebar-footer">
             <a
                 href="{{ path('app_profile') }}"
-                class="sidebar-profile{% if app.request.attributes.get('_route') == 'app_profile' %} is-active{% endif %}"
+                class="sidebar-profile{% if currentRoute == 'app_profile' %} is-active{% endif %}"
                 aria-label="Modifier mon profil">
                 <div class="user-info">
                     <p class="user-name">{{ app.user.prenom }} {{ app.user.nom }}</p>

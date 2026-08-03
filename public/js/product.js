@@ -105,6 +105,7 @@ $(document).ready(function () {
         const productsDataUrl = productsTable.data('url');
         const placeholderImage = productsTable.data('placeholder');
         const productImagesBase = String(productsTable.data('image-base')).replace(/\/$/, '');
+        const isAdmin = Number(productsTable.data('is-admin')) === 1;
 
         const columns = [
 
@@ -161,7 +162,7 @@ $(document).ready(function () {
 
         ];
 
-        if ($('#products-table').data('is-admin')) {
+        if (isAdmin) {
 
             columns.push({
                 data: 'fournisseur'
@@ -178,7 +179,7 @@ $(document).ready(function () {
         });
 
 
-        productsTable.DataTable({
+        const productsDataTable = productsTable.DataTable({
             processing: true,
             serverSide: true,
             pageLength: 5,
@@ -187,6 +188,9 @@ $(document).ready(function () {
             ajax: {
                 url: productsDataUrl,
                 type: 'GET',
+                data: function (data) {
+                    data.fournisseur = $('#product-supplier-filter').val();
+                },
                 error: function (xhr) {
                     const message = xhr.responseJSON?.message
                         || 'Impossible de charger la liste des produits.';
@@ -200,6 +204,31 @@ $(document).ready(function () {
                 $(row).attr('data-id', data.id);
             }
         });
+
+        if (isAdmin) {
+            const filterToolbar = $('#product-table-filters');
+            const firstLayoutRow = productsTable
+                .closest('.dt-container')
+                .find('.dt-layout-row')
+                .first();
+            let toolbarTarget = firstLayoutRow.find('.dt-layout-start');
+
+            if (!toolbarTarget.length) {
+                toolbarTarget = $('<div class="dt-layout-cell dt-start">')
+                    .prependTo(firstLayoutRow);
+            }
+
+            filterToolbar.prop('hidden', false).appendTo(toolbarTarget);
+
+            $('#product-supplier-filter').on('change', function () {
+                productsDataTable.ajax.reload();
+            });
+
+            $('#product-clear-filters').on('click', function () {
+                $('#product-supplier-filter').val('');
+                productsDataTable.ajax.reload();
+            });
+        }
 
     }
 
@@ -289,6 +318,9 @@ $(document).ready(function () {
     });
 
     const productTypeInputs = $('input[name="product_type"]');
+    const productPriceField = $('#product-price-field');
+    const productPriceInput = $('#prix');
+    const productPriceLabel = $('#product-price-label');
     const standardStockField = $('#standard-stock-field');
     const standardStockInput = $('#stock');
     const variationsNextStep = $('#variations-next-step');
@@ -296,6 +328,14 @@ $(document).ready(function () {
     function updateProductTypeFields() {
         const selectedType = productTypeInputs.filter(':checked').val();
         const isStandard = selectedType === 'standard';
+        const hasSelectedType = isStandard || selectedType === 'variations';
+
+        productPriceField.prop('hidden', !hasSelectedType);
+        productPriceInput.prop('disabled', !hasSelectedType);
+        productPriceInput.prop('required', hasSelectedType);
+        productPriceLabel.text(
+            isStandard ? 'Prix unitaire' : 'Prix de base'
+        );
 
         standardStockField.prop('hidden', !isStandard);
         standardStockInput.prop('disabled', !isStandard);

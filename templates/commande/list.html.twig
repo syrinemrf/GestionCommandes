@@ -25,6 +25,21 @@ Liste des commandes
 
     <div class="table-wrapper">
         <div id="commande-table-filters" class="commande-table-filters" hidden>
+            {% if is_granted('ROLE_ADMIN') %}
+                <label for="commande-supplier-filter">
+                    <span>Fournisseur</span>
+                    <select id="commande-supplier-filter">
+                        <option value="">Tous</option>
+                        {% for fournisseur in fournisseurs %}
+                            <option value="{{ fournisseur.id }}">
+                                {% if fournisseur.libelle %}{{ fournisseur.libelle }} - {% endif %}
+                                {{ fournisseur.prenom }} {{ fournisseur.nom }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </label>
+            {% endif %}
+
             <label for="commande-status-filter">
                 <span>Statut</span>
                 <select id="commande-status-filter">

@@ -47,6 +47,7 @@ $(document).ready(function () {
                 url: tableElement.data('url'),
                 type: 'GET',
                 data: function (data) {
+                    data.fournisseur = $('#commande-supplier-filter').val();
                     data.statut = $('#commande-status-filter').val();
                     data.dateFrom = $('#commande-date-from').val();
                     data.dateTo = $('#commande-date-to').val();
@@ -80,12 +81,13 @@ $(document).ready(function () {
 
         filterToolbar.prop('hidden', false).appendTo(toolbarTarget);
 
-        $('#commande-status-filter, #commande-date-from, #commande-date-to')
+        $('#commande-supplier-filter, #commande-status-filter, #commande-date-from, #commande-date-to')
             .on('change', function () {
                 commandesTable.ajax.reload();
             });
 
         $('#commande-clear-filters').on('click', function () {
+            $('#commande-supplier-filter').val('');
             $('#commande-status-filter').val('');
             $('#commande-date-from').val('');
             $('#commande-date-to').val('');
@@ -310,12 +312,21 @@ $(document).ready(function () {
             item => Number(item.id) === productId
         );
         const select = line.find('.commande-variation');
+        const variationField = line.find('.commande-variation-field');
+        const showVariationField = Boolean(product && !product.isStandard);
 
         select.empty().append(
             $('<option>', { value: '', text: 'Sélectionner' })
         );
 
         const variations = product?.variations || [];
+        variationField.prop('hidden', !showVariationField);
+        line.toggleClass(
+            'commande-line-without-variation',
+            !showVariationField
+        );
+        select.prop('required', Boolean(product));
+
         const variationId = selectedVariationId
             || (
                 product?.isStandard && variations.length === 1

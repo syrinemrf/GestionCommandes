@@ -36,16 +36,6 @@
                 {% endif %}
             </nav>
 
-            {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_FOURNISSEUR') %}
-                <a
-                    href="{{ path('support_home') }}"
-                    class="navbar-support-link{% if app.request.attributes.get('_route') starts with 'support_' %} is-active{% endif %}"
-                    aria-label="Accéder au support"
-                    title="Support">
-                    <i class="bi bi-headset" aria-hidden="true"></i>
-                </a>
-            {% endif %}
-
             <div class="profile">
                 <span class="user-email">{{ app.user.email }}</span>
                 <a href="{{ path('app_logout') }}" class="logout-btn logout-confirm">

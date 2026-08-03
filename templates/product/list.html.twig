@@ -27,6 +27,32 @@ Liste des produits
     </div>
 
     <div class="table-wrapper">
+        {% if is_granted('ROLE_ADMIN') %}
+            <div id="product-table-filters" class="product-table-filters" hidden>
+                <label for="product-supplier-filter">
+                    <span>Fournisseur</span>
+                    <select id="product-supplier-filter">
+                        <option value="">Tous</option>
+                        {% for fournisseur in fournisseurs %}
+                            <option value="{{ fournisseur.id }}">
+                                {% if fournisseur.libelle %}{{ fournisseur.libelle }} — {% endif %}
+                                {{ fournisseur.prenom }} {{ fournisseur.nom }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </label>
+
+                <button
+                    type="button"
+                    class="product-clear-filters"
+                    id="product-clear-filters"
+                    title="Réinitialiser les filtres"
+                    aria-label="Réinitialiser les filtres">
+                    <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
+                </button>
+            </div>
+        {% endif %}
+
         <table id="products-table" class="user-table product-table" data-url="{{ path('product_list', { datatable: 1 }) }}" data-is-admin="{{ is_granted('ROLE_ADMIN') ? 1 : 0 }}" data-placeholder="{{ asset('images/product-placeholder.jpg') }}" data-image-base="{{ asset(product_images_public_path) }}">
 
             <thead>

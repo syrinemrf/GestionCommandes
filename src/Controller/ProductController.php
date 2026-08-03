@@ -6,6 +6,7 @@ use App\Entity\Product;
 use App\Entity\ProductVariation;
 use App\Repository\ProductRepository;
 use App\Repository\ProductVariationRepository;
+use App\Repository\UserRepository;
 use App\Service\ProductImageUploader;
 use App\Service\ProductService;
 use App\Service\ProductVariationService;
@@ -21,6 +22,7 @@ class ProductController extends AbstractController
         Request $request,
         ProductRepository $productRepository,
         ProductVariationRepository $variationRepository,
+        UserRepository $userRepository,
     ): Response
     {
         if ($request->query->getBoolean('datatable')) {
@@ -28,9 +30,25 @@ class ProductController extends AbstractController
             $length = $request->query->getInt('length', 20);
             $search = $request->query->all('search')['value'] ?? '';
 
-            $fournisseur = $this->isGranted('ROLE_ADMIN')
-                ? null
-                : $this->getUser();
+            $isAdmin = $this->isGranted('ROLE_ADMIN');
+            $fournisseur = $isAdmin ? null : $this->getUser();
+
+            if ($isAdmin) {
+                $fournisseurValue = trim(
+                    (string) $request->query->get('fournisseur', '')
+                );
+                $fournisseurId = ctype_digit($fournisseurValue)
+                    ? (int) $fournisseurValue
+                    : 0;
+
+                if ($fournisseurId > 0) {
+                    $fournisseur = $userRepository->findOneBy([
+                        'id' => $fournisseurId,
+                        'role' => 'ROLE_FOURNISSEUR',
+                        'isDeleted' => false,
+                    ]);
+                }
+            }
 
             $result = $productRepository->findForDatatable(
                 $start,
@@ -70,7 +88,14 @@ class ProductController extends AbstractController
             ]);
         }
 
-        return $this->render('product/list.html.twig');
+        return $this->render('product/list.html.twig', [
+            'fournisseurs' => $this->isGranted('ROLE_ADMIN')
+                ? $userRepository->findBy(
+                    ['role' => 'ROLE_FOURNISSEUR', 'isDeleted' => false],
+                    ['libelle' => 'ASC', 'nom' => 'ASC']
+                )
+                : [],
+        ]);
     }
 
     public function add(

@@ -20,6 +20,7 @@ class CommandeController extends AbstractController
     public function list(
         Request $request,
         CommandeRepository $commandeRepository,
+        UserRepository $userRepository,
     ): Response {
         $user = $this->getCurrentUser();
 
@@ -29,7 +30,25 @@ class CommandeController extends AbstractController
             $search = trim(
                 (string) ($request->query->all('search')['value'] ?? '')
             );
-            $fournisseur = $this->isGranted('ROLE_ADMIN') ? null : $user;
+            $isAdmin = $this->isGranted('ROLE_ADMIN');
+            $fournisseur = $isAdmin ? null : $user;
+
+            if ($isAdmin) {
+                $fournisseurValue = trim(
+                    (string) $request->query->get('fournisseur', '')
+                );
+                $fournisseurId = ctype_digit($fournisseurValue)
+                    ? (int) $fournisseurValue
+                    : 0;
+
+                if ($fournisseurId > 0) {
+                    $fournisseur = $userRepository->findOneBy([
+                        'id' => $fournisseurId,
+                        'role' => 'ROLE_FOURNISSEUR',
+                        'isDeleted' => false,
+                    ]);
+                }
+            }
             $statut = trim((string) $request->query->get('statut'));
             $statusLabels = $this->getStatusLabels();
 
@@ -106,6 +125,12 @@ class CommandeController extends AbstractController
 
         return $this->render('commande/list.html.twig', [
             'statuts' => $this->getStatusLabels(),
+            'fournisseurs' => $this->isGranted('ROLE_ADMIN')
+                ? $userRepository->findBy(
+                    ['role' => 'ROLE_FOURNISSEUR', 'isDeleted' => false],
+                    ['libelle' => 'ASC', 'nom' => 'ASC']
+                )
+                : [],
         ]);
     }
 
