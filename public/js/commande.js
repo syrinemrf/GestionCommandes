@@ -24,7 +24,8 @@ $(document).ready(function () {
                         : value;
                 }
             },
-            { data: 'statut', orderable: false }
+            { data: 'statut', orderable: false },
+            { data: 'lastUpdated' }
         ];
 
         if (isAdmin) {
@@ -178,6 +179,7 @@ $(document).ready(function () {
                     updateStatusSelectStyle(select, nouveauStatut);
                     showToast(response.message);
                     commandesTable?.ajax.reload(null, false);
+                    refreshOpenDetailsModal();
                 },
                 error: function (xhr) {
                     select.val(ancienStatut);
@@ -197,6 +199,34 @@ $(document).ready(function () {
     const detailsModal = $('#commande-details-modal');
     const detailsContent = $('#commande-details-content');
 
+    function refreshOpenDetailsModal() {
+        if (detailsModal.prop('hidden')) {
+            return;
+        }
+
+        const url = detailsContent.data('url');
+
+        if (!url) {
+            return;
+        }
+
+        $.ajax({
+            url: url,
+            type: 'GET',
+            dataType: 'html',
+            success: function (html) {
+                detailsContent.html(html);
+            },
+            error: function (xhr) {
+                showToast(
+                    xhr.responseJSON?.message
+                    || 'Impossible d’actualiser les détails de la commande.',
+                    'error'
+                );
+            }
+        });
+    }
+
     function closeDetailsModal() {
         detailsModal.prop('hidden', true);
         detailsContent.empty();
@@ -204,6 +234,7 @@ $(document).ready(function () {
     }
 
     $(document).on('click', '.commande-details-button', function () {
+        detailsContent.data('url', $(this).data('url'));
         detailsContent.html(
             '<div class="commande-details-loading">'
             + '<span class="spinner"></span>'

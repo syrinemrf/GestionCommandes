@@ -22,6 +22,13 @@ class Commande
     public const STATUT_LIVREE = 'LIVREE';
     public const STATUT_ANNULEE = 'ANNULEE';
 
+    public const STATUTS_DOCUMENTS_DISPONIBLES = [
+        self::STATUT_PRETE,
+        self::STATUT_EXPEDIEE,
+        self::STATUT_EN_LIVRAISON,
+        self::STATUT_LIVREE,
+    ];
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -165,6 +172,15 @@ class Commande
     public function isModifiable(): bool
     {
         return $this->statut === self::STATUT_EN_ATTENTE_CONFIRMATION;
+    }
+
+    public function canGenerateDocuments(): bool
+    {
+        return in_array(
+            $this->statut,
+            self::STATUTS_DOCUMENTS_DISPONIBLES,
+            true
+        );
     }
 
     public function isDeleted(): bool

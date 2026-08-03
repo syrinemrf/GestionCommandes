@@ -7,9 +7,20 @@
         <p>{{ commande.date|date('d/m/Y à H:i') }}</p>
     </div>
 
-    {% include 'commande/_status_badge.html.twig' with {
-        statut: commande.statut
-    } only %}
+    <div class="commande-details-header-actions">
+        <div class="commande-details-status-control">
+            <span>Statut</span>
+            {% include 'commande/_status_select.html.twig' with {
+                commande: commande,
+                statuts: statuts
+            } only %}
+        </div>
+
+        {% include 'commande/_documents_menu.html.twig' with {
+            commande: commande,
+            context: 'details'
+        } only %}
+    </div>
 </div>
 
 <div class="commande-details-information">
@@ -32,6 +43,10 @@
     <div>
         <span>TVA appliquée</span>
         <strong>{{ commande.tauxTva|number_format(3, ',', ' ') }} %</strong>
+    </div>
+    <div>
+        <span>Statut mis à jour le</span>
+        <strong>{{ lastUpdated|date('d/m/Y à H:i') }}</strong>
     </div>
 </div>
 

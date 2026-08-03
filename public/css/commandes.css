@@ -422,6 +422,90 @@
     letter-spacing: .06em;
     text-transform: uppercase;
 }
+.commande-details-header-actions {
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.commande-details-status-control {
+    display: grid;
+    gap: 5px;
+}
+.commande-details-status-control > span {
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+.documents-menu { position: relative; }
+.commande-documents-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 132px;
+    min-height: 38px;
+    gap: 12px;
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #fff;
+    color: #334155;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+}
+.commande-documents-button:hover,
+.commande-documents-button[aria-expanded="true"] {
+    border-color: #94a3b8;
+    background: #f8fafc;
+}
+.documents-menu-chevron { font-size: 15px; }
+.documents-menu-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 2700;
+    display: grid;
+    min-width: 205px;
+    padding: 6px;
+    border: 1px solid #e2e8f0;
+    border-radius: 9px;
+    background: #fff;
+    box-shadow: 0 14px 30px rgba(15, 23, 42, .16);
+}
+.documents-menu-dropdown[hidden] { display: none; }
+.documents-menu-dropdown a {
+    padding: 9px 10px;
+    border-radius: 6px;
+    color: #334155;
+    font-size: 13px;
+    font-weight: 600;
+}
+.documents-menu-dropdown a:hover {
+    background: #ecfdf5;
+    color: #065f46;
+}
+.documents-menu-row .documents-menu-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.documents-menu-row .documents-menu-dropdown {
+    position: static;
+    min-width: 0;
+    padding: 4px 0 4px 10px;
+    border: 0;
+    border-left: 2px solid #d1fae5;
+    border-radius: 0;
+    box-shadow: none;
+}
+.documents-menu-row .documents-menu-dropdown a {
+    padding: 8px 10px;
+    font-size: 12px;
+}
 .commande-details-information {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -591,6 +675,14 @@
         align-items: flex-start;
         flex-direction: column;
     }
+    .commande-details-header-actions {
+        width: 100%;
+        align-items: stretch;
+        justify-content: flex-start;
+    }
+    .commande-details-status-control,
+    .documents-menu-details { flex: 1 1 180px; }
+    .commande-documents-button { width: 100%; }
     .commande-details-information,
     .commande-details-lower { grid-template-columns: 1fr; }
 }

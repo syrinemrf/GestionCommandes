@@ -96,6 +96,7 @@ function closeRowActionsMenu() {
         return;
     }
 
+    closeDocumentsMenu();
     activeRowActionsMenu.dropdown.hidden = true;
     activeRowActionsMenu.trigger.setAttribute('aria-expanded', 'false');
     activeRowActionsMenu = null;
@@ -156,13 +157,76 @@ document.addEventListener('click', (event) => {
         return;
     }
 
+    if (event.target.closest('.documents-menu-trigger')) {
+        return;
+    }
+
+    if (event.target.closest('.documents-menu-dropdown a')) {
+        closeRowActionsMenu();
+        return;
+    }
+
     if (event.target.closest('.row-action-item')) {
         closeRowActionsMenu();
     }
 });
 
+let activeDocumentsMenu = null;
+
+function closeDocumentsMenu() {
+    if (!activeDocumentsMenu) {
+        return;
+    }
+
+    activeDocumentsMenu.dropdown.hidden = true;
+    activeDocumentsMenu.trigger.setAttribute('aria-expanded', 'false');
+    activeDocumentsMenu = null;
+}
+
+document.addEventListener('click', (event) => {
+    const trigger = event.target.closest('.documents-menu-trigger');
+
+    if (trigger) {
+        const dropdown = trigger
+            .closest('.documents-menu')
+            ?.querySelector('.documents-menu-dropdown');
+
+        if (!dropdown) {
+            return;
+        }
+
+        const isCurrentMenu = activeDocumentsMenu?.trigger === trigger;
+        closeDocumentsMenu();
+
+        if (!isCurrentMenu) {
+            dropdown.hidden = false;
+            trigger.setAttribute('aria-expanded', 'true');
+            activeDocumentsMenu = { trigger, dropdown };
+        }
+
+        if (activeRowActionsMenu) {
+            positionRowActionsMenu(
+                activeRowActionsMenu.trigger,
+                activeRowActionsMenu.dropdown
+            );
+        }
+
+        return;
+    }
+
+    if (event.target.closest('.documents-menu-dropdown a')) {
+        closeDocumentsMenu();
+        return;
+    }
+
+    if (!event.target.closest('.documents-menu')) {
+        closeDocumentsMenu();
+    }
+});
+
 document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
+        closeDocumentsMenu();
         closeRowActionsMenu();
     }
 });

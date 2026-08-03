@@ -124,6 +124,16 @@ commande_details:
     controller: App\Controller\CommandeController::details
     methods: [GET]
 
+commande_document_bon_livraison:
+    path: /commandes/{id}/documents/bon-livraison
+    controller: App\Controller\CommandeDocumentController::bonLivraison
+    methods: [GET]
+
+commande_document_etiquette_colis:
+    path: /commandes/{id}/documents/etiquette-colis
+    controller: App\Controller\CommandeDocumentController::etiquetteColis
+    methods: [GET]
+
 commande_update_status:
     path: /commandes/{id}/status
     controller: App\Controller\CommandeController::updateStatus

@@ -1,0 +1,27 @@
+{% if commande.canGenerateDocuments %}
+    <div class="documents-menu documents-menu-{{ context }}">
+        <button
+            type="button"
+            class="{{ context == 'row' ? 'row-action-item ' : 'commande-documents-button ' }}documents-menu-trigger"
+            aria-haspopup="true"
+            aria-expanded="false">
+            <span>Documents</span>
+            <span class="documents-menu-chevron" aria-hidden="true">⌄</span>
+        </button>
+
+        <div class="documents-menu-dropdown" hidden>
+            <a
+                href="{{ path('commande_document_bon_livraison', {id: commande.id}) }}"
+                target="_blank"
+                rel="noopener">
+                Bon de livraison
+            </a>
+            <a
+                href="{{ path('commande_document_etiquette_colis', {id: commande.id}) }}"
+                target="_blank"
+                rel="noopener">
+                Étiquette colis
+            </a>
+        </div>
+    </div>
+{% endif %}

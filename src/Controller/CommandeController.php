@@ -5,11 +5,13 @@ namespace App\Controller;
 use App\Entity\Commande;
 use App\Entity\User;
 use App\Repository\CommandeRepository;
+use App\Repository\HistoriqueStatutCommandeRepository;
 use App\Repository\ParametreRepository;
 use App\Repository\ProductRepository;
 use App\Repository\ProductVariationRepository;
 use App\Repository\UserRepository;
 use App\Service\CommandeService;
+use App\Service\CommandeAccessService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,6 +23,7 @@ class CommandeController extends AbstractController
         Request $request,
         CommandeRepository $commandeRepository,
         CommandeService $commandeService,
+        HistoriqueStatutCommandeRepository $historiqueRepository,
         UserRepository $userRepository,
     ): Response {
         $user = $this->getCurrentUser();
@@ -74,6 +77,14 @@ class CommandeController extends AbstractController
                 $dateTo
             );
             $rows = [];
+            $lastUpdates = $historiqueRepository
+                ->findLatestDatesByCommandeIds(
+                    array_map(
+                        static fn (Commande $commande): int =>
+                            (int) $commande->getId(),
+                        $result['rows']
+                    )
+                );
 
             foreach ($result['rows'] as $commande) {
                 $client = $commande->getClient();
@@ -99,6 +110,10 @@ class CommandeController extends AbstractController
                     'id' => $commande->getId(),
                     'numero' => sprintf('CMD-%06d', $commande->getNumero()),
                     'date' => $commande->getDate()->format('d/m/Y H:i'),
+                    'lastUpdated' => (
+                        $lastUpdates[$commande->getId()]
+                        ?? $commande->getDate()
+                    )->format('d/m/Y H:i'),
                     'client' => $clientLabel !== ''
                         ? $clientLabel
                         : 'Vente sans client',
@@ -147,7 +162,7 @@ class CommandeController extends AbstractController
         UserRepository $userRepository,
         ProductRepository $productRepository,
         ProductVariationRepository $variationRepository,
-        CommandeRepository $commandeRepository,
+        CommandeAccessService $commandeAccessService,
     ): JsonResponse {
         $fournisseur = $this->resolveFournisseur(
             (int) $request->query->get('fournisseur', 0),
@@ -161,9 +176,10 @@ class CommandeController extends AbstractController
         $commandeId = (int) $request->query->get('commande', 0);
 
         if ($commandeId > 0) {
-            $commande = $this->getAccessibleCommande(
+            $commande = $commandeAccessService->getAccessibleCommande(
                 $commandeId,
-                $commandeRepository
+                $this->getCurrentUser(),
+                $this->isGranted('ROLE_ADMIN')
             );
 
             if ($commande->getFournisseur()?->getId() !== $fournisseur->getId()) {
@@ -285,23 +301,41 @@ class CommandeController extends AbstractController
 
     public function details(
         int $id,
-        CommandeRepository $commandeRepository,
+        CommandeAccessService $commandeAccessService,
+        CommandeService $commandeService,
+        HistoriqueStatutCommandeRepository $historiqueRepository,
     ): Response {
+        $commande = $commandeAccessService->getAccessibleCommande(
+            $id,
+            $this->getCurrentUser(),
+            $this->isGranted('ROLE_ADMIN')
+        );
+
         return $this->render('commande/_details.html.twig', [
-            'commande' => $this->getAccessibleCommande(
-                $id,
-                $commandeRepository
+            'commande' => $commande,
+            'statuts' => array_intersect_key(
+                $this->getStatusLabels(),
+                array_flip(
+                    $commandeService->getAvailableStatuses($commande)
+                )
             ),
+            'lastUpdated' => $historiqueRepository
+                ->findLatestDateForCommande($commande)
+                ?? $commande->getDate(),
         ]);
     }
 
     public function updateStatus(
         int $id,
         Request $request,
-        CommandeRepository $commandeRepository,
+        CommandeAccessService $commandeAccessService,
         CommandeService $commandeService,
     ): JsonResponse {
-        $commande = $this->getAccessibleCommande($id, $commandeRepository);
+        $commande = $commandeAccessService->getAccessibleCommande(
+            $id,
+            $this->getCurrentUser(),
+            $this->isGranted('ROLE_ADMIN')
+        );
 
         if (!$commandeService->isCsrfTokenValid(
             'commande-status-' . $commande->getId(),
@@ -335,11 +369,15 @@ class CommandeController extends AbstractController
     public function edit(
         int $id,
         Request $request,
-        CommandeRepository $commandeRepository,
+        CommandeAccessService $commandeAccessService,
         CommandeService $commandeService,
         UserRepository $userRepository,
     ): Response {
-        $commande = $this->getAccessibleCommande($id, $commandeRepository);
+        $commande = $commandeAccessService->getAccessibleCommande(
+            $id,
+            $this->getCurrentUser(),
+            $this->isGranted('ROLE_ADMIN')
+        );
 
         if ($request->isMethod('GET')) {
             if (!$commande->isModifiable()) {
@@ -423,10 +461,14 @@ class CommandeController extends AbstractController
     public function delete(
         int $id,
         Request $request,
-        CommandeRepository $commandeRepository,
+        CommandeAccessService $commandeAccessService,
         CommandeService $commandeService,
     ): JsonResponse {
-        $commande = $this->getAccessibleCommande($id, $commandeRepository);
+        $commande = $commandeAccessService->getAccessibleCommande(
+            $id,
+            $this->getCurrentUser(),
+            $this->isGranted('ROLE_ADMIN')
+        );
 
         if (!$commandeService->isCsrfTokenValid(
             'commande-delete-' . $commande->getId(),
@@ -447,28 +489,6 @@ class CommandeController extends AbstractController
             'success' => true,
             'message' => 'Commande supprimée avec succès.',
         ]);
-    }
-
-    private function getAccessibleCommande(
-        int $id,
-        CommandeRepository $commandeRepository,
-    ): Commande {
-        $commande = $commandeRepository->find($id);
-
-        if (!$commande || $commande->isDeleted()) {
-            throw $this->createNotFoundException('Commande introuvable.');
-        }
-
-        if (
-            !$this->isGranted('ROLE_ADMIN')
-            && $commande->getFournisseur()?->getId() !== $this->getCurrentUser()->getId()
-        ) {
-            throw $this->createAccessDeniedException(
-                'Vous ne pouvez pas accéder à cette commande.'
-            );
-        }
-
-        return $commande;
     }
 
     private function resolveFournisseur(

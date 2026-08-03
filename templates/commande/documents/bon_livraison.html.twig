@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Bon de livraison CMD-{{ '%06d'|format(commande.numero) }}</title>
+    <style>
+        @page { size: A4 portrait; margin: 18mm 16mm; }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            color: #1f2937;
+            font-family: "DejaVu Sans", sans-serif;
+            font-size: 10pt;
+            line-height: 1.45;
+        }
+        .header { border-bottom: 2px solid #047857; padding-bottom: 12px; }
+        .brand { color: #047857; font-size: 19pt; font-weight: bold; }
+        .document-title { float: right; text-align: right; }
+        .document-title h1 { margin: 0; font-size: 18pt; }
+        .document-title p { margin: 3px 0 0; color: #64748b; }
+        .clear { clear: both; }
+        .addresses { width: 100%; margin: 22px 0; border-spacing: 10px 0; }
+        .addresses td {
+            width: 50%;
+            padding: 14px;
+            border: 1px solid #dbe4df;
+            border-radius: 7px;
+            vertical-align: top;
+        }
+        .label {
+            margin-bottom: 7px;
+            color: #047857;
+            font-size: 8pt;
+            font-weight: bold;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+        }
+        .company { margin-bottom: 4px; font-size: 12pt; font-weight: bold; }
+        .muted { color: #64748b; }
+        .products { width: 100%; border-collapse: collapse; }
+        .products th {
+            padding: 9px 8px;
+            background: #ecfdf5;
+            color: #065f46;
+            font-size: 8pt;
+            text-align: left;
+            text-transform: uppercase;
+        }
+        .products td { padding: 10px 8px; border-bottom: 1px solid #e5e7eb; }
+        .products th:last-child,
+        .products td:last-child { width: 22mm; text-align: center; }
+        .note {
+            margin-top: 22px;
+            padding: 12px 14px;
+            border-left: 3px solid #047857;
+            background: #f8fafc;
+        }
+        .footer {
+            position: fixed;
+            right: 0;
+            bottom: -7mm;
+            left: 0;
+            color: #94a3b8;
+            font-size: 8pt;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    {% set fournisseur = commande.fournisseur %}
+    {% set client = commande.client %}
+    {% set fournisseurNom = fournisseur.libelle
+        ?: [fournisseur.prenom, fournisseur.nom]|filter(value => value)|join(' ') %}
+    {% set clientNom = client
+        ? ([client.prenom, client.nom]|filter(value => value)|join(' ')
+            ?: client.societe)
+        : null %}
+    {% set adresseClient = client
+        ? [
+            client.rue,
+            client.complementAdresse,
+            [client.codePostal, client.ville]|filter(value => value)|join(' ')
+        ]|filter(value => value)
+        : [] %}
+
+    <header class="header">
+        <div class="document-title">
+            <h1>Bon de livraison</h1>
+            <p>CMD-{{ '%06d'|format(commande.numero) }}</p>
+            <p>{{ commande.date|date('d/m/Y') }}</p>
+        </div>
+        <div class="brand">{{ fournisseurNom|default('Fournisseur') }}</div>
+        <div class="muted">
+            {{ [fournisseur.prenom, fournisseur.nom]|filter(value => value)|join(' ') }}
+        </div>
+        {% if fournisseur.email %}<div class="muted">{{ fournisseur.email }}</div>{% endif %}
+        <div class="clear"></div>
+    </header>
+
+    <table class="addresses">
+        <tr>
+            <td>
+                <div class="label">Fournisseur</div>
+                <div class="company">{{ fournisseurNom|default('Non renseigné') }}</div>
+                <div>{{ [fournisseur.prenom, fournisseur.nom]|filter(value => value)|join(' ') }}</div>
+                {% if fournisseur.email %}<div>{{ fournisseur.email }}</div>{% endif %}
+            </td>
+            <td>
+                <div class="label">Livrer à</div>
+                <div class="company">{{ clientNom|default('Client non renseigné') }}</div>
+                {% if client and client.societe and client.societe != clientNom %}
+                    <div>{{ client.societe }}</div>
+                {% endif %}
+                {% for ligneAdresse in adresseClient %}<div>{{ ligneAdresse }}</div>{% endfor %}
+                {% if client and client.telephone %}<div>{{ client.telephone }}</div>{% endif %}
+            </td>
+        </tr>
+    </table>
+
+    <table class="products">
+        <thead>
+            <tr>
+                <th>Produit</th>
+                <th>Variation</th>
+                <th>Quantité</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ligne in commande.lignes %}
+                <tr>
+                    <td><strong>{{ ligne.nomProduit }}</strong></td>
+                    <td>{{ ligne.nomVariation ?: 'Standard' }}</td>
+                    <td>{{ ligne.quantite }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if commande.note %}
+        <div class="note">
+            <div class="label">Note</div>
+            {{ commande.note|nl2br }}
+        </div>
+    {% endif %}
+
+    <div class="footer">
+        Bon de livraison · CMD-{{ '%06d'|format(commande.numero) }}
+    </div>
+</body>
+</html>

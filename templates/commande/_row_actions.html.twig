@@ -24,6 +24,11 @@
             </a>
         {% endif %}
 
+        {% include 'commande/_documents_menu.html.twig' with {
+            commande: commande,
+            context: 'row'
+        } only %}
+
         <form
             method="post"
             action="{{ path('commande_delete', {id: commande.id}) }}"
