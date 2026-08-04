@@ -10,6 +10,7 @@ use Doctrine\Common\Collections\Collection;
 
 
 #[ORM\Entity(repositoryClass: ProductRepository::class)]
+#[ORM\Index(name: 'idx_product_demo_batch', columns: ['demo_batch'])]
 class Product
 {
     #[ORM\Id]
@@ -41,6 +42,9 @@ class Product
 
     #[ORM\Column(nullable: true)]
     private ?bool $isDeleted = false;
+
+    #[ORM\Column(length: 64, nullable: true)]
+    private ?string $demoBatch = null;
 
     #[ORM\OneToMany(
         mappedBy: 'product',
@@ -145,6 +149,18 @@ class Product
     public function setIsDeleted(?bool $isDeleted): static
     {
         $this->isDeleted = $isDeleted;
+
+        return $this;
+    }
+
+    public function getDemoBatch(): ?string
+    {
+        return $this->demoBatch;
+    }
+
+    public function setDemoBatch(?string $demoBatch): static
+    {
+        $this->demoBatch = $demoBatch;
 
         return $this;
     }

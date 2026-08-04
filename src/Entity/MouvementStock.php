@@ -9,6 +9,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: MouvementStockRepository::class)]
 #[ORM\Index(name: 'idx_mouvement_stock_type', columns: ['type'])]
 #[ORM\Index(name: 'idx_mouvement_stock_created_at', columns: ['created_at'])]
+#[ORM\Index(name: 'idx_mouvement_demo_batch', columns: ['demo_batch'])]
 class MouvementStock
 {
     public const TYPE_ENTREE_APPROVISIONNEMENT = 'ENTREE_APPROVISIONNEMENT';
@@ -67,6 +68,9 @@ class MouvementStock
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $commentaire = null;
+
+    #[ORM\Column(length: 64, nullable: true)]
+    private ?string $demoBatch = null;
 
     public function __construct()
     {
@@ -210,6 +214,18 @@ class MouvementStock
     public function setCommentaire(?string $commentaire): static
     {
         $this->commentaire = $commentaire;
+
+        return $this;
+    }
+
+    public function getDemoBatch(): ?string
+    {
+        return $this->demoBatch;
+    }
+
+    public function setDemoBatch(?string $demoBatch): static
+    {
+        $this->demoBatch = $demoBatch;
 
         return $this;
     }

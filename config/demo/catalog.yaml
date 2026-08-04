@@ -1,0 +1,83 @@
+suppliers:
+  - key: beaute
+    name: Atelier Veluna
+    domain: Beauté et soins
+    products:
+      - { key: serum-hydraglow, name: "Sérum HydraGlow", description: "Sérum hydratant visage à la texture légère.", price_ht: 38.500, demand_profile: growing, image_query: "vitamin c serum bottle white background" }
+      - { key: creme-nuage, name: "Crème Nuage", description: "Crème quotidienne douce pour le visage.", price_ht: 29.900, demand_profile: high, image_query: "face cream jar white background" }
+      - { key: huile-lumera, name: "Huile Lumera", description: "Huile sèche nourrissante multi-usage.", price_ht: 42.000, demand_profile: annual, image_query: "cosmetic oil dropper bottle white background" }
+      - { key: gel-purelia, name: "Gel Purelia", description: "Gel nettoyant frais pour usage quotidien.", price_ht: 18.750, demand_profile: weekly, image_query: "facial cleansing gel bottle white background" }
+      - { key: baume-calyne, name: "Baume Calyne", description: "Baume réparateur pour zones sèches.", price_ht: 24.300, demand_profile: intermittent, image_query: "skin balm tin white background" }
+      - { key: masque-velours, name: "Masque Velours", description: "Masque visage apaisant en pot.", price_ht: 21.600, demand_profile: spiky, image_query: "facial mask cosmetic jar white background" }
+      - { key: brume-aurelle, name: "Brume Aurelle", description: "Brume visage rafraîchissante.", price_ht: 16.900, demand_profile: medium, image_query: "face mist spray bottle white background" }
+      - { key: savon-neriya, name: "Savon Neriya", description: "Savon surgras parfum délicat.", price_ht: 8.400, demand_profile: declining, image_query: "artisan soap bar white background" }
+  - key: mode
+    name: Maison Rivelo
+    domain: Vêtements et accessoires
+    products:
+      - { key: tshirt-oriane, name: "T-shirt Oriane", description: "T-shirt doux à coupe droite.", price_ht: 32.000, demand_profile: high, image_query: "plain cotton t shirt white background" }
+      - { key: veste-novaire, name: "Veste Novaire", description: "Veste légère structurée.", price_ht: 119.000, demand_profile: annual, image_query: "lightweight jacket white background" }
+      - { key: pantalon-selven, name: "Pantalon Selven", description: "Pantalon urbain confortable.", price_ht: 74.500, demand_profile: medium, image_query: "casual trousers white background" }
+      - { key: sac-lunaro, name: "Sac Lunaro", description: "Sac compact pour le quotidien.", price_ht: 68.000, demand_profile: growing, image_query: "minimal shoulder bag white background" }
+      - { key: foulard-mireva, name: "Foulard Mireva", description: "Foulard léger aux tons sobres.", price_ht: 27.900, demand_profile: intermittent, image_query: "fashion scarf white background" }
+      - { key: ceinture-arcen, name: "Ceinture Arcen", description: "Ceinture élégante à boucle mate.", price_ht: 35.500, demand_profile: weekly, image_query: "minimal belt white background" }
+      - { key: casquette-velto, name: "Casquette Velto", description: "Casquette ajustable unie.", price_ht: 24.000, demand_profile: spiky, image_query: "plain baseball cap white background" }
+      - { key: pull-sorell, name: "Pull Sorell", description: "Pull fin à col rond.", price_ht: 63.000, demand_profile: declining, image_query: "crew neck sweater white background" }
+  - key: electronique
+    name: Nexion Atelier
+    domain: Électronique
+    products:
+      - { key: ecouteurs-aerix, name: "Écouteurs Aerix", description: "Écouteurs sans fil avec boîtier compact.", price_ht: 89.000, demand_profile: growing, image_query: "wireless earbuds charging case white background" }
+      - { key: clavier-tacteo, name: "Clavier Tacteo", description: "Clavier compact silencieux.", price_ht: 105.000, demand_profile: weekly, image_query: "compact computer keyboard white background" }
+      - { key: souris-nimble, name: "Souris Nimble", description: "Souris ergonomique sans fil.", price_ht: 54.000, demand_profile: high, image_query: "wireless ergonomic mouse white background" }
+      - { key: chargeur-voltys, name: "Chargeur Voltys", description: "Chargeur USB-C compact.", price_ht: 39.500, demand_profile: medium, image_query: "usb c wall charger white background" }
+      - { key: enceinte-sonora, name: "Enceinte Sonora", description: "Enceinte portable résistante.", price_ht: 129.000, demand_profile: annual, image_query: "portable bluetooth speaker white background" }
+      - { key: hub-connecta, name: "Hub Connecta", description: "Hub multiport pour poste de travail.", price_ht: 72.000, demand_profile: intermittent, image_query: "usb c multiport hub white background" }
+      - { key: support-flexio, name: "Support Flexio", description: "Support pliable pour ordinateur.", price_ht: 46.000, demand_profile: declining, image_query: "foldable laptop stand white background" }
+      - { key: lampe-pixela, name: "Lampe Pixela", description: "Lampe LED de bureau réglable.", price_ht: 61.000, demand_profile: spiky, image_query: "led desk lamp white background" }
+  - key: maison
+    name: Studio Orenda
+    domain: Maison et bureau
+    products:
+      - { key: chaise-ergona, name: "Chaise Ergona", description: "Chaise de bureau avec soutien lombaire.", price_ht: 289.000, demand_profile: medium, image_query: "ergonomic office chair white background" }
+      - { key: lampe-claris, name: "Lampe Claris", description: "Lampe de table à lumière douce.", price_ht: 78.000, demand_profile: annual, image_query: "minimal table lamp white background" }
+      - { key: rangement-modulo, name: "Rangement Modulo", description: "Organiseur de bureau modulaire.", price_ht: 36.500, demand_profile: growing, image_query: "modular desk organizer white background" }
+      - { key: coussin-alvea, name: "Coussin Alvea", description: "Coussin décoratif déhoussable.", price_ht: 31.000, demand_profile: weekly, image_query: "decorative cushion white background" }
+      - { key: carafe-linora, name: "Carafe Linora", description: "Carafe en verre au dessin épuré.", price_ht: 28.500, demand_profile: intermittent, image_query: "glass water carafe white background" }
+      - { key: plateau-ovely, name: "Plateau Ovely", description: "Plateau de service minimaliste.", price_ht: 33.000, demand_profile: declining, image_query: "minimal serving tray white background" }
+      - { key: horloge-temora, name: "Horloge Temora", description: "Horloge murale silencieuse.", price_ht: 49.000, demand_profile: spiky, image_query: "minimal wall clock white background" }
+      - { key: carnet-folio, name: "Carnet Folio", description: "Carnet relié pour notes professionnelles.", price_ht: 14.900, demand_profile: high, image_query: "hardcover notebook white background" }
+  - key: sport
+    name: Altis Motion
+    domain: Sport
+    products:
+      - { key: tapis-flowen, name: "Tapis Flowen", description: "Tapis d'entraînement antidérapant.", price_ht: 57.000, demand_profile: growing, image_query: "exercise yoga mat white background" }
+      - { key: gourde-hydren, name: "Gourde Hydren", description: "Gourde légère réutilisable.", price_ht: 26.500, demand_profile: high, image_query: "sports water bottle white background" }
+      - { key: bandes-resista, name: "Bandes Resista", description: "Jeu de bandes de résistance.", price_ht: 34.000, demand_profile: weekly, image_query: "resistance bands set white background" }
+      - { key: sac-vigora, name: "Sac Vigora", description: "Sac de sport compartimenté.", price_ht: 68.000, demand_profile: annual, image_query: "gym duffel bag white background" }
+      - { key: serviette-dryva, name: "Serviette Dryva", description: "Serviette microfibre compacte.", price_ht: 19.500, demand_profile: medium, image_query: "microfiber sports towel white background" }
+      - { key: corde-pulsea, name: "Corde Pulsea", description: "Corde à sauter ajustable.", price_ht: 23.000, demand_profile: intermittent, image_query: "jump rope white background" }
+      - { key: rouleau-relaxo, name: "Rouleau Relaxo", description: "Rouleau de récupération musculaire.", price_ht: 41.000, demand_profile: declining, image_query: "foam roller white background" }
+      - { key: ballon-kineo, name: "Ballon Kineo", description: "Ballon d'exercice polyvalent.", price_ht: 38.000, demand_profile: spiky, image_query: "exercise stability ball white background" }
+
+variation_templates:
+  beaute:
+    - { label: "30 ml", attributes: { format: "30 ml" }, price_extra: 0.000 }
+    - { label: "50 ml", attributes: { format: "50 ml" }, price_extra: 8.000 }
+    - { label: "100 ml", attributes: { format: "100 ml" }, price_extra: 17.000 }
+  mode:
+    - { label: "S", attributes: { taille: "S" }, price_extra: 0.000 }
+    - { label: "M", attributes: { taille: "M" }, price_extra: 0.000 }
+    - { label: "L", attributes: { taille: "L" }, price_extra: 2.000 }
+  electronique:
+    - { label: "Noir", attributes: { couleur: "Noir" }, price_extra: 0.000 }
+    - { label: "Blanc", attributes: { couleur: "Blanc" }, price_extra: 0.000 }
+    - { label: "Gris", attributes: { couleur: "Gris" }, price_extra: 4.000 }
+  maison:
+    - { label: "Naturel", attributes: { finition: "Naturel" }, price_extra: 0.000 }
+    - { label: "Sable", attributes: { finition: "Sable" }, price_extra: 3.000 }
+    - { label: "Graphite", attributes: { finition: "Graphite" }, price_extra: 5.000 }
+  sport:
+    - { label: "Compact", attributes: { format: "Compact" }, price_extra: 0.000 }
+    - { label: "Standard", attributes: { format: "Standard" }, price_extra: 4.000 }
+    - { label: "Pro", attributes: { format: "Pro" }, price_extra: 12.000 }

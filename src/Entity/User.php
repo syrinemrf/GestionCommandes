@@ -12,6 +12,7 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
+#[ORM\Index(name: 'idx_user_demo_batch', columns: ['demo_batch'])]
 #[UniqueEntity(fields: ['email'], message: 'Cet email est déjà utilisé.')]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
@@ -47,6 +48,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     
     #[ORM\Column]
     private bool $isDeleted = false;
+
+    #[ORM\Column(length: 64, nullable: true)]
+    private ?string $demoBatch = null;
 
     public function getId(): ?int
     {
@@ -150,6 +154,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setIsDeleted(bool $isDeleted): static
     {
         $this->isDeleted = $isDeleted;
+
+        return $this;
+    }
+
+    public function getDemoBatch(): ?string
+    {
+        return $this->demoBatch;
+    }
+
+    public function setDemoBatch(?string $demoBatch): static
+    {
+        $this->demoBatch = $demoBatch;
 
         return $this;
     }

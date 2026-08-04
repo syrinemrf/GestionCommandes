@@ -18,6 +18,8 @@ class StockMovementService
     public function enregistrerStockInitial(
         ProductVariation $variation,
         User $actor,
+        ?\DateTimeImmutable $occurredAt = null,
+        ?string $demoBatch = null,
     ): void {
         if ($variation->getStock() <= 0) {
             return;
@@ -34,6 +36,8 @@ class StockMovementService
             $actor,
             null,
             'Stock initial',
+            $occurredAt,
+            $demoBatch,
         );
     }
 
@@ -42,6 +46,8 @@ class StockMovementService
         int $quantite,
         User $actor,
         ?string $commentaire = null,
+        ?\DateTimeImmutable $occurredAt = null,
+        ?string $demoBatch = null,
     ): void {
         $this->assertPositiveQuantity($quantite);
 
@@ -60,6 +66,8 @@ class StockMovementService
             $actor,
             null,
             $commentaire,
+            $occurredAt,
+            $demoBatch,
         );
     }
 
@@ -68,6 +76,8 @@ class StockMovementService
         int $nouveauStock,
         User $actor,
         ?string $commentaire = null,
+        ?\DateTimeImmutable $occurredAt = null,
+        ?string $demoBatch = null,
     ): void {
         if ($nouveauStock < 0) {
             throw new \DomainException(
@@ -105,10 +115,16 @@ class StockMovementService
             $actor,
             null,
             $commentaire,
+            $occurredAt,
+            $demoBatch,
         );
     }
 
-    public function reserverCommande(Commande $commande, User $actor): void
+    public function reserverCommande(
+        Commande $commande,
+        User $actor,
+        ?\DateTimeImmutable $occurredAt = null,
+    ): void
     {
         $stocks = $this->getQuantitesParVariation($commande);
 
@@ -143,6 +159,9 @@ class StockMovementService
                 $variation->getStockReserve(),
                 $actor,
                 $commande,
+                null,
+                $occurredAt,
+                $commande->getDemoBatch(),
             );
         }
     }
@@ -150,6 +169,7 @@ class StockMovementService
     public function libererReservation(
         Commande $commande,
         User $actor,
+        ?\DateTimeImmutable $occurredAt = null,
     ): void {
         foreach ($this->getQuantitesParVariation($commande) as $stockCommande) {
             $variation = $stockCommande['variation'];
@@ -176,11 +196,18 @@ class StockMovementService
                 $variation->getStockReserve(),
                 $actor,
                 $commande,
+                null,
+                $occurredAt,
+                $commande->getDemoBatch(),
             );
         }
     }
 
-    public function sortirCommande(Commande $commande, User $actor): void
+    public function sortirCommande(
+        Commande $commande,
+        User $actor,
+        ?\DateTimeImmutable $occurredAt = null,
+    ): void
     {
         $stocks = $this->getQuantitesParVariation($commande);
 
@@ -217,6 +244,9 @@ class StockMovementService
                 $variation->getStockReserve(),
                 $actor,
                 $commande,
+                null,
+                $occurredAt,
+                $commande->getDemoBatch(),
             );
         }
     }
@@ -227,6 +257,8 @@ class StockMovementService
         User $actor,
         ?Commande $commande = null,
         ?string $commentaire = null,
+        ?\DateTimeImmutable $occurredAt = null,
+        ?string $demoBatch = null,
     ): void {
         $this->assertPositiveQuantity($quantite);
 
@@ -253,6 +285,8 @@ class StockMovementService
             $actor,
             $commande,
             $commentaire,
+            $occurredAt,
+            $demoBatch ?? $commande?->getDemoBatch(),
         );
     }
 
@@ -299,6 +333,8 @@ class StockMovementService
         User $actor,
         ?Commande $commande = null,
         ?string $commentaire = null,
+        ?\DateTimeImmutable $occurredAt = null,
+        ?string $demoBatch = null,
     ): void {
         $commentaire = trim((string) $commentaire);
 
@@ -312,7 +348,9 @@ class StockMovementService
             ->setStockReserveApres($reserveApres)
             ->setCommande($commande)
             ->setCreatedBy($actor)
-            ->setCommentaire($commentaire !== '' ? $commentaire : null);
+            ->setCommentaire($commentaire !== '' ? $commentaire : null)
+            ->setCreatedAt($occurredAt ?? new \DateTimeImmutable())
+            ->setDemoBatch($demoBatch);
 
         $this->entityManager->persist($mouvement);
     }

@@ -6,6 +6,7 @@ use App\Repository\ClientRepository;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: ClientRepository::class)]
+#[ORM\Index(name: 'idx_client_demo_batch', columns: ['demo_batch'])]
 class Client
 {
     #[ORM\Id]
@@ -46,6 +47,9 @@ class Client
 
     #[ORM\Column(options: ['default' => false])]
     private bool $isDeleted = false;
+
+    #[ORM\Column(length: 64, nullable: true)]
+    private ?string $demoBatch = null;
 
     public function getId(): ?int
     {
@@ -180,6 +184,18 @@ class Client
     public function setIsDeleted(bool $isDeleted): static
     {
         $this->isDeleted = $isDeleted;
+
+        return $this;
+    }
+
+    public function getDemoBatch(): ?string
+    {
+        return $this->demoBatch;
+    }
+
+    public function setDemoBatch(?string $demoBatch): static
+    {
+        $this->demoBatch = $demoBatch;
 
         return $this;
     }

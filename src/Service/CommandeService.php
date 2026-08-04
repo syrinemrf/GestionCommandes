@@ -7,6 +7,8 @@ use App\Entity\Commande;
 use App\Entity\HistoriqueStatutCommande;
 use App\Entity\LigneCommande;
 use App\Entity\Parametre;
+use App\Entity\Product;
+use App\Entity\ProductVariation;
 use App\Entity\User;
 use App\Repository\ParametreRepository;
 use App\Repository\ProductRepository;
@@ -147,6 +149,8 @@ class CommandeService
         Commande $commande,
         string $statut,
         User $actor,
+        ?\DateTimeImmutable $changedAt = null,
+        bool $flush = true,
     ): void
     {
         $ancienStatut = $commande->getStatut();
@@ -163,14 +167,16 @@ class CommandeService
         ) {
             $this->stockMovementService->libererReservation(
                 $commande,
-                $actor
+                $actor,
+                $changedAt,
             );
         }
 
         if ($statut === Commande::STATUT_LIVREE) {
             $this->stockMovementService->sortirCommande(
                 $commande,
-                $actor
+                $actor,
+                $changedAt,
             );
         }
 
@@ -179,9 +185,80 @@ class CommandeService
             $commande,
             $ancienStatut,
             $commande->getStatut(),
-            $actor
+            $actor,
+            $changedAt,
         );
-        $this->entityManager->flush();
+        if ($flush) {
+            $this->entityManager->flush();
+        }
+    }
+
+    public function initializeNewCommande(
+        Commande $commande,
+        User $actor,
+        ?\DateTimeImmutable $createdAt = null,
+        bool $flush = true,
+    ): void {
+        if ($commande->getStatut() !== Commande::STATUT_EN_ATTENTE_CONFIRMATION) {
+            throw new \DomainException('Une nouvelle commande doit être en attente de confirmation.');
+        }
+
+        $createdAt ??= $commande->getDate();
+        $this->entityManager->persist($commande);
+        $this->stockMovementService->reserverCommande($commande, $actor, $createdAt);
+        $this->recordStatusChange(
+            $commande,
+            null,
+            Commande::STATUT_EN_ATTENTE_CONFIRMATION,
+            $actor,
+            $createdAt,
+        );
+
+        if ($flush) {
+            $this->entityManager->flush();
+        }
+    }
+
+    public function createLigne(
+        Product $produit,
+        ProductVariation $variation,
+        int $quantite,
+        User $fournisseur,
+    ): LigneCommande {
+        if (
+            $produit->isDeleted()
+            || $produit->getFournisseur()?->getId() !== $fournisseur->getId()
+            || $variation->isDeleted()
+            || $variation->getProduct()?->getId() !== $produit->getId()
+        ) {
+            throw new \DomainException('Le produit ou sa variation ne correspond pas au fournisseur.');
+        }
+
+        if ($quantite <= 0) {
+            throw new \DomainException('La quantité doit être supérieure à zéro.');
+        }
+
+        $prixUnitaire = (float) $produit->getPrix()
+            + (float) $variation->getPrixSupplement();
+
+        return (new LigneCommande())
+            ->setProduit($produit)
+            ->setNomProduit((string) $produit->getLibelle())
+            ->setVariation($variation)
+            ->setNomVariation((string) $variation->getLibelle())
+            ->setQuantite($quantite)
+            ->setPrixUnitaire(number_format($prixUnitaire, 3, '.', ''));
+    }
+
+    public function recalculateTotal(Commande $commande): void
+    {
+        $totalHt = 0.0;
+
+        foreach ($commande->getLignes() as $ligne) {
+            $totalHt += (float) $ligne->getPrixUnitaire() * $ligne->getQuantite();
+        }
+
+        $commande->setTotalHt(number_format($totalHt, 3, '.', ''));
     }
 
     public function getAvailableStatuses(Commande $commande): array
@@ -325,21 +402,14 @@ class CommandeService
                 );
             }
 
-            $prixUnitaire = (float) $produit->getPrix()
-                + (float) $variation->getPrixSupplement();
-            $prixFormate = number_format($prixUnitaire, 3, '.', '');
-
-            $ligne = new LigneCommande();
-            $ligne
-                ->setProduit($produit)
-                ->setNomProduit((string) $produit->getLibelle())
-                ->setVariation($variation)
-                ->setNomVariation((string) $variation->getLibelle())
-                ->setQuantite($quantite)
-                ->setPrixUnitaire($prixFormate);
-
+            $ligne = $this->createLigne(
+                $produit,
+                $variation,
+                $quantite,
+                $fournisseur,
+            );
             $commande->addLigne($ligne);
-            $totalHt += $prixUnitaire * $quantite;
+            $totalHt += (float) $ligne->getPrixUnitaire() * $quantite;
         }
 
         $commande->setTotalHt(number_format($totalHt, 3, '.', ''));
@@ -386,13 +456,15 @@ class CommandeService
         ?string $ancienStatut,
         string $nouveauStatut,
         User $actor,
+        ?\DateTimeImmutable $changedAt = null,
     ): void
     {
         $historique = (new HistoriqueStatutCommande())
             ->setCommande($commande)
             ->setAncienStatut($ancienStatut)
             ->setNouveauStatut($nouveauStatut)
-            ->setChangedBy($actor);
+            ->setChangedBy($actor)
+            ->setChangedAt($changedAt ?? new \DateTimeImmutable());
 
         $this->entityManager->persist($historique);
     }

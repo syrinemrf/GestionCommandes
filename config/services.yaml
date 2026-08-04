@@ -32,3 +32,6 @@ services:
     App\Service\CommandeService:
         arguments:
             $commandeWorkflow: '@state_machine.commande'
+
+    App\Service\DemoData\DemoImageRemoteClientInterface:
+        alias: App\Service\DemoData\PexelsClient

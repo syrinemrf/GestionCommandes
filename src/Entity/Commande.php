@@ -11,6 +11,7 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: CommandeRepository::class)]
+#[ORM\Index(name: 'idx_commande_demo_batch', columns: ['demo_batch'])]
 #[UniqueEntity(fields: ['numero'], message: 'Ce numéro de commande est déjà utilisé.')]
 class Commande
 {
@@ -55,6 +56,9 @@ class Commande
 
     #[ORM\Column(options: ['default' => false])]
     private bool $isDeleted = false;
+
+    #[ORM\Column(length: 64, nullable: true)]
+    private ?string $demoBatch = null;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
@@ -191,6 +195,18 @@ class Commande
     public function setIsDeleted(bool $isDeleted): static
     {
         $this->isDeleted = $isDeleted;
+
+        return $this;
+    }
+
+    public function getDemoBatch(): ?string
+    {
+        return $this->demoBatch;
+    }
+
+    public function setDemoBatch(?string $demoBatch): static
+    {
+        $this->demoBatch = $demoBatch;
 
         return $this;
     }
