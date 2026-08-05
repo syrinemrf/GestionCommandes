@@ -1,0 +1,229 @@
+version: 2
+
+models:
+  - name: dim_date
+    description: Calendrier couvrant toutes les années présentes dans les événements métier.
+    columns:
+      - name: date_key
+        data_tests: [not_null, unique]
+      - name: calendar_date
+        data_tests: [not_null, unique]
+
+  - name: dim_supplier
+    description: Dimension courante des fournisseurs, suppressions logiques incluses.
+    columns:
+      - name: supplier_key
+        data_tests: [not_null, unique]
+      - name: source_supplier_id
+        data_tests: [not_null, unique]
+
+  - name: dim_client
+    description: Dimension courante des clients sans coordonnées de contact détaillées.
+    columns:
+      - name: client_key
+        data_tests: [not_null, unique]
+      - name: source_client_id
+        data_tests: [not_null, unique]
+      - name: supplier_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_supplier')
+                field: supplier_key
+
+  - name: dim_product
+    description: Dimension courante des produits, produits supprimés inclus.
+    columns:
+      - name: product_key
+        data_tests: [not_null, unique]
+      - name: source_product_id
+        data_tests: [not_null, unique]
+      - name: supplier_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_supplier')
+                field: supplier_key
+
+  - name: dim_variation
+    description: Dimension courante des variations et de leur état de stock.
+    columns:
+      - name: variation_key
+        data_tests: [not_null, unique]
+      - name: source_variation_id
+        data_tests: [not_null, unique]
+      - name: product_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_product')
+                field: product_key
+      - name: supplier_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_supplier')
+                field: supplier_key
+
+  - name: fact_order_line
+    description: Une ligne par ligne de commande, au prix HT historique de la vente.
+    columns:
+      - name: order_line_key
+        description: Clé substitut stable du grain.
+        data_tests: [not_null, unique]
+      - name: source_order_line_id
+        data_tests: [not_null, unique]
+      - name: supplier_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_supplier')
+                field: supplier_key
+      - name: client_key
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_client')
+                field: client_key
+              config:
+                where: client_key is not null
+      - name: product_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_product')
+                field: product_key
+      - name: variation_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_variation')
+                field: variation_key
+      - name: order_date_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
+      - name: current_order_status
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - EN_ATTENTE_CONFIRMATION
+                  - EN_PREPARATION
+                  - PRETE
+                  - EXPEDIEE
+                  - EN_LIVRAISON
+                  - LIVREE
+                  - ANNULEE
+      - name: quantity
+        data_tests: [not_null]
+      - name: historical_unit_price_ht
+        data_tests: [not_null]
+
+  - name: fact_stock_movement
+    description: Un mouvement de stock immuable par ligne source.
+    columns:
+      - name: stock_movement_key
+        data_tests: [not_null, unique]
+      - name: source_stock_movement_id
+        data_tests: [not_null, unique]
+      - name: supplier_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_supplier')
+                field: supplier_key
+      - name: product_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_product')
+                field: product_key
+      - name: variation_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_variation')
+                field: variation_key
+      - name: movement_date_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
+      - name: movement_type
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - ENTREE_APPROVISIONNEMENT
+                  - RESERVATION_COMMANDE
+                  - LIBERATION_RESERVATION
+                  - SORTIE_COMMANDE
+                  - RETOUR
+                  - AJUSTEMENT
+      - name: quantity
+        data_tests: [not_null]
+
+  - name: fact_order_status_history
+    description: Une transition de statut par ligne historique source.
+    columns:
+      - name: order_status_history_key
+        data_tests: [not_null, unique]
+      - name: source_status_history_id
+        data_tests: [not_null, unique]
+      - name: supplier_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_supplier')
+                field: supplier_key
+      - name: status_date_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
+      - name: new_status
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - EN_ATTENTE_CONFIRMATION
+                  - EN_PREPARATION
+                  - PRETE
+                  - EXPEDIEE
+                  - EN_LIVRAISON
+                  - LIVREE
+                  - ANNULEE
+      - name: previous_status
+        data_tests:
+          - accepted_values:
+              arguments:
+                values:
+                  - EN_ATTENTE_CONFIRMATION
+                  - EN_PREPARATION
+                  - PRETE
+                  - EXPEDIEE
+                  - EN_LIVRAISON
+                  - LIVREE
+                  - ANNULEE

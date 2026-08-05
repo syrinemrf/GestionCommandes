@@ -1,0 +1,26 @@
+version: 2
+
+sources:
+  - name: raw
+    description: Tables extraites en lecture seule depuis MariaDB par le package ELT.
+    database: "{{ env_var('DBT_POSTGRES_DB', 'comdely_dw') }}"
+    schema: raw
+    tables:
+      - name: user
+      - name: client
+      - name: product
+      - name: product_variation
+      - name: commande
+      - name: ligne_commande
+      - name: mouvement_stock
+      - name: historique_statut_commande
+      - name: parametre
+      - name: reclamation
+      - name: reclamation_message
+
+  - name: meta
+    description: Métadonnées des exécutions ELT.
+    database: "{{ env_var('DBT_POSTGRES_DB', 'comdely_dw') }}"
+    schema: meta
+    tables:
+      - name: etl_run
