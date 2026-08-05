@@ -1,0 +1,146 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Tableau de bord - Komdely{% endblock %}
+
+{% block body %}
+<div
+    id="supplier-dashboard"
+    class="dashboard"
+    data-summary-url="{{ path('analytics_summary') }}"
+    data-evolution-url="{{ path('analytics_evolution') }}"
+    data-products-url="{{ path('analytics_products') }}"
+    data-statuses-url="{{ path('analytics_statuses') }}"
+    data-stock-url="{{ path('analytics_stock') }}">
+
+    <header class="dashboard-header">
+        <div>
+            <h1>Tableau de bord</h1>
+            <p>Suivez l'activité de vos commandes, produits et stocks.</p>
+        </div>
+
+        <div class="dashboard-refresh-info" aria-live="polite">
+            <span class="dashboard-refresh-label">Dernière actualisation réussie</span>
+            <strong id="dashboard-last-updated">Aucune actualisation</strong>
+        </div>
+    </header>
+
+    <section class="dashboard-filters" aria-label="Filtres du tableau de bord">
+        <label>
+            <span>Du</span>
+            <input type="date" id="dashboard-date-from">
+        </label>
+        <label>
+            <span>Au</span>
+            <input type="date" id="dashboard-date-to">
+        </label>
+        <button type="button" class="btn-primary dashboard-apply" id="dashboard-apply-filters">
+            Appliquer
+        </button>
+        <button type="button" class="btn-secondary dashboard-period" data-period-days="30">30 jours</button>
+        <button type="button" class="btn-secondary dashboard-period" data-period-days="90">90 jours</button>
+        <button type="button" class="btn-secondary dashboard-period" data-period-days="365">12 mois</button>
+
+        <label class="dashboard-auto-refresh">
+            <span>Actualisation auto.</span>
+            <select id="dashboard-refresh-interval">
+                <option value="0">Désactivée</option>
+                <option value="60">Chaque minute</option>
+                <option value="300" selected>Toutes les 5 min</option>
+                <option value="900">Toutes les 15 min</option>
+            </select>
+        </label>
+
+        <button type="button" class="dashboard-refresh-button" id="dashboard-refresh" aria-label="Actualiser maintenant">
+            <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+            <span>Actualiser</span>
+        </button>
+    </section>
+
+    <div id="dashboard-feedback" class="dashboard-feedback" role="status" aria-live="polite" hidden></div>
+
+    <section class="dashboard-kpis" aria-label="Indicateurs clés">
+        {% set cards = {
+            'orders': ['Commandes', '0'],
+            'revenue-ht': ['Chiffre d’affaires HT', '0,000 TND'],
+            'revenue-ttc': ['Chiffre d’affaires TTC', '0,000 TND'],
+            'average-basket': ['Panier moyen HT', '0,000 TND'],
+            'cancellation-rate': ['Taux d’annulation', '0 %']
+        } %}
+        {% for key, card in cards %}
+            <article class="dashboard-kpi-card">
+                <span>{{ card[0] }}</span>
+                <strong id="kpi-{{ key }}">{{ card[1] }}</strong>
+            </article>
+        {% endfor %}
+    </section>
+
+    <section class="dashboard-grid">
+        <article class="dashboard-panel dashboard-panel-wide">
+            <div class="dashboard-panel-heading">
+                <div>
+                    <h2>Évolution de l’activité</h2>
+                    <p>Commandes et chiffre d’affaires HT</p>
+                </div>
+            </div>
+            <div class="dashboard-chart" id="dashboard-evolution-chart" role="img" aria-label="Évolution des commandes et du chiffre d’affaires"></div>
+            <div class="dashboard-empty" data-empty-for="evolution" hidden>Aucune activité sur cette période.</div>
+        </article>
+
+        <article class="dashboard-panel">
+            <div class="dashboard-panel-heading">
+                <div>
+                    <h2>Répartition des statuts</h2>
+                    <p>État actuel des commandes</p>
+                </div>
+            </div>
+            <div class="dashboard-chart dashboard-chart-compact" id="dashboard-status-chart" role="img" aria-label="Répartition des statuts des commandes"></div>
+            <div class="dashboard-empty" data-empty-for="statuses" hidden>Aucune commande à répartir.</div>
+        </article>
+
+        <article class="dashboard-panel dashboard-panel-wide">
+            <div class="dashboard-panel-heading">
+                <div>
+                    <h2>Produits les plus performants</h2>
+                    <p>Unités vendues par produit et variation</p>
+                </div>
+            </div>
+            <div class="dashboard-chart dashboard-chart-products" id="dashboard-products-chart" role="img" aria-label="Produits et variations les plus performants"></div>
+            <div class="dashboard-empty" data-empty-for="products" hidden>Aucune vente sur cette période.</div>
+        </article>
+
+        <article class="dashboard-panel dashboard-stock-panel">
+            <div class="dashboard-panel-heading">
+                <div>
+                    <h2>Stock disponible</h2>
+                    <p>Variations nécessitant votre attention en premier</p>
+                </div>
+            </div>
+            <div class="dashboard-stock-wrapper">
+                <table class="dashboard-stock-table">
+                    <thead>
+                        <tr>
+                            <th>Produit</th>
+                            <th>Disponible</th>
+                            <th>Réservé</th>
+                            <th>État</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dashboard-stock-body"></tbody>
+                </table>
+            </div>
+            <div class="dashboard-empty" data-empty-for="stock" hidden>Aucune donnée de stock disponible.</div>
+        </article>
+    </section>
+
+    <div class="dashboard-initial-loader" id="dashboard-loader" aria-label="Chargement du tableau de bord">
+        <span class="dashboard-spinner" aria-hidden="true"></span>
+        <span>Chargement des indicateurs…</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script src="{{ asset('vendor/echarts/echarts.min.js') }}"></script>
+    <script src="{{ asset('js/dashboard.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,29 @@
+analytics_dashboard:
+    path: /dashboard
+    controller: App\Controller\AnalyticsController::dashboard
+    methods: [GET]
+
+analytics_summary:
+    path: /api/analytics/summary
+    controller: App\Controller\AnalyticsController::summary
+    methods: [GET]
+
+analytics_evolution:
+    path: /api/analytics/evolution
+    controller: App\Controller\AnalyticsController::evolution
+    methods: [GET]
+
+analytics_products:
+    path: /api/analytics/products
+    controller: App\Controller\AnalyticsController::products
+    methods: [GET]
+
+analytics_statuses:
+    path: /api/analytics/statuses
+    controller: App\Controller\AnalyticsController::statuses
+    methods: [GET]
+
+analytics_stock:
+    path: /api/analytics/stock
+    controller: App\Controller\AnalyticsController::stock
+    methods: [GET]

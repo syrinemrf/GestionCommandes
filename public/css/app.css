@@ -4,6 +4,7 @@
 @import url('./products.css');
 @import url('./commandes.css');
 @import url('./support.css');
+@import url('./dashboard.css');
 
 :root {
     --color-primary: #047857;

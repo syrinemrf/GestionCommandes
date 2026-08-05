@@ -23,6 +23,15 @@
         {% endif %}
 
         {% if is_granted('ROLE_ADMIN') or is_granted('ROLE_FOURNISSEUR') %}
+            {% if is_granted('ROLE_FOURNISSEUR') %}
+                <a
+                    href="{{ path('analytics_dashboard') }}"
+                    class="{% if currentRoute starts with 'analytics_' %}is-active{% endif %}">
+                    <i class="bi bi-bar-chart-line"></i>
+                    <span>Tableau de bord</span>
+                </a>
+            {% endif %}
+
             <a
                 href="{{ path('product_list') }}"
                 class="{% if currentRoute starts with 'product_' %}is-active{% endif %}">
