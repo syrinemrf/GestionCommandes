@@ -11,6 +11,20 @@
 /public/uploads/
 ###< symfony/framework-bundle ###
 
+###> data-platform ###
+/data-platform/.env
+/data-platform/**/.env
+/data-platform/postgres/data/
+/data-platform/ml/artifacts/
+/data-platform/ml/models/
+/data-platform/.tmp/
+/data-platform/tmp/
+/data-platform/**/*.log
+/data-platform/**/*.tmp
+/data-platform/**/__pycache__/
+/data-platform/**/*.py[cod]
+###< data-platform ###
+
 ###> phpunit/phpunit ###
 /phpunit.xml
 /.phpunit.cache/
