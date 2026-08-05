@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools==80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "comdely-elt"
+version = "0.1.0"
+description = "MariaDB to PostgreSQL raw-layer ELT for Comdely"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "PyMySQL==1.1.2",
+    "SQLAlchemy==2.0.43",
+    "psycopg[binary]==3.2.9",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest==8.4.1",
+]
+
+[project.scripts]
+comdely-elt = "comdely_elt.cli:main"
+comdely-elt-full = "comdely_elt.cli:full_main"
+comdely-elt-incremental = "comdely_elt.cli:incremental_main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]
