@@ -56,7 +56,7 @@
     color: #d1d5db;
     transition: all 0.3s ease;
 }
-.sidebar nav a i { width: 25px; font-size: 20px; text-align: center; }
+.sidebar nav a i { width: 25px; font-size: 17px; text-align: center; }
 .sidebar nav a span { width: 25px; font-size: 17px; text-align: center; }
 .sidebar nav a:hover,
 .sidebar nav a.is-active {

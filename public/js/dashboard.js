@@ -251,7 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
         items.forEach((item) => {
             const key = `${item.productId}:${item.variationId}`;
             const variation = item.variationName && item.variationName.toLowerCase() !== 'standard'
-                ? ` — ${item.variationName}`
+                ? ` - ${item.variationName}`
                 : '';
             const current = products.get(key) || {
                 label: `${item.productName}${variation}`,
