@@ -74,6 +74,7 @@ do {
         pg_isready `
         -U comdely_dw `
         -d comdely_dw *> $null
+
 }
 until ($LASTEXITCODE -eq 0)
 
@@ -94,4 +95,15 @@ Write-Host "Infrastructure prete."
 Write-Host "Demarrage de Symfony..."
 Write-Host ""
 
-symfony server:start --no-tls
+Start-Process powershell `
+    -ArgumentList "-NoExit", "-Command", "cd '$PWD'; symfony server:start --no-tls"
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Impossible de demarrer Symfony."
+    exit 1
+}
+
+Write-Host ""
+Write-Host "=== Comdely est pret ==="
+Write-Host "Symfony, PostgreSQL et Airflow sont demarres."
+Write-Host ""
