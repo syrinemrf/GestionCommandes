@@ -30,10 +30,18 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastSnapshot = null;
 
     const numberFormatter = new Intl.NumberFormat('fr-FR');
+
     const moneyFormatter = new Intl.NumberFormat('fr-TN', {
         minimumFractionDigits: 3,
         maximumFractionDigits: 3,
     });
+
+    const compactMoneyFormatter = new Intl.NumberFormat('fr-FR', {
+        notation: 'compact',
+        compactDisplay: 'short',
+        maximumFractionDigits: 1,
+    });
+
     const percentFormatter = new Intl.NumberFormat('fr-FR', {
         minimumFractionDigits: 1,
         maximumFractionDigits: 1,
@@ -146,12 +154,41 @@ document.addEventListener('DOMContentLoaded', () => {
         if (chart) chart.getDom().hidden = isEmpty;
     }
 
+    function setMoneyKpi(id, value, compact = false) {
+        const element = document.getElementById(id);
+        const amount = Number(value) || 0;
+
+        element.textContent = compact
+            ? `${compactMoneyFormatter.format(amount)} TND`
+            : `${moneyFormatter.format(amount)} TND`;
+
+        // Affiche la valeur exacte au survol
+        element.title = `${moneyFormatter.format(amount)} TND`;
+    }
+
     function renderSummary(data) {
-        document.getElementById('kpi-orders').textContent = numberFormatter.format(data.orderCount || 0);
-        document.getElementById('kpi-revenue-ht').textContent = `${moneyFormatter.format(data.revenueHt || 0)} TND`;
-        document.getElementById('kpi-revenue-ttc').textContent = `${moneyFormatter.format(data.revenueTtc || 0)} TND`;
-        document.getElementById('kpi-average-basket').textContent = `${moneyFormatter.format(data.averageOrderValueHt || 0)} TND`;
-        document.getElementById('kpi-cancellation-rate').textContent = `${percentFormatter.format((data.cancellationRate || 0) * 100)} %`;
+        document.getElementById('kpi-orders').textContent =
+            numberFormatter.format(data.orderCount || 0);
+
+        setMoneyKpi(
+            'kpi-revenue-ht',
+            data.revenueHt,
+            true
+        );
+
+        setMoneyKpi(
+            'kpi-revenue-ttc',
+            data.revenueTtc,
+            true
+        );
+
+        setMoneyKpi(
+            'kpi-average-basket',
+            data.averageOrderValueHt
+        );
+
+        document.getElementById('kpi-cancellation-rate').textContent =
+            `${percentFormatter.format((data.cancellationRate || 0) * 100)} %`;
     }
 
     function renderEvolution(items) {
