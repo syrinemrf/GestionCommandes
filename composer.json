@@ -55,6 +55,7 @@
     },
     "scripts": {
         "test": "php bin/phpunit",
+	"app:start": "powershell -ExecutionPolicy Bypass -File scripts/start-app.ps1",
         "auto-scripts": {
             "cache:clear": "symfony-cmd",
             "assets:install %PUBLIC_DIR%": "symfony-cmd"
