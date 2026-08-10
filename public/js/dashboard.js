@@ -30,6 +30,13 @@ document.addEventListener('DOMContentLoaded', () => {
         risks: root.dataset.risksUrl,
         riskExplanation: root.dataset.riskExplanationUrl,
     };
+    const hasRiskSection = Boolean(
+        elements.riskBody
+        && elements.riskLevel
+        && elements.xaiDialog
+        && endpoints.risks
+        && endpoints.riskExplanation
+    );
 
     const charts = {};
     let activeController = null;
@@ -670,7 +677,7 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.xaiContent.hidden = true;
         if (!elements.xaiDialog.open) elements.xaiDialog.showModal();
         try {
-            const url = endpoints.riskExplanation.replace('__VARIATION__', String(variationId));
+            const url = `${endpoints.riskExplanation}/${encodeURIComponent(variationId)}/explanation`;
             const response = await requestJson(url, explanationController.signal);
             renderExplanation(response.data);
         } catch (error) {
@@ -705,7 +712,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function extractLastUpdated(snapshot) {
         const valid = snapshotTimestamps(snapshot);
-        snapshot.risks.forEach((item) => {
+        (snapshot.risks || []).forEach((item) => {
             if (!item.lastUpdatedAt) return;
             const timestamp = new Date(item.lastUpdatedAt);
             if (!Number.isNaN(timestamp.getTime())) valid.push(timestamp);
@@ -726,7 +733,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderProducts(snapshot.products);
         renderStatuses(snapshot.statuses);
         renderStock(snapshot.stock);
-        renderRisks(snapshot.risks);
+        if (hasRiskSection) renderRisks(snapshot.risks);
 
         elements.lastUpdated.textContent = extractLastUpdated(snapshot).toLocaleString('fr-FR', {
             dateStyle: 'medium',
@@ -756,7 +763,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 requestJson(buildUrl(endpoints.products, { ...period, limit: 100 }), controller.signal),
                 requestJson(endpoints.statuses, controller.signal),
                 requestJson(buildUrl(endpoints.stock, { limit: 100 }), controller.signal),
-                requestJson(buildUrl(endpoints.risks, { risk: elements.riskLevel.value, limit: 100 }), controller.signal),
+                hasRiskSection
+                    ? requestJson(buildUrl(endpoints.risks, { risk: elements.riskLevel.value, limit: 100 }), controller.signal)
+                    : Promise.resolve({ data: [] }),
             ]);
 
             if (controller !== activeController) return;
@@ -814,16 +823,18 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.apply.addEventListener('click', loadDashboard);
     elements.refresh.addEventListener('click', loadDashboard);
     elements.refreshInterval.addEventListener('change', configureAutoRefresh);
-    elements.riskLevel.addEventListener('change', loadDashboard);
-    elements.riskBody.addEventListener('click', (event) => {
-        const button = event.target.closest('.dashboard-risk-explain');
-        if (button) showRiskExplanation(button.dataset.variationId);
-    });
-    document.getElementById('dashboard-xai-close').addEventListener('click', () => elements.xaiDialog.close());
-    elements.xaiDialog.addEventListener('close', () => {
-        if (explanationController) explanationController.abort();
-        explanationController = null;
-    });
+    if (hasRiskSection) {
+        elements.riskLevel.addEventListener('change', loadDashboard);
+        elements.riskBody.addEventListener('click', (event) => {
+            const button = event.target.closest('.dashboard-risk-explain');
+            if (button) showRiskExplanation(button.dataset.variationId);
+        });
+        document.getElementById('dashboard-xai-close')?.addEventListener('click', () => elements.xaiDialog.close());
+        elements.xaiDialog.addEventListener('close', () => {
+            if (explanationController) explanationController.abort();
+            explanationController = null;
+        });
+    }
 
     let resizeFrame = null;
     window.addEventListener('resize', () => {

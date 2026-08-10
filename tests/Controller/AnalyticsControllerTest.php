@@ -29,6 +29,22 @@ final class AnalyticsControllerTest extends WebTestCase
         );
     }
 
+    public function testDashboardRendersTheRiskSection(): void
+    {
+        $client = static::createClient();
+        $client->disableReboot();
+        $this->loginSupplier($client, $this->supplier(101));
+
+        $crawler = $client->request('GET', '/dashboard');
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('#dashboard-risk-level'));
+        self::assertSame(
+            '/api/analytics/risks',
+            $crawler->filter('#supplier-dashboard')->attr('data-risk-explanation-url')
+        );
+    }
+
     public function testInvalidDatesReturnBadRequest(): void
     {
         $client = static::createClient();
