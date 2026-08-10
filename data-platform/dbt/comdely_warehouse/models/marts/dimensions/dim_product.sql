@@ -10,5 +10,6 @@ select
     base_price_ht,
     is_deleted,
     demo_batch,
+    product_created_at,
     extracted_at
 from {{ ref('stg_product') }}

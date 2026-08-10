@@ -131,6 +131,7 @@ raw_product = Table(
     Column("id_fournisseur_id", BigInteger, nullable=False),
     Column("is_deleted", Boolean),
     Column("demo_batch", String(64)),
+    Column("created_at", DateTime(timezone=True)),
     *_audit_columns(),
     schema="raw",
 )

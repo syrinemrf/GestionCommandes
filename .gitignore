@@ -17,12 +17,16 @@
 /data-platform/postgres/data/
 /data-platform/ml/artifacts/
 /data-platform/ml/models/
+/data-platform/ml/artifacts/*.json
+/data-platform/ml/artifacts/*.joblib
 /data-platform/.tmp/
 /data-platform/tmp/
 /data-platform/**/*.log
 /data-platform/**/*.tmp
 /data-platform/**/__pycache__/
 /data-platform/**/*.py[cod]
+/data-platform/**/.venv/
+/data-platform/**/*.egg-info/
 ###< data-platform ###
 
 ###> phpunit/phpunit ###

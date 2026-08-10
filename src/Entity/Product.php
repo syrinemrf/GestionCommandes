@@ -46,6 +46,9 @@ class Product
     #[ORM\Column(length: 64, nullable: true)]
     private ?string $demoBatch = null;
 
+    #[ORM\Column]
+    private \DateTimeImmutable $createdAt;
+
     #[ORM\OneToMany(
         mappedBy: 'product',
         targetEntity: ProductVariation::class
@@ -56,6 +59,7 @@ class Product
     public function __construct()
     {
         $this->variations = new ArrayCollection();
+        $this->createdAt = new \DateTimeImmutable();
     }
 
     /**
@@ -161,6 +165,18 @@ class Product
     public function setDemoBatch(?string $demoBatch): static
     {
         $this->demoBatch = $demoBatch;
+
+        return $this;
+    }
+
+    public function getCreatedAt(): \DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
+
+    public function setCreatedAt(\DateTimeImmutable $createdAt): static
+    {
+        $this->createdAt = $createdAt;
 
         return $this;
     }

@@ -27,6 +27,12 @@ class TargetStore:
             for schema in ("raw", "staging", "analytics", "marts", "meta"):
                 connection.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema}"'))
             metadata.create_all(connection)
+            connection.execute(
+                text(
+                    'ALTER TABLE raw.product '
+                    'ADD COLUMN IF NOT EXISTS created_at timestamptz'
+                )
+            )
 
     def start_run(self, mode: str) -> UUID:
         run_id = uuid4()

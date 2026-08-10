@@ -26,6 +26,8 @@ models:
         data_tests: [not_null]
       - name: base_price_ht
         data_tests: [not_null]
+      - name: product_created_at
+        data_tests: [not_null]
 
   - name: stg_product_variation
     description: Variations et état courant des stocks.

@@ -27,3 +27,6 @@ models:
         +schema: analytics
       facts:
         +schema: analytics
+      ml:
+        +materialized: table
+        +schema: analytics
