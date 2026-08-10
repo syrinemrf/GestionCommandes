@@ -132,6 +132,35 @@ class AnalyticsController extends AbstractController
         ]);
     }
 
+    public function risks(
+        Request $request,
+        SupplierAnalyticsService $analytics,
+    ): JsonResponse {
+        try {
+            $limit = AnalyticsDateRange::limitFromRequest($request, 100, 200);
+            $risk = $request->query->getString('risk') ?: null;
+            $items = $analytics->stockRisks($this->currentSupplier(), $risk, $limit);
+        } catch (\InvalidArgumentException $exception) {
+            return $this->validationError($exception);
+        }
+
+        return $this->json([
+            'data' => array_map(static fn ($item): array => $item->toArray(), $items),
+            'meta' => ['count' => count($items), 'limit' => $limit, 'risk' => $risk],
+        ]);
+    }
+
+    public function riskExplanation(
+        int $variationId,
+        SupplierAnalyticsService $analytics,
+    ): JsonResponse {
+        return $this->json([
+            'data' => $analytics
+                ->stockRiskExplanation($this->currentSupplier(), $variationId)
+                ->toArray(),
+        ]);
+    }
+
     private function currentSupplier(): User
     {
         $user = $this->getUser();

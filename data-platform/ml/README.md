@@ -95,3 +95,13 @@ L'inférence effectue un upsert au grain date × variation dans
 `ml.stock_prediction`. Un historique inférieur à 28 jours ou comportant moins
 de deux jours de vente est classé `INSUFFICIENT_DATA`. Les recommandations sont
 informatives : aucune entrée, réservation ou sortie de stock n'est créée.
+
+## Explications XAI
+
+L'explication métier (stock disponible, prévisions, déficit central, risque et
+recommandation) est déterministe. Pour les séries suffisamment matures, SHAP
+explique hors ligne le pipeline HGB q90 après prétraitement. Les colonnes issues
+du one-hot encoding sont regroupées sous leurs features métier et seules les
+trois contributions absolues principales sont persistées. Elles indiquent ce
+qui contribue à la prévision, sans établir de causalité. Les cold starts gardent
+l'explication métier avec une explication SHAP absente.

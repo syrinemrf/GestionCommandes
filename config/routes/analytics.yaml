@@ -27,3 +27,15 @@ analytics_stock:
     path: /api/analytics/stock
     controller: App\Controller\AnalyticsController::stock
     methods: [GET]
+
+analytics_risks:
+    path: /api/analytics/risks
+    controller: App\Controller\AnalyticsController::risks
+    methods: [GET]
+
+analytics_risk_explanation:
+    path: /api/analytics/risks/{variationId}/explanation
+    controller: App\Controller\AnalyticsController::riskExplanation
+    methods: [GET]
+    requirements:
+        variationId: '\d+'

@@ -10,7 +10,9 @@
     data-evolution-url="{{ path('analytics_evolution') }}"
     data-products-url="{{ path('analytics_products') }}"
     data-statuses-url="{{ path('analytics_statuses') }}"
-    data-stock-url="{{ path('analytics_stock') }}">
+    data-stock-url="{{ path('analytics_stock') }}"
+    data-risks-url="{{ path('analytics_risks') }}"
+    data-risk-explanation-url="{{ path('analytics_risk_explanation', {variationId: '__VARIATION__'}) }}">
 
     <header class="dashboard-header">
         <div>
@@ -130,7 +132,76 @@
             </div>
             <div class="dashboard-empty" data-empty-for="stock" hidden>Aucune donnée de stock disponible.</div>
         </article>
+
+        <article class="dashboard-panel dashboard-panel-full dashboard-risk-panel">
+            <div class="dashboard-panel-heading dashboard-risk-heading">
+                <div>
+                    <h2>Risques de stock prévus</h2>
+                    <p>Prévisions à 7 jours. Elles aident à décider, sans modifier automatiquement votre stock.</p>
+                </div>
+                <label class="dashboard-risk-filter">
+                    <span>Niveau de risque</span>
+                    <select id="dashboard-risk-level">
+                        <option value="">Tous les niveaux</option>
+                        <option value="HIGH">Élevé</option>
+                        <option value="MEDIUM">Modéré</option>
+                        <option value="LOW">Faible</option>
+                        <option value="INSUFFICIENT_DATA">Données insuffisantes</option>
+                    </select>
+                </label>
+            </div>
+            <div class="dashboard-risk-wrapper">
+                <table class="dashboard-risk-table">
+                    <thead>
+                        <tr>
+                            <th>Produit / variation</th>
+                            <th>Risque</th>
+                            <th>Prévision</th>
+                            <th>q90</th>
+                            <th>Stock</th>
+                            <th>Recommandation</th>
+                            <th>Demande récente</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="dashboard-risk-body"></tbody>
+                </table>
+            </div>
+            <div class="dashboard-empty" data-empty-for="risks" hidden>Aucune prédiction pour ce filtre.</div>
+        </article>
     </section>
+
+    <dialog class="dashboard-xai-dialog" id="dashboard-xai-dialog" aria-labelledby="dashboard-xai-title">
+        <div class="dashboard-xai-header">
+            <div>
+                <span class="dashboard-xai-eyebrow">Explication de la prévision</span>
+                <h2 id="dashboard-xai-title">Pourquoi ce risque ?</h2>
+            </div>
+            <button type="button" id="dashboard-xai-close" aria-label="Fermer">×</button>
+        </div>
+        <div id="dashboard-xai-loading" class="dashboard-xai-state">Chargement de l’explication…</div>
+        <div id="dashboard-xai-content" hidden>
+            <p id="dashboard-xai-product" class="dashboard-xai-product"></p>
+            <dl class="dashboard-xai-metrics">
+                <div><dt>Stock disponible</dt><dd id="dashboard-xai-stock">—</dd></div>
+                <div><dt>Prévision centrale</dt><dd id="dashboard-xai-central">—</dd></div>
+                <div><dt>Prévision q90</dt><dd id="dashboard-xai-q90">—</dd></div>
+                <div><dt>Déficit central</dt><dd id="dashboard-xai-deficit">—</dd></div>
+                <div><dt>Risque</dt><dd id="dashboard-xai-risk">—</dd></div>
+                <div><dt>Quantité recommandée</dt><dd id="dashboard-xai-recommendation">—</dd></div>
+            </dl>
+            <section class="dashboard-xai-factors">
+                <h3>Facteurs qui contribuent à la prévision q90</h3>
+                <p>Une contribution décrit l’influence du modèle ; elle ne prouve pas une cause de rupture.</p>
+                <div id="dashboard-xai-chart" class="dashboard-xai-chart"></div>
+                <div id="dashboard-xai-no-shap" class="dashboard-xai-state" hidden>Aucune explication SHAP disponible pour cette prédiction.</div>
+            </section>
+            <footer class="dashboard-xai-meta">
+                <span>Modèle : <strong id="dashboard-xai-model">—</strong></span>
+                <span>Prédiction : <strong id="dashboard-xai-date">—</strong></span>
+            </footer>
+        </div>
+    </dialog>
 
     <div class="dashboard-initial-loader" id="dashboard-loader" aria-label="Chargement du tableau de bord">
         <span class="dashboard-spinner" aria-hidden="true"></span>

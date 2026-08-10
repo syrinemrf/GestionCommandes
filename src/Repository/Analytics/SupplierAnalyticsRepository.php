@@ -8,6 +8,8 @@ use App\Dto\Analytics\KpiSummaryDto;
 use App\Dto\Analytics\OrderStatusDto;
 use App\Dto\Analytics\ProductPerformanceDto;
 use App\Dto\Analytics\StockOverviewDto;
+use App\Dto\Analytics\StockRiskDto;
+use App\Dto\Analytics\StockRiskExplanationDto;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -217,6 +219,68 @@ class SupplierAnalyticsRepository
         );
 
         return array_map(StockOverviewDto::fromRow(...), $rows);
+    }
+
+    /** @return list<StockRiskDto> */
+    public function stockRisks(int $supplierId, ?string $risk, int $limit): array
+    {
+        $riskFilter = $risk === null ? '' : 'and risk = :risk';
+        $parameters = [
+            'supplier_id' => $supplierId,
+            'result_limit' => $limit,
+        ];
+        $types = [
+            'supplier_id' => ParameterType::INTEGER,
+            'result_limit' => ParameterType::INTEGER,
+        ];
+        if ($risk !== null) {
+            $parameters['risk'] = $risk;
+            $types['risk'] = ParameterType::STRING;
+        }
+        $rows = $this->connection->fetchAllAssociative(
+            <<<SQL
+                select
+                    source_product_id, source_variation_id, product_name,
+                    variation_name, prediction_date, predicted_at,
+                    forecast_central_7d, forecast_q90_7d, stock_available,
+                    risk, recommended_quantity, model_version, demand_history,
+                    shap_factors, last_updated_at
+                from analytics.mart_supplier_stock_risk
+                where source_supplier_id = :supplier_id
+                  {$riskFilter}
+                order by case risk
+                    when 'HIGH' then 1 when 'MEDIUM' then 2
+                    when 'LOW' then 3 else 4 end,
+                    recommended_quantity desc, source_variation_id
+                limit :result_limit
+                SQL,
+            $parameters,
+            $types,
+        );
+
+        return array_map(StockRiskDto::fromRow(...), $rows);
+    }
+
+    public function stockRiskExplanation(
+        int $supplierId,
+        int $variationId,
+    ): ?StockRiskExplanationDto {
+        $row = $this->connection->fetchAssociative(
+            <<<'SQL'
+                select
+                    source_variation_id, product_name, variation_name,
+                    predicted_at, forecast_central_7d, forecast_q90_7d,
+                    stock_available, risk, recommended_quantity,
+                    business_explanation, shap_factors, model_version
+                from analytics.mart_supplier_stock_risk
+                where source_supplier_id = :supplier_id
+                  and source_variation_id = :variation_id
+                SQL,
+            ['supplier_id' => $supplierId, 'variation_id' => $variationId],
+            ['supplier_id' => ParameterType::INTEGER, 'variation_id' => ParameterType::INTEGER],
+        );
+
+        return $row ? StockRiskExplanationDto::fromRow($row) : null;
     }
 
     private function rangeParameters(

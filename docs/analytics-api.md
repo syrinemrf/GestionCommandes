@@ -121,6 +121,70 @@ Une periode vide renvoie les compteurs a zero et `lastUpdatedAt: null`.
 }
 ```
 
+## GET `/api/analytics/risks?risk=HIGH&limit=100`
+
+`risk` est facultatif et accepte `HIGH`, `MEDIUM`, `LOW` ou
+`INSUFFICIENT_DATA`. L'identifiant fournisseur n'est jamais accepté depuis le
+navigateur.
+
+```json
+{
+  "data": [{
+    "productId": 42,
+    "variationId": 91,
+    "productName": "Serum HydraGlow",
+    "variationName": "30 ml",
+    "predictionDate": "2026-08-10",
+    "predictedAt": "2026-08-10 11:50:00+00",
+    "forecastCentral7d": 9.2,
+    "forecastQ90_7d": 12.8,
+    "stockAvailable": 4,
+    "risk": "HIGH",
+    "recommendedQuantity": 9,
+    "modelVersion": "croston-hgb-20260810T030000Z",
+    "demandHistory": [{"date": "2026-08-09", "quantity": 2}],
+    "shapAvailable": true,
+    "lastUpdatedAt": "2026-08-10 11:50:00+00"
+  }],
+  "meta": {"count": 1, "limit": 100, "risk": "HIGH"}
+}
+```
+
+## GET `/api/analytics/risks/91/explanation`
+
+Cette route renvoie l'explication déterministe et les contributions SHAP déjà
+calculées par l'inférence hors ligne. Une contribution décrit l'influence du
+modèle, jamais une causalité.
+
+```json
+{
+  "data": {
+    "variationId": 91,
+    "productName": "Serum HydraGlow",
+    "variationName": "30 ml",
+    "stockAvailable": 4,
+    "forecastCentral7d": 9.2,
+    "forecastQ90_7d": 12.8,
+    "deficit": 6,
+    "risk": "HIGH",
+    "recommendedQuantity": 9,
+    "factors": [{
+      "name": "rolling_sum_7d",
+      "value": 8,
+      "contribution": 1.284,
+      "direction": "INCREASES"
+    }],
+    "shapAvailable": true,
+    "modelVersion": "croston-hgb-20260810T030000Z",
+    "predictedAt": "2026-08-10 11:50:00+00",
+    "wording": "Ces facteurs contribuent à la prévision ; ils ne prouvent pas une causalité."
+  }
+}
+```
+
+Un cold start conserve toute l'explication métier mais renvoie `factors: []`
+et `shapAvailable: false`.
+
 ## Erreurs
 
 Anonyme (`401`) :
@@ -152,5 +216,5 @@ DW_DATABASE_URL="postgresql://comdely_analytics_reader:CHANGE_ME@127.0.0.1:5433/
 ```
 
 Le role possede seulement `CONNECT`, `USAGE` sur `analytics` et `SELECT` sur
-les quatre marts exposes. Il n'a aucun droit sur `raw`, `staging`, `meta`, les
+les cinq marts exposés. Il n'a aucun droit sur `raw`, `staging`, `meta`, les
 faits ou les dimensions.

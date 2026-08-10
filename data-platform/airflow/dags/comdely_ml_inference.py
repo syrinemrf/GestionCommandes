@@ -61,9 +61,23 @@ with DAG(
         engine = create_engine(Settings.from_env().database_url, pool_pre_ping=True)
         try:
             with engine.connect() as connection:
-                count = connection.execute(text('select count(*) from analytics.mart_supplier_stock_risk where model_version = :version'), {'version': result['model_version']}).scalar_one()
-            if int(count) != int(result['variations']):
-                raise RuntimeError(f"Prediction/mart count mismatch: {result['variations']} != {count}")
+                counts = connection.execute(text('''
+                    select
+                        count(*) as predictions,
+                        count(*) filter (where business_explanation is not null) as business_explanations,
+                        count(*) filter (
+                            where risk <> 'INSUFFICIENT_DATA' and shap_factors is not null
+                        ) as shap_explanations,
+                        count(*) filter (where risk <> 'INSUFFICIENT_DATA') as shap_expected
+                    from analytics.mart_supplier_stock_risk
+                    where model_version = :version
+                '''), {'version': result['model_version']}).mappings().one()
+            if int(counts['predictions']) != int(result['variations']):
+                raise RuntimeError(f"Prediction/mart count mismatch: {result['variations']} != {counts['predictions']}")
+            if int(counts['business_explanations']) != int(counts['predictions']):
+                raise RuntimeError('A deterministic business explanation is missing')
+            if int(counts['shap_explanations']) != int(counts['shap_expected']):
+                raise RuntimeError('An eligible prediction is missing its offline SHAP explanation')
         finally:
             engine.dispose()
 

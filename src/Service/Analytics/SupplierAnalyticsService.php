@@ -4,9 +4,11 @@ namespace App\Service\Analytics;
 
 use App\Dto\Analytics\AnalyticsDateRange;
 use App\Dto\Analytics\KpiSummaryDto;
+use App\Dto\Analytics\StockRiskExplanationDto;
 use App\Entity\User;
 use App\Repository\Analytics\SupplierAnalyticsRepository;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class SupplierAnalyticsService
 {
@@ -58,6 +60,39 @@ class SupplierAnalyticsService
             $this->supplierId($supplier),
             $limit
         );
+    }
+
+    public function stockRisks(
+        User $supplier,
+        ?string $risk,
+        int $limit,
+    ): array {
+        $allowed = ['HIGH', 'MEDIUM', 'LOW', 'INSUFFICIENT_DATA'];
+        if ($risk !== null && !in_array($risk, $allowed, true)) {
+            throw new \InvalidArgumentException('Niveau de risque invalide.');
+        }
+
+        return $this->repository->stockRisks(
+            $this->supplierId($supplier),
+            $risk,
+            $limit
+        );
+    }
+
+    public function stockRiskExplanation(User $supplier, int $variationId): StockRiskExplanationDto
+    {
+        if ($variationId < 1) {
+            throw new \InvalidArgumentException('Variation invalide.');
+        }
+        $explanation = $this->repository->stockRiskExplanation(
+            $this->supplierId($supplier),
+            $variationId
+        );
+        if ($explanation === null) {
+            throw new NotFoundHttpException('Aucune prédiction disponible pour cette variation.');
+        }
+
+        return $explanation;
     }
 
     private function supplierId(User $supplier): int

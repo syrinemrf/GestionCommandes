@@ -15,6 +15,13 @@ Les DAG ML sont séparés :
 Le planning se configure avec `COMDELY_ML_TRAINING_SCHEDULE`. Les artefacts
 sont conservés dans le volume Docker `ml_artifacts`.
 
+Après une modification des dépendances ML (par exemple SHAP), reconstruire
+l'image sans supprimer les volumes :
+
+```powershell
+docker compose @compose --profile airflow up -d --build airflow-apiserver airflow-scheduler airflow-dag-processor
+```
+
 Le DAG `comdely_dw_daily` execute, dans l'ordre :
 
 1. disponibilite de MariaDB et du DW PostgreSQL ;

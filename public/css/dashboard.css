@@ -213,6 +213,8 @@
     box-shadow: 0 8px 24px rgba(15, 23, 42, .05);
 }
 
+.dashboard-panel-full { grid-column: 1 / -1; }
+
 .dashboard-panel-heading h2 {
     margin: 0;
     color: #1f2937;
@@ -294,6 +296,140 @@
 .dashboard-stock-badge.is-low { background: #fef3c7; color: #92400e; }
 .dashboard-stock-badge.is-out { background: #fee2e2; color: #991b1b; }
 
+.dashboard-risk-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.dashboard-risk-filter {
+    display: grid;
+    gap: 5px;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.dashboard-risk-filter select {
+    min-width: 190px;
+    height: 38px;
+    padding: 0 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #fff;
+    color: #1f2937;
+}
+
+.dashboard-risk-wrapper {
+    margin-top: 18px;
+    overflow-x: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+}
+
+.dashboard-risk-table {
+    width: 100%;
+    min-width: 990px;
+    border-collapse: collapse;
+}
+
+.dashboard-risk-table th,
+.dashboard-risk-table td {
+    padding: 11px 10px;
+    border-bottom: 1px solid #eef2f7;
+    color: #334155;
+    font-size: 12px;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.dashboard-risk-table th {
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 11px;
+    letter-spacing: .035em;
+    text-transform: uppercase;
+}
+
+.dashboard-risk-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: #ecfdf5;
+    color: #065f46;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.dashboard-risk-badge.is-high { background: #fee2e2; color: #991b1b; }
+.dashboard-risk-badge.is-medium { background: #fef3c7; color: #92400e; }
+.dashboard-risk-badge.is-insufficient-data { background: #f1f5f9; color: #475569; }
+.dashboard-risk-recommendation { color: #7c2d12 !important; font-weight: 800; }
+
+.dashboard-risk-history { width: 120px; height: 44px; }
+
+.dashboard-risk-explain {
+    min-width: 135px;
+    padding: 7px 10px;
+    border: 1px solid #99d5c2;
+    border-radius: 7px;
+    background: #fff;
+    color: #065f46;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.dashboard-risk-explain:hover { background: #ecfdf5; border-color: #047857; }
+
+.dashboard-xai-dialog {
+    width: min(720px, calc(100vw - 28px));
+    max-height: calc(100vh - 36px);
+    padding: 0;
+    overflow: auto;
+    border: 0;
+    border-radius: 15px;
+    color: #1f2937;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, .28);
+}
+
+.dashboard-xai-dialog::backdrop { background: rgba(15, 23, 42, .52); }
+
+.dashboard-xai-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 20px 22px 15px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.dashboard-xai-header h2 { margin: 3px 0 0; font-size: 21px; }
+.dashboard-xai-eyebrow { color: #047857; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.dashboard-xai-header button { width: 34px; height: 34px; border: 0; border-radius: 8px; background: #f1f5f9; color: #475569; cursor: pointer; font-size: 24px; line-height: 1; }
+.dashboard-xai-state { margin: 22px; padding: 18px; border-radius: 10px; background: #f8fafc; color: #64748b; text-align: center; }
+.dashboard-xai-product { margin: 20px 22px 12px; color: #0f172a; font-size: 16px; font-weight: 800; }
+
+.dashboard-xai-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 9px;
+    margin: 0 22px;
+}
+
+.dashboard-xai-metrics div { padding: 11px; border: 1px solid #e2e8f0; border-radius: 9px; background: #f8fafc; }
+.dashboard-xai-metrics dt { color: #64748b; font-size: 11px; font-weight: 700; }
+.dashboard-xai-metrics dd { margin: 5px 0 0; color: #0f172a; font-size: 16px; font-weight: 800; }
+.dashboard-xai-factors { margin: 20px 22px; padding-top: 17px; border-top: 1px solid #e2e8f0; }
+.dashboard-xai-factors h3 { margin: 0; font-size: 15px; }
+.dashboard-xai-factors > p { margin: 6px 0 0; color: #64748b; font-size: 12px; }
+.dashboard-xai-chart { width: 100%; height: 220px; margin-top: 10px; }
+.dashboard-xai-meta { display: flex; justify-content: space-between; gap: 14px; padding: 14px 22px; background: #f8fafc; color: #64748b; font-size: 11px; }
+
 .dashboard-initial-loader {
     position: absolute;
     inset: 100px 0 0;
@@ -338,6 +474,9 @@
     .dashboard-kpi-card:last-child { grid-column: 1 / -1; }
     .dashboard-panel { padding: 16px; }
     .dashboard-chart { height: 310px; }
+    .dashboard-risk-heading { align-items: stretch; flex-direction: column; }
+    .dashboard-risk-filter select { width: 100%; }
+    .dashboard-xai-metrics { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 480px) {
@@ -346,4 +485,6 @@
     .dashboard-apply,
     .dashboard-refresh-button { flex: 1; justify-content: center; }
     .dashboard-period { display: none; }
+    .dashboard-xai-metrics { grid-template-columns: 1fr; }
+    .dashboard-xai-meta { flex-direction: column; }
 }

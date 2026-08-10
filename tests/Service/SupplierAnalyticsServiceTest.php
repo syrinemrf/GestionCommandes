@@ -4,6 +4,7 @@ namespace App\Tests\Service;
 
 use App\Dto\Analytics\AnalyticsDateRange;
 use App\Dto\Analytics\KpiSummaryDto;
+use App\Dto\Analytics\StockRiskExplanationDto;
 use App\Entity\User;
 use App\Repository\Analytics\SupplierAnalyticsRepository;
 use App\Service\Analytics\SupplierAnalyticsService;
@@ -41,6 +42,53 @@ final class SupplierAnalyticsServiceTest extends TestCase
             $service->summary($this->supplier(202), $range)->orderCount
         );
         self::assertSame([101, 202], $seenSupplierIds);
+    }
+
+    public function testRiskExplanationIsIsolatedForTwoSuppliers(): void
+    {
+        $seenSupplierIds = [];
+        $repository = $this->createMock(SupplierAnalyticsRepository::class);
+        $repository
+            ->expects(self::exactly(2))
+            ->method('stockRiskExplanation')
+            ->willReturnCallback(function (int $supplierId, int $variationId) use (&$seenSupplierIds): StockRiskExplanationDto {
+                $seenSupplierIds[] = $supplierId;
+
+                return new StockRiskExplanationDto(
+                    $variationId,
+                    sprintf('Produit %d', $supplierId),
+                    null,
+                    4,
+                    8.0,
+                    12.0,
+                    4,
+                    'HIGH',
+                    8,
+                    [],
+                    'model-v1',
+                    '2026-08-10T10:00:00+00:00',
+                );
+            });
+        $service = new SupplierAnalyticsService($repository);
+
+        $first = $service->stockRiskExplanation($this->supplier(101), 501);
+        $second = $service->stockRiskExplanation($this->supplier(202), 501);
+
+        self::assertSame('Produit 101', $first->productName);
+        self::assertSame('Produit 202', $second->productName);
+        self::assertFalse($first->toArray()['shapAvailable']);
+        self::assertSame([], $first->toArray()['factors']);
+        self::assertSame([101, 202], $seenSupplierIds);
+    }
+
+    public function testInvalidRiskFilterIsRejectedBeforeQueryingTheDw(): void
+    {
+        $repository = $this->createMock(SupplierAnalyticsRepository::class);
+        $repository->expects(self::never())->method('stockRisks');
+        $service = new SupplierAnalyticsService($repository);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $service->stockRisks($this->supplier(101), 'CRITICAL', 100);
     }
 
     private function supplier(int $id): User

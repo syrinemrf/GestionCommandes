@@ -13,6 +13,7 @@ dependencies = [
     'joblib==1.5.1',
     'psycopg[binary]==3.2.9',
     'scikit-learn==1.7.1',
+    'shap==0.48.0',
     'SQLAlchemy==2.0.43',
 ]
 

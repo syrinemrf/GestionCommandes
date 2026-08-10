@@ -14,6 +14,7 @@ from sqlalchemy import create_engine, text
 from .config import Settings
 from .croston import croston_sba_next
 from .features import build_demand_features
+from .explanations import business_explanation, tree_pipeline_explanations
 from .loader import load_all_daily_demand
 from .registry import champion
 
@@ -85,6 +86,18 @@ def infer() -> dict[str, object]:
                 0,
                 None,
             )
+        latest['shap_factors'] = None
+        if sufficient.any():
+            for row_index, factors in zip(
+                latest.index[sufficient],
+                tree_pipeline_explanations(
+                    bundle['q90_pipeline'],
+                    latest.loc[sufficient, bundle['features']],
+                    bundle['features'],
+                ),
+                strict=True,
+            ):
+                latest.at[row_index, 'shap_factors'] = factors
 
         rows = latest.merge(stocks, on=['source_system', 'source_supplier_id', 'source_product_id', 'source_variation_id'], how='inner')
         if rows.empty:
@@ -93,28 +106,36 @@ def infer() -> dict[str, object]:
         predicted_at = datetime.now(timezone.utc)
         values = []
         risk_counts: dict[str, int] = {}
-        for row in rows.itertuples(index=False):
+        for row_index, row in rows.iterrows():
             available = max(0, int(row.stock_registered) - int(row.stock_used) - int(row.stock_reserved))
             risk, recommendation, central, q90, available = stock_decision(
-                row.forecast_central_7d,
-                row.forecast_q90_7d,
+                row['forecast_central_7d'],
+                row['forecast_q90_7d'],
                 available,
-                sufficient_data=bool(row.sufficient_data),
+                sufficient_data=bool(row['sufficient_data']),
             )
             risk_counts[risk] = risk_counts.get(risk, 0) + 1
             values.append({
                 'prediction_date': prediction_date,
                 'predicted_at': predicted_at,
-                'source_system': row.source_system,
-                'source_supplier_id': int(row.source_supplier_id),
-                'source_product_id': int(row.source_product_id),
-                'source_variation_id': int(row.source_variation_id),
+                'source_system': row['source_system'],
+                'source_supplier_id': int(row['source_supplier_id']),
+                'source_product_id': int(row['source_product_id']),
+                'source_variation_id': int(row['source_variation_id']),
                 'forecast_central_7d': round(central, 4),
                 'forecast_q90_7d': round(q90, 4),
                 'stock_available': available,
                 'risk': risk,
                 'recommended_quantity': recommendation,
                 'model_version': registered['version'],
+                'business_explanation': json.dumps(business_explanation(
+                    stock_available=available,
+                    forecast_central_7d=central,
+                    forecast_q90_7d=q90,
+                    risk=risk,
+                    recommended_quantity=recommendation,
+                )),
+                'shap_factors': json.dumps(row['shap_factors']) if row['shap_factors'] is not None else None,
             })
         with engine.begin() as connection:
             connection.execute(
@@ -124,12 +145,14 @@ def infer() -> dict[str, object]:
                         prediction_date, predicted_at, source_system,
                         source_supplier_id, source_product_id, source_variation_id,
                         forecast_central_7d, forecast_q90_7d, stock_available,
-                        risk, recommended_quantity, model_version
+                        risk, recommended_quantity, model_version,
+                        business_explanation, shap_factors
                     ) values (
                         :prediction_date, :predicted_at, :source_system,
                         :source_supplier_id, :source_product_id, :source_variation_id,
                         :forecast_central_7d, :forecast_q90_7d, :stock_available,
-                        :risk, :recommended_quantity, :model_version
+                        :risk, :recommended_quantity, :model_version,
+                        cast(:business_explanation as jsonb), cast(:shap_factors as jsonb)
                     )
                     on conflict (prediction_date, source_system, source_variation_id)
                     do update set
@@ -141,7 +164,9 @@ def infer() -> dict[str, object]:
                         stock_available = excluded.stock_available,
                         risk = excluded.risk,
                         recommended_quantity = excluded.recommended_quantity,
-                        model_version = excluded.model_version
+                        model_version = excluded.model_version,
+                        business_explanation = excluded.business_explanation,
+                        shap_factors = excluded.shap_factors
                     '''
                 ),
                 values,

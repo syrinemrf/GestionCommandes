@@ -14,6 +14,11 @@ document.addEventListener('DOMContentLoaded', () => {
         loader: document.getElementById('dashboard-loader'),
         lastUpdated: document.getElementById('dashboard-last-updated'),
         stockBody: document.getElementById('dashboard-stock-body'),
+        riskBody: document.getElementById('dashboard-risk-body'),
+        riskLevel: document.getElementById('dashboard-risk-level'),
+        xaiDialog: document.getElementById('dashboard-xai-dialog'),
+        xaiLoading: document.getElementById('dashboard-xai-loading'),
+        xaiContent: document.getElementById('dashboard-xai-content'),
     };
 
     const endpoints = {
@@ -22,10 +27,13 @@ document.addEventListener('DOMContentLoaded', () => {
         products: root.dataset.productsUrl,
         statuses: root.dataset.statusesUrl,
         stock: root.dataset.stockUrl,
+        risks: root.dataset.risksUrl,
+        riskExplanation: root.dataset.riskExplanationUrl,
     };
 
     const charts = {};
     let activeController = null;
+    let explanationController = null;
     let refreshTimer = null;
     let lastSnapshot = null;
 
@@ -65,6 +73,37 @@ document.addEventListener('DOMContentLoaded', () => {
         EN_LIVRAISON: '#0369a1',
         LIVREE: '#047857',
         ANNULEE: '#b91c1c',
+    };
+
+    const riskLabels = {
+        HIGH: 'Élevé',
+        MEDIUM: 'Modéré',
+        LOW: 'Faible',
+        INSUFFICIENT_DATA: 'Données insuffisantes',
+    };
+
+    const featureLabels = {
+        demand_lag_1: 'Demande la veille',
+        demand_lag_7: 'Demande il y a 7 jours',
+        demand_lag_14: 'Demande il y a 14 jours',
+        demand_lag_28: 'Demande il y a 28 jours',
+        rolling_mean_7d: 'Moyenne récente (7 j)',
+        rolling_sum_7d: 'Cumul récent (7 j)',
+        rolling_std_7d: 'Variabilité récente (7 j)',
+        rolling_mean_14d: 'Moyenne récente (14 j)',
+        rolling_sum_14d: 'Cumul récent (14 j)',
+        rolling_std_14d: 'Variabilité récente (14 j)',
+        rolling_mean_28d: 'Moyenne récente (28 j)',
+        rolling_sum_28d: 'Cumul récent (28 j)',
+        rolling_std_28d: 'Variabilité récente (28 j)',
+        recent_trend_7d_vs_28d: 'Tendance récente',
+        zero_demand_streak: 'Jours consécutifs sans vente',
+        zero_demand_rate_28d: 'Fréquence des jours sans vente',
+        nonzero_days_28d: 'Jours avec ventes',
+        days_since_last_sale: 'Temps depuis la dernière vente',
+        source_supplier_id: 'Profil fournisseur',
+        source_product_id: 'Profil produit',
+        source_variation_id: 'Profil variation',
     };
 
     function isoDate(date) {
@@ -477,6 +516,170 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function disposeRiskCharts() {
+        Object.keys(charts).filter((key) => key.startsWith('risk-history-')).forEach((key) => {
+            if (!charts[key].isDisposed()) charts[key].dispose();
+            delete charts[key];
+        });
+    }
+
+    function riskBadge(risk) {
+        const badge = document.createElement('span');
+        badge.className = `dashboard-risk-badge is-${risk.toLowerCase().replaceAll('_', '-')}`;
+        badge.textContent = riskLabels[risk] || risk;
+        return badge;
+    }
+
+    function renderDemandHistory(item) {
+        const id = `dashboard-risk-history-${item.variationId}`;
+        const chart = ensureChart(`risk-history-${item.variationId}`, id);
+        const history = Array.isArray(item.demandHistory) ? item.demandHistory : [];
+        chart.setOption({
+            animation: false,
+            grid: { left: 2, right: 2, top: 4, bottom: 2 },
+            xAxis: { type: 'category', show: false, data: history.map((point) => point.date) },
+            yAxis: { type: 'value', show: false, min: 0 },
+            tooltip: {
+                trigger: 'axis',
+                confine: true,
+                formatter: (params) => `${params[0].axisValue}<br><strong>${numberFormatter.format(params[0].value)} unité(s)</strong>`,
+            },
+            series: [{
+                type: 'line',
+                data: history.map((point) => Number(point.quantity) || 0),
+                showSymbol: false,
+                smooth: true,
+                lineStyle: { color: '#047857', width: 2 },
+                areaStyle: { color: 'rgba(4, 120, 87, .12)' },
+            }],
+        }, { notMerge: true });
+    }
+
+    function renderRisks(items) {
+        disposeRiskCharts();
+        elements.riskBody.replaceChildren();
+        const empty = items.length === 0;
+        document.querySelector('[data-empty-for="risks"]').hidden = !empty;
+        document.querySelector('.dashboard-risk-wrapper').hidden = empty;
+
+        items.forEach((item) => {
+            const row = document.createElement('tr');
+            const product = document.createElement('td');
+            product.className = 'dashboard-stock-name';
+            const name = document.createElement('strong');
+            name.textContent = item.productName;
+            product.append(name);
+            if (item.variationName && item.variationName.toLowerCase() !== 'standard') {
+                const variation = document.createElement('span');
+                variation.textContent = item.variationName;
+                product.append(variation);
+            }
+
+            const risk = document.createElement('td');
+            risk.append(riskBadge(item.risk));
+            const central = document.createElement('td');
+            central.textContent = numberFormatter.format(item.forecastCentral7d);
+            const q90 = document.createElement('td');
+            q90.textContent = numberFormatter.format(item.forecastQ90_7d);
+            const stock = document.createElement('td');
+            stock.textContent = numberFormatter.format(item.stockAvailable);
+            const recommendation = document.createElement('td');
+            recommendation.className = 'dashboard-risk-recommendation';
+            recommendation.textContent = numberFormatter.format(item.recommendedQuantity);
+            const history = document.createElement('td');
+            const historyChart = document.createElement('div');
+            historyChart.id = `dashboard-risk-history-${item.variationId}`;
+            historyChart.className = 'dashboard-risk-history';
+            historyChart.setAttribute('aria-label', 'Historique récent de la demande');
+            history.append(historyChart);
+            const action = document.createElement('td');
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'dashboard-risk-explain';
+            button.dataset.variationId = item.variationId;
+            button.textContent = 'Pourquoi ce risque ?';
+            action.append(button);
+
+            row.append(product, risk, central, q90, stock, recommendation, history, action);
+            elements.riskBody.append(row);
+            renderDemandHistory(item);
+        });
+    }
+
+    function renderExplanation(data) {
+        const variation = data.variationName && data.variationName.toLowerCase() !== 'standard'
+            ? ` — ${data.variationName}` : '';
+        document.getElementById('dashboard-xai-product').textContent = `${data.productName}${variation}`;
+        document.getElementById('dashboard-xai-stock').textContent = numberFormatter.format(data.stockAvailable);
+        document.getElementById('dashboard-xai-central').textContent = numberFormatter.format(data.forecastCentral7d);
+        document.getElementById('dashboard-xai-q90').textContent = numberFormatter.format(data.forecastQ90_7d);
+        document.getElementById('dashboard-xai-deficit').textContent = numberFormatter.format(data.deficit);
+        const risk = document.getElementById('dashboard-xai-risk');
+        risk.replaceChildren(riskBadge(data.risk));
+        document.getElementById('dashboard-xai-recommendation').textContent = numberFormatter.format(data.recommendedQuantity);
+        document.getElementById('dashboard-xai-model').textContent = data.modelVersion;
+        document.getElementById('dashboard-xai-date').textContent = new Date(data.predictedAt).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
+
+        const factors = Array.isArray(data.factors) ? data.factors : [];
+        const noShap = document.getElementById('dashboard-xai-no-shap');
+        const chartElement = document.getElementById('dashboard-xai-chart');
+        noShap.hidden = factors.length > 0;
+        chartElement.hidden = factors.length === 0;
+        const chart = ensureChart('xai', 'dashboard-xai-chart');
+        if (!factors.length) {
+            chart.clear();
+        } else {
+            chart.setOption({
+                animationDuration: 250,
+                grid: { left: 12, right: 26, top: 8, bottom: 10, containLabel: true },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'shadow' },
+                    formatter: (params) => {
+                        const factor = factors[params[0].dataIndex];
+                        const direction = factor.direction === 'INCREASES' ? 'augmente' : factor.direction === 'DECREASES' ? 'réduit' : 'ne modifie pas';
+                        return `${featureLabels[factor.name] || factor.name}<br>Valeur : <strong>${factor.value ?? 'non disponible'}</strong><br>Cette variable contribue à ${direction} la prévision.`;
+                    },
+                },
+                xAxis: { type: 'value', axisLabel: { color: '#64748b' } },
+                yAxis: {
+                    type: 'category',
+                    data: factors.map((factor) => featureLabels[factor.name] || factor.name),
+                    axisLabel: { color: '#475569', width: 180, overflow: 'truncate' },
+                },
+                series: [{
+                    type: 'bar',
+                    data: factors.map((factor) => ({
+                        value: factor.contribution,
+                        itemStyle: { color: factor.contribution >= 0 ? '#b45309' : '#047857', borderRadius: 4 },
+                    })),
+                    barMaxWidth: 22,
+                }],
+            }, { notMerge: true });
+            window.setTimeout(() => chart.resize(), 0);
+        }
+        elements.xaiLoading.hidden = true;
+        elements.xaiContent.hidden = false;
+    }
+
+    async function showRiskExplanation(variationId) {
+        if (explanationController) explanationController.abort();
+        explanationController = new AbortController();
+        elements.xaiLoading.textContent = 'Chargement de l’explication…';
+        elements.xaiLoading.hidden = false;
+        elements.xaiContent.hidden = true;
+        if (!elements.xaiDialog.open) elements.xaiDialog.showModal();
+        try {
+            const url = endpoints.riskExplanation.replace('__VARIATION__', String(variationId));
+            const response = await requestJson(url, explanationController.signal);
+            renderExplanation(response.data);
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                elements.xaiLoading.textContent = `Impossible de charger l’explication. ${error.message}`;
+            }
+        }
+    }
+
     function snapshotTimestamps(snapshot) {
         const timestamps = [
             snapshot.summary?.lastUpdatedAt,
@@ -502,6 +705,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function extractLastUpdated(snapshot) {
         const valid = snapshotTimestamps(snapshot);
+        snapshot.risks.forEach((item) => {
+            if (!item.lastUpdatedAt) return;
+            const timestamp = new Date(item.lastUpdatedAt);
+            if (!Number.isNaN(timestamp.getTime())) valid.push(timestamp);
+        });
 
         return valid.length
             ? new Date(Math.max(...valid.map((value) => value.getTime())))
@@ -518,6 +726,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderProducts(snapshot.products);
         renderStatuses(snapshot.statuses);
         renderStock(snapshot.stock);
+        renderRisks(snapshot.risks);
 
         elements.lastUpdated.textContent = extractLastUpdated(snapshot).toLocaleString('fr-FR', {
             dateStyle: 'medium',
@@ -540,13 +749,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const period = { from: elements.from.value, to: elements.to.value };
         const comparisonPeriod = previousPeriod(period);
         try {
-            const [summary, previousSummary, evolution, products, statuses, stock] = await Promise.all([
+            const [summary, previousSummary, evolution, products, statuses, stock, risks] = await Promise.all([
                 requestJson(buildUrl(endpoints.summary, period), controller.signal),
                 requestJson(buildUrl(endpoints.summary, comparisonPeriod), controller.signal),
                 requestJson(buildUrl(endpoints.evolution, period), controller.signal),
                 requestJson(buildUrl(endpoints.products, { ...period, limit: 100 }), controller.signal),
                 requestJson(endpoints.statuses, controller.signal),
                 requestJson(buildUrl(endpoints.stock, { limit: 100 }), controller.signal),
+                requestJson(buildUrl(endpoints.risks, { risk: elements.riskLevel.value, limit: 100 }), controller.signal),
             ]);
 
             if (controller !== activeController) return;
@@ -558,6 +768,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 products: products.data,
                 statuses: statuses.data,
                 stock: stock.data,
+                risks: risks.data,
             };
 
             if (!isCoherentSnapshot(snapshot)) {
@@ -603,6 +814,16 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.apply.addEventListener('click', loadDashboard);
     elements.refresh.addEventListener('click', loadDashboard);
     elements.refreshInterval.addEventListener('change', configureAutoRefresh);
+    elements.riskLevel.addEventListener('change', loadDashboard);
+    elements.riskBody.addEventListener('click', (event) => {
+        const button = event.target.closest('.dashboard-risk-explain');
+        if (button) showRiskExplanation(button.dataset.variationId);
+    });
+    document.getElementById('dashboard-xai-close').addEventListener('click', () => elements.xaiDialog.close());
+    elements.xaiDialog.addEventListener('close', () => {
+        if (explanationController) explanationController.abort();
+        explanationController = null;
+    });
 
     let resizeFrame = null;
     window.addEventListener('resize', () => {
@@ -616,6 +837,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.addEventListener('pagehide', () => {
         if (activeController) activeController.abort();
+        if (explanationController) explanationController.abort();
         if (refreshTimer) window.clearInterval(refreshTimer);
         Object.values(charts).forEach((chart) => {
             if (!chart.isDisposed()) chart.dispose();
