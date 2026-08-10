@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from airflow.sdk import DAG, get_current_context, task
+from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
 from sqlalchemy import create_engine, text
 
 from comdely_elt.config import Settings
@@ -289,6 +290,13 @@ with DAG(
             cwd=DBT_PROJECT_DIR,
         )
 
+    @task(task_id="apply_ml_migrations")
+    def apply_ml_migrations() -> None:
+        _run_command([
+            "python", "-m", "comdely_ml.migrations", "--directory",
+            os.environ.get("ML_MIGRATIONS_DIR", "/opt/comdely/postgres-migrations"),
+        ])
+
     @task(task_id="reconciliation_tests")
     def reconciliation_tests() -> None:
         selection = " ".join(RECONCILIATION_TESTS)
@@ -343,6 +351,13 @@ with DAG(
     marts_built = dbt_build()
     reconciled = reconciliation_tests()
     success_recorded = record_success(counts_verified)
+    ml_migrations = apply_ml_migrations()
+    trigger_inference = TriggerDagRunOperator(
+        task_id="trigger_ml_inference",
+        trigger_dag_id="comdely_ml_inference",
+        wait_for_completion=False,
+        reset_dag_run=False,
+    )
 
     databases_ready >> elt_summary
-    counts_verified >> marts_built >> reconciled >> success_recorded
+    counts_verified >> ml_migrations >> marts_built >> reconciled >> success_recorded >> trigger_inference

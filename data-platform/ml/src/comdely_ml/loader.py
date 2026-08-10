@@ -10,6 +10,7 @@ QUERY = text(
     '''
     select
         demand_date,
+        source_system,
         supplier_key,
         product_key,
         variation_key,
@@ -49,4 +50,23 @@ def load_daily_demand(settings: Settings) -> pd.DataFrame:
     finally:
         engine.dispose()
 
+    return frame
+
+
+def load_all_daily_demand(settings: Settings) -> pd.DataFrame:
+    query = text(str(QUERY).replace(
+        'where demand_date between :dataset_start and :dataset_end\n      and demand_date <= current_date',
+        'where demand_date <= current_date',
+    ))
+    engine = create_engine(settings.database_url, pool_pre_ping=True)
+    try:
+        with engine.connect() as connection:
+            connection.execute(text('set transaction read only'))
+            frame = pd.read_sql_query(
+                query,
+                connection,
+                parse_dates=['demand_date', 'product_created_at'],
+            )
+    finally:
+        engine.dispose()
     return frame

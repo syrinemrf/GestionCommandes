@@ -24,3 +24,21 @@ def croston_sba(frame: pd.DataFrame, *, alpha: float = 0.2, horizon: int = 7) ->
             else:
                 elapsed += 1
     return result
+
+
+def croston_sba_next(demand: pd.Series, *, alpha: float = 0.2, horizon: int = 7) -> float:
+    size, interval, elapsed = 0.0, 1.0, 1
+    initialized = False
+    for value in demand:
+        if value > 0:
+            if not initialized:
+                size, interval, initialized = float(value), float(elapsed), True
+            else:
+                size += alpha * (float(value) - size)
+                interval += alpha * (elapsed - interval)
+            elapsed = 1
+        else:
+            elapsed += 1
+    if not initialized:
+        return 0.0
+    return max(0.0, (1 - alpha / 2) * size / interval * horizon)

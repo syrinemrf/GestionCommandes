@@ -22,6 +22,9 @@ test = ['pytest==8.4.1']
 [project.scripts]
 comdely-ml-prepare = 'comdely_ml.cli:main'
 comdely-ml-benchmark = 'comdely_ml.benchmark:main'
+comdely-ml-migrate = 'comdely_ml.migrations:main'
+comdely-ml-train = 'comdely_ml.operational_training:main'
+comdely-ml-infer = 'comdely_ml.inference:main'
 
 [tool.setuptools.packages.find]
 where = ['src']

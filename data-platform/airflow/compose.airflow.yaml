@@ -29,10 +29,14 @@ x-airflow-common: &airflow-common
     DBT_POSTGRES_SCHEMA: analytics
     DBT_THREADS: ${DBT_THREADS:-4}
     COMDELY_DW_SCHEDULE: ${COMDELY_DW_SCHEDULE:-0 2 * * *}
+    COMDELY_ML_TRAINING_SCHEDULE: ${COMDELY_ML_TRAINING_SCHEDULE:-0 3 * * 0}
+    ML_ARTIFACT_DIR: /opt/comdely/ml-artifacts
+    ML_MIGRATIONS_DIR: /opt/comdely/postgres-migrations
     PYTHONUNBUFFERED: "1"
   volumes:
     - ./data-platform/airflow/dags:/opt/airflow/dags:ro
     - airflow_logs:/opt/airflow/logs
+    - ml_artifacts:/opt/comdely/ml-artifacts
   extra_hosts:
     - host.docker.internal:host-gateway
   user: ${AIRFLOW_UID:-50000}:0
@@ -62,7 +66,15 @@ services:
 
   airflow-init:
     <<: *airflow-common
-    command: version
+    user: "0:0"
+    command:
+      - bash
+      - -c
+      - >-
+        mkdir -p /opt/comdely/ml-artifacts &&
+        chown -R ${AIRFLOW_UID:-50000}:0 /opt/comdely/ml-artifacts &&
+        chmod -R g+rwX /opt/comdely/ml-artifacts &&
+        airflow version
     environment:
       <<: *airflow-common-env
       _AIRFLOW_DB_MIGRATE: "true"
@@ -138,3 +150,4 @@ services:
 volumes:
   airflow_metadata_data:
   airflow_logs:
+  ml_artifacts:

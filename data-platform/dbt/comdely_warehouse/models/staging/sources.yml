@@ -24,3 +24,11 @@ sources:
     schema: meta
     tables:
       - name: etl_run
+
+  - name: ml
+    description: Registre des modèles et prédictions opérationnelles en lecture seule pour dbt.
+    database: "{{ env_var('DBT_POSTGRES_DB', 'comdely_dw') }}"
+    schema: ml
+    tables:
+      - name: model_registry
+      - name: stock_prediction

@@ -5,6 +5,16 @@ PostgreSQL et les transformations dbt. Elle utilise Airflow 3.1.8 avec
 `LocalExecutor`. Sa base PostgreSQL `airflow_metadata` et son volume
 `airflow_metadata_data` sont distincts du DW `comdely_dw`.
 
+Les DAG ML sont séparés :
+
+- `comdely_ml_inference` est déclenché après le succès du DAG DW, génère les
+  prédictions puis reconstruit `mart_supplier_stock_risk` ;
+- `comdely_ml_training` est hebdomadaire le dimanche à 03:00 par défaut, ou
+  manuel. Il ne réentraîne donc jamais le modèle à chaque actualisation.
+
+Le planning se configure avec `COMDELY_ML_TRAINING_SCHEDULE`. Les artefacts
+sont conservés dans le volume Docker `ml_artifacts`.
+
 Le DAG `comdely_dw_daily` execute, dans l'ordre :
 
 1. disponibilite de MariaDB et du DW PostgreSQL ;

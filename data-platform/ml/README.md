@@ -78,3 +78,20 @@ Les pipelines complets `joblib` et le JSON détaillé sont des artefacts locaux
 ignorés par Git. Le rapport synthétique sous `reports/` est versionné. Les
 paramètres sont choisis sur la validation uniquement, puis le test final est
 évalué une seule fois.
+
+## Utilisation opérationnelle
+
+Le modèle déployé est un bundle versionné : Croston-SBA produit la prévision
+centrale et le pipeline HGB quantile produit q90. Il ne possède aucune connexion
+vers MariaDB et ne modifie jamais les stocks.
+
+```powershell
+python -m comdely_ml.migrations --directory data-platform/postgres/migrations
+python -m comdely_ml.operational_training --version croston-hgb-20260810T120000Z --artifact-dir data-platform/ml/artifacts
+python -m comdely_ml.inference
+```
+
+L'inférence effectue un upsert au grain date × variation dans
+`ml.stock_prediction`. Un historique inférieur à 28 jours ou comportant moins
+de deux jours de vente est classé `INSUFFICIENT_DATA`. Les recommandations sont
+informatives : aucune entrée, réservation ou sortie de stock n'est créée.
