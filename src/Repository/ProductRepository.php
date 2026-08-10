@@ -36,6 +36,8 @@ class ProductRepository extends ServiceEntityRepository
                 ->setParameter('s', '%' . $search . '%');
         }
 
+        // Product ne possède pas encore de date de création : l'identifiant
+        // auto-incrémenté est le meilleur indicateur disponible de récence.
         $qb->orderBy('p.id', 'DESC')
             ->setFirstResult($start)
             ->setMaxResults($length);

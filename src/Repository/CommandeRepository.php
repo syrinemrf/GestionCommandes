@@ -81,7 +81,8 @@ class CommandeRepository extends ServiceEntityRepository
 
         $filteredQuery = clone $qb;
 
-        $qb->orderBy('commande.id', 'DESC')
+        $qb->orderBy('commande.date', 'DESC')
+            ->addOrderBy('commande.id', 'DESC')
             ->setFirstResult($start)
             ->setMaxResults($length);
 

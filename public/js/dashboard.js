@@ -86,6 +86,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function previousPeriod(period) {
+        const dayInMilliseconds = 24 * 60 * 60 * 1000;
+        const from = new Date(`${period.from}T00:00:00Z`);
+        const to = new Date(`${period.to}T00:00:00Z`);
+        const durationDays = Math.round((to - from) / dayInMilliseconds) + 1;
+        const previousTo = new Date(from);
+        previousTo.setUTCDate(previousTo.getUTCDate() - 1);
+        const previousFrom = new Date(previousTo);
+        previousFrom.setUTCDate(previousFrom.getUTCDate() - (durationDays - 1));
+
+        return {
+            from: previousFrom.toISOString().slice(0, 10),
+            to: previousTo.toISOString().slice(0, 10),
+        };
+    }
+
     function buildUrl(url, params = {}) {
         const target = new URL(url, window.location.origin);
         Object.entries(params).forEach(([key, value]) => target.searchParams.set(key, value));
@@ -166,7 +182,20 @@ document.addEventListener('DOMContentLoaded', () => {
         element.title = `${moneyFormatter.format(amount)} TND`;
     }
 
-    function renderSummary(data) {
+    function setKpiComparison(id, valueId, text, state, period) {
+        let element = document.getElementById(id);
+        if (!element) {
+            element = document.createElement('small');
+            element.id = id;
+            document.getElementById(valueId).insertAdjacentElement('afterend', element);
+        }
+
+        element.textContent = text;
+        element.className = `dashboard-kpi-comparison ${state}`;
+        element.title = `Période précédente : du ${period.from} au ${period.to}`;
+    }
+
+    function renderSummary(data, previousData, comparisonPeriod) {
         document.getElementById('kpi-orders').textContent =
             numberFormatter.format(data.orderCount || 0);
 
@@ -189,6 +218,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('kpi-cancellation-rate').textContent =
             `${percentFormatter.format((data.cancellationRate || 0) * 100)} %`;
+
+        const currentBasket = Number(data.averageOrderValueHt) || 0;
+        const previousBasket = Number(previousData.averageOrderValueHt) || 0;
+        if (previousBasket === 0 && currentBasket !== 0) {
+            setKpiComparison(
+                'kpi-average-basket-comparison',
+                'kpi-average-basket',
+                'Aucune référence précédente',
+                'is-neutral',
+                comparisonPeriod
+            );
+        } else {
+            const basketChange = previousBasket === 0
+                ? 0
+                : ((currentBasket - previousBasket) / previousBasket) * 100;
+            const basketSign = basketChange > 0 ? '+' : basketChange < 0 ? '−' : '';
+            const basketState = basketChange > 0
+                ? 'is-positive'
+                : basketChange < 0 ? 'is-negative' : 'is-neutral';
+            setKpiComparison(
+                'kpi-average-basket-comparison',
+                'kpi-average-basket',
+                basketChange === 0
+                    ? 'Stable vs période précédente'
+                    : `${basketSign}${percentFormatter.format(Math.abs(basketChange))} % `,
+                basketState,
+                comparisonPeriod
+            );
+        }
+
+        const cancellationChange = (
+            (Number(data.cancellationRate) || 0)
+            - (Number(previousData.cancellationRate) || 0)
+        ) * 100;
+        const cancellationSign = cancellationChange > 0 ? '+' : cancellationChange < 0 ? '−' : '';
+        const cancellationState = cancellationChange < 0
+            ? 'is-positive'
+            : cancellationChange > 0 ? 'is-negative' : 'is-neutral';
+        setKpiComparison(
+            'kpi-cancellation-rate-comparison',
+            'kpi-cancellation-rate',
+            cancellationChange === 0
+                ? 'Stable vs période précédente'
+                : `${cancellationSign}${percentFormatter.format(Math.abs(cancellationChange))} pt`,
+            cancellationState,
+            comparisonPeriod
+        );
     }
 
     function renderEvolution(items) {
@@ -402,7 +478,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function snapshotTimestamps(snapshot) {
-        const timestamps = [snapshot.summary?.lastUpdatedAt];
+        const timestamps = [
+            snapshot.summary?.lastUpdatedAt,
+            snapshot.previousSummary?.lastUpdatedAt,
+        ];
         ['products', 'statuses', 'stock'].forEach((key) => {
             snapshot[key].forEach((item) => timestamps.push(item.lastUpdatedAt));
         });
@@ -430,7 +509,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderSnapshot(snapshot) {
-        renderSummary(snapshot.summary);
+        renderSummary(
+            snapshot.summary,
+            snapshot.previousSummary,
+            snapshot.previousPeriod
+        );
         renderEvolution(snapshot.evolution);
         renderProducts(snapshot.products);
         renderStatuses(snapshot.statuses);
@@ -455,9 +538,11 @@ document.addEventListener('DOMContentLoaded', () => {
         setLoading(true);
 
         const period = { from: elements.from.value, to: elements.to.value };
+        const comparisonPeriod = previousPeriod(period);
         try {
-            const [summary, evolution, products, statuses, stock] = await Promise.all([
+            const [summary, previousSummary, evolution, products, statuses, stock] = await Promise.all([
                 requestJson(buildUrl(endpoints.summary, period), controller.signal),
+                requestJson(buildUrl(endpoints.summary, comparisonPeriod), controller.signal),
                 requestJson(buildUrl(endpoints.evolution, period), controller.signal),
                 requestJson(buildUrl(endpoints.products, { ...period, limit: 100 }), controller.signal),
                 requestJson(endpoints.statuses, controller.signal),
@@ -467,6 +552,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (controller !== activeController) return;
             const snapshot = {
                 summary: summary.data,
+                previousSummary: previousSummary.data,
+                previousPeriod: comparisonPeriod,
                 evolution: evolution.data,
                 products: products.data,
                 statuses: statuses.data,

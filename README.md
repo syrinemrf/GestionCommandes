@@ -36,6 +36,26 @@ Le catalogue stable se trouve dans `config/demo/catalog.yaml`. Il définit les p
 
 Les comptes fournisseurs générés utilisent le domaine réservé `demo.comdely.test`. Leur mot de passe local de démonstration est `Demo-2026!`. Ces comptes ne doivent pas être utilisés en production.
 
+### Simuler une activité récente
+
+Le simulateur ajoute un lot fini aux données existantes sans modifier le
+générateur historique :
+
+```powershell
+php bin/console app:simulate-live-activity --orders=10 --status-updates=10 --seed=20260810 --dry-run
+php bin/console app:simulate-live-activity --orders=10 --status-updates=10 --seed=20260810
+```
+
+Les dates commencent après le dernier événement métier enregistré. La même
+graine reproduit les mêmes choix à partir du même état initial de la base.
+Chaque exécution crée volontairement de nouvelles activités. Un lot est limité
+à 100 commandes et 200 transitions, et la commande est toujours refusée en
+environnement `prod`.
+
+La création et les transitions passent par les services de commande, le
+Workflow Symfony et le service de stock. Pour actualiser ensuite le dashboard,
+déclencher le DAG incrémental `comdely_dw_daily`.
+
 ## Images de démonstration Pexels
 
 Définir la clé uniquement dans `.env.local` ou dans une variable d’environnement, jamais dans un fichier versionné :

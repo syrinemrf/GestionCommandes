@@ -200,6 +200,8 @@ $(document).ready(function () {
             },
 
             columns: columns,
+            // Le serveur impose le tri de récence (id décroissant).
+            order: [],
             createdRow: function (row, data) {
                 $(row).attr('data-id', data.id);
             }
