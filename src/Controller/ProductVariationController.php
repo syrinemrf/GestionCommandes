@@ -69,7 +69,7 @@ class ProductVariationController extends AbstractController
                     'product/_variation_attributes.html.twig',
                     ['variation' => $variation]
                 ),
-                'reference' => $variation->getReference() ?: '—',
+                'reference' => $variation->getReference() ?: '-',
                 'prixSupplement' => $variation->getPrixSupplement(),
                 'prixFinal' => (float) $product->getPrix()
                     + (float) $variation->getPrixSupplement(),

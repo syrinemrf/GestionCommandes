@@ -34,5 +34,14 @@ with violations as (
        or variation.source_supplier_id <> mart.source_supplier_id
        or product.source_system <> mart.source_system
        or variation.source_system <> mart.source_system
+
+    union all
+
+    select 'order_processing_time', mart.source_supplier_id
+    from {{ ref('mart_supplier_order_processing_time') }} as mart
+    inner join {{ ref('dim_supplier') }} as supplier
+        on supplier.supplier_key = mart.supplier_key
+    where supplier.source_system <> mart.source_system
+       or supplier.source_supplier_id <> mart.source_supplier_id
 )
 select * from violations

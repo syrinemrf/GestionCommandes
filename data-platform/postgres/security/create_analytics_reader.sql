@@ -34,6 +34,7 @@ grant select on table
     analytics.mart_supplier_daily_kpi,
     analytics.mart_supplier_product_performance,
     analytics.mart_supplier_order_status,
+    analytics.mart_supplier_order_processing_time,
     analytics.mart_supplier_stock_overview,
     analytics.mart_supplier_stock_risk
 to comdely_analytics_reader;

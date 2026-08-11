@@ -4,6 +4,7 @@ namespace App\Tests\Service;
 
 use App\Dto\Analytics\AnalyticsDateRange;
 use App\Dto\Analytics\KpiSummaryDto;
+use App\Dto\Analytics\OrderProcessingTimeDto;
 use App\Dto\Analytics\StockRiskExplanationDto;
 use App\Entity\User;
 use App\Repository\Analytics\SupplierAnalyticsRepository;
@@ -89,6 +90,33 @@ final class SupplierAnalyticsServiceTest extends TestCase
 
         $this->expectException(\InvalidArgumentException::class);
         $service->stockRisks($this->supplier(101), 'CRITICAL', 100);
+    }
+
+    public function testOverviewKeepsSupplierIsolationAndUsesPreviousPeriod(): void
+    {
+        $range = new AnalyticsDateRange(
+            new \DateTimeImmutable('2026-08-01'),
+            new \DateTimeImmutable('2026-08-04')
+        );
+        $supplierIds = [];
+        $ranges = [];
+        $repository = $this->createMock(SupplierAnalyticsRepository::class);
+        $repository->expects(self::exactly(2))->method('summary')
+            ->willReturnCallback(function (int $supplierId, AnalyticsDateRange $period) use (&$supplierIds, &$ranges): KpiSummaryDto {
+                $supplierIds[] = $supplierId;
+                $ranges[] = $period->toArray();
+                return $this->summary(10);
+            });
+        $repository->expects(self::exactly(2))->method('processingTime')
+            ->willReturn(new OrderProcessingTimeDto(2, 3600, 3600, 2400, 1200, null));
+
+        $overview = (new SupplierAnalyticsService($repository))
+            ->overview($this->supplier(101), $range);
+
+        self::assertSame([101, 101], $supplierIds);
+        self::assertSame(['from' => '2026-08-01', 'to' => '2026-08-04'], $ranges[0]);
+        self::assertSame(['from' => '2026-07-28', 'to' => '2026-07-31'], $ranges[1]);
+        self::assertSame(0.0, $overview->toArray()['comparison']['orderCountPercent']);
     }
 
     private function supplier(int $id): User

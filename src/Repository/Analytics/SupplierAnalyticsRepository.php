@@ -5,6 +5,7 @@ namespace App\Repository\Analytics;
 use App\Dto\Analytics\AnalyticsDateRange;
 use App\Dto\Analytics\DailyKpiDto;
 use App\Dto\Analytics\KpiSummaryDto;
+use App\Dto\Analytics\OrderProcessingTimeDto;
 use App\Dto\Analytics\OrderStatusDto;
 use App\Dto\Analytics\ProductPerformanceDto;
 use App\Dto\Analytics\StockOverviewDto;
@@ -75,6 +76,34 @@ class SupplierAnalyticsRepository
             'average_order_value_ttc' => 0,
             'last_updated_at' => null,
         ]);
+    }
+
+    public function processingTime(
+        int $supplierId,
+        AnalyticsDateRange $range,
+    ): OrderProcessingTimeDto {
+        $row = $this->connection->fetchAssociative(
+            <<<'SQL'
+                select
+                    count(*)::bigint as completed_order_count,
+                    avg(processing_seconds)::numeric(18, 2) as average_seconds,
+                    percentile_cont(0.5) within group (
+                        order by processing_seconds
+                    )::numeric(18, 2) as median_seconds,
+                    avg(preparation_to_ready_seconds)::numeric(18, 2)
+                        as preparation_to_ready_seconds,
+                    avg(ready_to_shipped_seconds)::numeric(18, 2)
+                        as ready_to_shipped_seconds,
+                    max(last_updated_at) as last_updated_at
+                from analytics.mart_supplier_order_processing_time
+                where source_supplier_id = :supplier_id
+                  and processing_completed_date between :date_from and :date_to
+                SQL,
+            $this->rangeParameters($supplierId, $range),
+            $this->rangeParameterTypes(),
+        );
+
+        return OrderProcessingTimeDto::fromRow($row ?: []);
     }
 
     /** @return list<DailyKpiDto> */
@@ -271,7 +300,8 @@ class SupplierAnalyticsRepository
                     source_variation_id, product_name, variation_name,
                     predicted_at, forecast_central_7d, forecast_q90_7d,
                     stock_available, risk, recommended_quantity,
-                    business_explanation, shap_factors, model_version
+                    business_explanation, shap_factors, demand_history,
+                    model_version
                 from analytics.mart_supplier_stock_risk
                 where source_supplier_id = :supplier_id
                   and source_variation_id = :variation_id

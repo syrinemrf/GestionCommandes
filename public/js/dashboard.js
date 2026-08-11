@@ -615,7 +615,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderExplanation(data) {
         const variation = data.variationName && data.variationName.toLowerCase() !== 'standard'
-            ? ` — ${data.variationName}` : '';
+            ? ` - ${data.variationName}` : '';
         document.getElementById('dashboard-xai-product').textContent = `${data.productName}${variation}`;
         document.getElementById('dashboard-xai-stock').textContent = numberFormatter.format(data.stockAvailable);
         document.getElementById('dashboard-xai-central').textContent = numberFormatter.format(data.forecastCentral7d);

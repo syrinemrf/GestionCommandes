@@ -64,8 +64,36 @@ final readonly class StockRiskDto
             'modelVersion' => $this->modelVersion,
             'demandHistory' => $this->demandHistory,
             'shapAvailable' => $this->shapAvailable,
+            'reason' => $this->reason(),
+            'recommendedAction' => $this->recommendedAction(),
             'lastUpdatedAt' => $this->lastUpdatedAt,
         ];
+    }
+
+    private function reason(): string
+    {
+        return match ($this->risk) {
+            'HIGH' => $this->stockAvailable <= 0
+                ? 'Le stock est nul et la demande prévue dépasse le stock disponible.'
+                : 'La demande prévue à 7 jours dépasse le stock disponible.',
+            'MEDIUM' => 'Le stock couvre la demande la plus probable, mais la marge de sécurité est limitée.',
+            'LOW' => 'Le stock disponible couvre la demande prévue et sa marge d’incertitude.',
+            default => 'L’historique est encore insuffisant pour établir un risque fiable.',
+        };
+    }
+
+    private function recommendedAction(): string
+    {
+        return match ($this->risk) {
+            'HIGH' => $this->recommendedQuantity > 0
+                ? sprintf('Réapprovisionner rapidement d’environ %d unités.', $this->recommendedQuantity)
+                : 'Réapprovisionner rapidement.',
+            'MEDIUM' => $this->recommendedQuantity > 0
+                ? sprintf('Planifier un réapprovisionnement d’environ %d unités.', $this->recommendedQuantity)
+                : 'Surveiller les prochaines ventes.',
+            'LOW' => 'Aucune action immédiate recommandée.',
+            default => 'Continuer à collecter des ventes et surveiller manuellement le stock.',
+        };
     }
 
     private static function decodeJson(mixed $value): array

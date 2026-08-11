@@ -28,6 +28,53 @@ limitee a 731 jours. Sans dates, la periode couvre les 30 derniers jours.
 
 Une periode vide renvoie les compteurs a zero et `lastUpdatedAt: null`.
 
+## GET `/api/analytics/overview?from=2026-07-01&to=2026-08-04`
+
+Cette route alimente les cinq KPI de la vue d'ensemble et compare la periode
+demandee a la periode precedente de meme duree. Les evolutions des commandes,
+du CA HT et du panier moyen sont exprimees en pourcentage. Le taux
+d'annulation est exprime en points.
+
+Le delai de traitement est la duree entre `EN_PREPARATION` et `EXPEDIEE`, pour
+les commandes ayant termine ce cycle. Une annulation avant expedition n'entre
+donc pas dans le calcul.
+
+```json
+{
+  "data": {
+    "current": {
+      "orderCount": 142,
+      "revenueHt": 31842.5,
+      "averageOrderValueHt": 237.631,
+      "cancellationRate": 0.056338,
+      "completedOrderCount": 118,
+      "averageProcessingSeconds": 100800,
+      "medianProcessingSeconds": 93600,
+      "preparationToReadySeconds": 75600,
+      "readyToShippedSeconds": 25200
+    },
+    "previous": {},
+    "comparison": {
+      "orderCountPercent": 8.4,
+      "revenueHtPercent": 5.7,
+      "averageOrderValueHtPercent": -2.1,
+      "cancellationRatePoints": 0.8,
+      "processingTimePercent": 4.2,
+      "processingTimeSecondsDelta": 4080
+    },
+    "lastUpdatedAt": "2026-08-05 10:20:00+00"
+  },
+  "meta": {
+    "period": {"from": "2026-07-01", "to": "2026-08-04"},
+    "previousPeriod": {"from": "2026-05-27", "to": "2026-06-30"}
+  }
+}
+```
+
+Une variation relative vaut `null` lorsque la periode precedente vaut zero et
+la periode courante est non nulle. Le frontend peut alors afficher « nouvelle
+activite » sans division par zero.
+
 ## GET `/api/analytics/evolution?from=2026-07-01&to=2026-08-04`
 
 ```json
@@ -152,6 +199,12 @@ navigateur.
 
 ## GET `/api/analytics/risks/91/explanation`
 
+Le frontend fournisseur utilise les champs metier `insights`, `recentTrend`,
+`variability` et `recommendedAction`. Les contributions SHAP restent
+disponibles pour compatibilite API, mais leurs valeurs brutes ne sont jamais
+affichees a l'utilisateur metier. Une variable contribue a une prevision ;
+elle ne prouve pas une causalite.
+
 Cette route renvoie l'explication déterministe et les contributions SHAP déjà
 calculées par l'inférence hors ligne. Une contribution décrit l'influence du
 modèle, jamais une causalité.
@@ -206,7 +259,7 @@ Creer un mot de passe local fort, puis executer depuis la racine :
 ```powershell
 Get-Content data-platform/postgres/security/create_analytics_reader.sql |
   docker compose exec -T warehouse psql -U comdely_dw -d comdely_dw `
-    -v "analytics_reader_password='CHANGE_ME'"
+    -v analytics_reader_password=CHANGE_ME
 ```
 
 Configurer ensuite localement :
@@ -216,5 +269,5 @@ DW_DATABASE_URL="postgresql://comdely_analytics_reader:CHANGE_ME@127.0.0.1:5433/
 ```
 
 Le role possede seulement `CONNECT`, `USAGE` sur `analytics` et `SELECT` sur
-les cinq marts exposés. Il n'a aucun droit sur `raw`, `staging`, `meta`, les
-faits ou les dimensions.
+les six marts exposes, dont `mart_supplier_order_processing_time`. Il n'a
+aucun droit sur `raw`, `staging`, `meta`, les faits ou les dimensions.

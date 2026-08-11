@@ -96,7 +96,7 @@
                                     <span class="product-details-standard">Standard</span>
                                 {% endif %}
                             </td>
-                            <td>{{ variation.reference ?: '—' }}</td>
+                            <td>{{ variation.reference ?: '-' }}</td>
                             <td>
                                 {{ (product.prix + variation.prixSupplement)|number_format(3, ',', ' ') }}
                                 TND

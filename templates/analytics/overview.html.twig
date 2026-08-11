@@ -1,0 +1,45 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Vue d’ensemble - Komdely{% endblock %}
+
+{% block body %}
+<div id="supplier-dashboard" class="dashboard" data-overview-url="{{ path('analytics_overview') }}" data-evolution-url="{{ path('analytics_evolution') }}" data-products-url="{{ path('analytics_products') }}" data-statuses-url="{{ path('analytics_statuses') }}" data-stock-url="{{ path('analytics_stock') }}" data-risks-url="{{ path('analytics_risks') }}">
+    {% include 'analytics/_header.html.twig' with {title: 'Vue d’ensemble', subtitle: 'Les indicateurs essentiels pour piloter votre activité.'} %}
+    {% include 'analytics/_navigation.html.twig' %}
+
+    <section class="dashboard-filters" aria-label="Période analysée">
+        <label><span>Du</span><input type="date" id="dashboard-date-from"></label>
+        <label><span>Au</span><input type="date" id="dashboard-date-to"></label>
+        <button type="button" class="btn-primary" id="dashboard-apply-filters">Appliquer</button>
+        <button type="button" class="btn-secondary dashboard-period" data-period-days="30">30 jours</button>
+        <button type="button" class="btn-secondary dashboard-period" data-period-days="90">90 jours</button>
+        <button type="button" class="btn-secondary dashboard-period" data-period-days="365">12 mois</button>
+        <label class="dashboard-auto-refresh"><span>Actualisation auto.</span><select id="dashboard-refresh-interval"><option value="0">Désactivée</option><option value="60">Chaque minute</option><option value="300" selected>Toutes les 5 min</option><option value="900">Toutes les 15 min</option></select></label>
+        <button type="button" class="dashboard-refresh-button" id="dashboard-refresh"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i><span>Actualiser</span></button>
+    </section>
+    <div id="dashboard-feedback" class="dashboard-feedback" role="status" aria-live="polite" hidden></div>
+
+    <section class="dashboard-kpis" aria-label="Indicateurs clés">
+        {% set cards = {'orders': 'Commandes', 'revenue': 'Chiffre d’affaires HT', 'average-basket': 'Panier moyen HT', 'cancellation': 'Taux d’annulation', 'processing': 'Délai moyen de traitement'} %}
+        {% for key, label in cards %}
+            <article class="dashboard-kpi-card"><span>{{ label }}</span><strong id="kpi-{{ key }}">-</strong><small id="kpi-{{ key }}-comparison" class="dashboard-kpi-comparison is-neutral">Comparaison indisponible</small></article>
+        {% endfor %}
+    </section>
+
+    <article class="dashboard-panel dashboard-overview-chart-panel">
+        <div class="dashboard-panel-heading"><div><h2>Évolution de l’activité</h2><p id="dashboard-evolution-subtitle">Commandes et chiffre d’affaires HT</p></div></div>
+        <div class="dashboard-chart dashboard-chart-main" id="dashboard-evolution-chart" role="img" aria-label="Évolution des commandes et du chiffre d’affaires"></div>
+        <div class="dashboard-empty" data-empty-for="evolution" hidden>Aucune activité sur cette période.</div>
+    </article>
+
+    <section class="dashboard-decision-grid">
+        <article class="dashboard-panel dashboard-compact-panel"><div class="dashboard-panel-heading"><div><h2>Commandes par statut</h2><p>Situation actuelle</p></div></div><div id="dashboard-status-list" class="dashboard-status-list"></div><div class="dashboard-empty dashboard-empty-compact" data-empty-for="statuses" hidden>Aucune commande.</div></article>
+        <article class="dashboard-panel dashboard-compact-panel"><div class="dashboard-panel-heading"><div><h2>Top 5 produits</h2><p>Par chiffre d’affaires HT</p></div><a href="{{ path('analytics_dashboard_products') }}" class="dashboard-text-link">Voir l’analyse</a></div><ol id="dashboard-top-products" class="dashboard-ranked-list"></ol><div class="dashboard-empty dashboard-empty-compact" data-empty-for="products" hidden>Aucune vente.</div></article>
+        <article class="dashboard-panel dashboard-compact-panel dashboard-alert-panel"><div class="dashboard-panel-heading"><div><h2>À surveiller</h2><p>5 alertes prioritaires maximum</p></div></div><ul id="dashboard-alerts" class="dashboard-alert-list"></ul><div class="dashboard-empty dashboard-empty-compact" data-empty-for="alerts" hidden>Aucune alerte prioritaire.</div></article>
+    </section>
+
+    <div class="dashboard-initial-loader" id="dashboard-loader"><span class="dashboard-spinner" aria-hidden="true"></span><span>Chargement des indicateurs…</span></div>
+</div>
+{% endblock %}
+
+{% block javascripts %}{{ parent() }}<script src="{{ asset('vendor/echarts/echarts.min.js') }}"></script><script src="{{ asset('js/dashboard-common.js') }}"></script><script src="{{ asset('js/dashboard-overview.js') }}"></script>{% endblock %}

@@ -1,4 +1,4 @@
-# Comdely — Gestion des commandes
+# Comdely - Gestion des commandes
 
 Application Symfony de gestion de produits, variations, commandes et stocks.
 

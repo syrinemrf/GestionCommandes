@@ -74,6 +74,17 @@ final readonly class AnalyticsDateRange
         ];
     }
 
+    public function previous(): self
+    {
+        $days = $this->from->diff($this->to)->days + 1;
+        $previousTo = $this->from->modify('-1 day');
+
+        return new self(
+            $previousTo->modify(sprintf('-%d days', $days - 1)),
+            $previousTo,
+        );
+    }
+
     private static function parseDate(string $value, string $parameter): \DateTimeImmutable
     {
         $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $value);

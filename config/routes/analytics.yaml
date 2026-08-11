@@ -3,6 +3,16 @@ analytics_dashboard:
     controller: App\Controller\AnalyticsController::dashboard
     methods: [GET]
 
+analytics_dashboard_products:
+    path: /dashboard/products
+    controller: App\Controller\AnalyticsController::dashboardProducts
+    methods: [GET]
+
+analytics_overview:
+    path: /api/analytics/overview
+    controller: App\Controller\AnalyticsController::overview
+    methods: [GET]
+
 analytics_summary:
     path: /api/analytics/summary
     controller: App\Controller\AnalyticsController::summary

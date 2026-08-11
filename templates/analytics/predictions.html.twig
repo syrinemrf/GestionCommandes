@@ -1,0 +1,27 @@
+{% extends 'base.html.twig' %}
+{% block title %}Prévisions & IA - Komdely{% endblock %}
+{% block body %}
+<div id="supplier-predictions-dashboard" class="dashboard" data-risks-url="{{ path('analytics_risks') }}" data-risk-explanation-url="{{ path('analytics_risks') }}">
+    {% include 'analytics/_header.html.twig' with {title: 'Prévisions & IA', subtitle: 'Anticipez les tensions de stock. Les recommandations restent une aide à votre décision.'} %}
+    {% include 'analytics/_navigation.html.twig' %}
+    <section class="dashboard-filters dashboard-prediction-filters"><label><span>Niveau de risque</span><select id="dashboard-risk-level"><option value="">Tous les niveaux</option><option value="HIGH">Élevé</option><option value="MEDIUM">Modéré</option><option value="LOW">Faible</option><option value="INSUFFICIENT_DATA">Données insuffisantes</option></select></label><button type="button" class="dashboard-refresh-button dashboard-refresh-push" id="dashboard-refresh"><i class="bi bi-arrow-clockwise"></i><span>Actualiser</span></button></section>
+    <div id="dashboard-feedback" class="dashboard-feedback" role="status" aria-live="polite" hidden></div>
+    <section class="dashboard-kpis dashboard-kpis-three"><article class="dashboard-kpi-card"><span>Risques élevés</span><strong id="risk-high-count">-</strong></article><article class="dashboard-kpi-card"><span>Risques modérés</span><strong id="risk-medium-count">-</strong></article><article class="dashboard-kpi-card"><span>Unités recommandées</span><strong id="risk-recommended-total">-</strong></article></section>
+    <article class="dashboard-panel dashboard-prediction-panel">
+        <div class="dashboard-panel-heading"><div><h2>Variations à examiner</h2><p>Risque, explication métier et prochaine action suggérée</p></div></div>
+        <div class="dashboard-table-wrapper"><table class="dashboard-data-table dashboard-prediction-table"><thead><tr><th>Produit / variation</th><th>Risque</th><th>Pourquoi</th><th>Action recommandée</th><th>Demande récente</th><th></th></tr></thead><tbody id="dashboard-risk-body"></tbody></table></div>
+        <div class="dashboard-empty" data-empty-for="risks" hidden>Aucune prévision pour ce filtre.</div><p class="dashboard-ai-disclaimer">Ces prévisions sont indicatives. Aucun stock n’est modifié automatiquement.</p>
+    </article>
+    <dialog class="dashboard-xai-dialog" id="dashboard-xai-dialog" aria-labelledby="dashboard-xai-title">
+        <div class="dashboard-xai-header"><div><span class="dashboard-xai-eyebrow">Comprendre la recommandation</span><h2 id="dashboard-xai-title">Pourquoi ce risque ?</h2></div><button type="button" id="dashboard-xai-close" aria-label="Fermer">×</button></div>
+        <div id="dashboard-xai-loading" class="dashboard-xai-state">Chargement de l’explication…</div>
+        <div id="dashboard-xai-content" hidden><p id="dashboard-xai-product" class="dashboard-xai-product"></p>
+            <dl class="dashboard-xai-metrics dashboard-xai-metrics-business"><div><dt>Stock disponible</dt><dd id="dashboard-xai-stock">-</dd></div><div><dt>Demande prévue à 7 jours</dt><dd id="dashboard-xai-central">-</dd></div><div><dt>Tendance récente</dt><dd id="dashboard-xai-trend">-</dd></div><div><dt>Variabilité</dt><dd id="dashboard-xai-variability">-</dd></div></dl>
+            <section class="dashboard-xai-factors"><h3>Ce qui contribue à la prévision</h3><p>Le modèle met en avant des signaux utiles, sans établir de relation de cause à effet.</p><ul id="dashboard-xai-insights" class="dashboard-insight-list"></ul><div id="dashboard-xai-no-shap" class="dashboard-xai-state" hidden>Aucun facteur détaillé n’est disponible : l’historique est encore insuffisant.</div></section>
+            <section class="dashboard-xai-recommendation"><span>Action suggérée</span><strong id="dashboard-xai-action">-</strong></section><footer class="dashboard-xai-meta"><span>Modèle : <strong id="dashboard-xai-model">-</strong></span><span>Prédiction : <strong id="dashboard-xai-date">-</strong></span></footer>
+        </div>
+    </dialog>
+    <div class="dashboard-initial-loader" id="dashboard-loader"><span class="dashboard-spinner"></span><span>Chargement des prévisions…</span></div>
+</div>
+{% endblock %}
+{% block javascripts %}{{ parent() }}<script src="{{ asset('vendor/echarts/echarts.min.js') }}"></script><script src="{{ asset('js/dashboard-common.js') }}"></script><script src="{{ asset('js/dashboard-predictions.js') }}"></script>{% endblock %}

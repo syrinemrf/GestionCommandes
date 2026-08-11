@@ -1,0 +1,38 @@
+{% extends 'base.html.twig' %}
+{% block title %}Produits & Stock - Komdely{% endblock %}
+{% block body %}
+<div id="supplier-products-dashboard" class="dashboard" data-products-url="{{ path('analytics_products') }}" data-stock-url="{{ path('analytics_stock') }}" data-risks-url="{{ path('analytics_risks') }}" data-risk-explanation-url="{{ path('analytics_risks') }}">
+    {% include 'analytics/_header.html.twig' with {title: 'Produits & Stock', subtitle: 'Identifiez vos meilleures ventes et les variations qui nécessitent votre attention.'} %}
+    {% include 'analytics/_navigation.html.twig' %}
+    <section class="dashboard-filters" aria-label="Période analysée">
+        <label><span>Du</span><input type="date" id="dashboard-date-from"></label><label><span>Au</span><input type="date" id="dashboard-date-to"></label>
+        <button type="button" class="btn-primary" id="dashboard-apply-filters">Appliquer</button>
+        <button type="button" class="btn-secondary dashboard-period" data-period-days="30">30 jours</button><button type="button" class="btn-secondary dashboard-period" data-period-days="90">90 jours</button><button type="button" class="btn-secondary dashboard-period" data-period-days="365">12 mois</button>
+        <button type="button" class="dashboard-refresh-button dashboard-refresh-push" id="dashboard-refresh"><i class="bi bi-arrow-clockwise"></i><span>Actualiser</span></button>
+    </section>
+    <div id="dashboard-feedback" class="dashboard-feedback" role="status" aria-live="polite" hidden></div>
+    <section class="dashboard-kpis dashboard-kpis-four">
+        <article class="dashboard-kpi-card"><span>Variations actives</span><strong id="stock-active-count">-</strong></article><article class="dashboard-kpi-card"><span>Ruptures actuelles</span><strong id="stock-out-count">-</strong></article><article class="dashboard-kpi-card"><span>Stocks faibles</span><strong id="stock-low-count">-</strong></article><article class="dashboard-kpi-card"><span>Unités réservées</span><strong id="stock-reserved-count">-</strong></article>
+    </section>
+    <article class="dashboard-panel"><div class="dashboard-panel-heading"><div><h2>Produits les plus performants</h2><p>Top 10 par chiffre d’affaires HT sur la période</p></div></div><div id="dashboard-products-chart" class="dashboard-chart dashboard-chart-products"></div><div class="dashboard-empty" data-empty-for="products" hidden>Aucune vente sur cette période.</div></article>
+    <article class="dashboard-panel dashboard-stock-detail-panel">
+        <div class="dashboard-panel-heading dashboard-stock-heading"><div><h2>Détail du stock par variation</h2><p>Stock enregistré, utilisé, réservé et réellement disponible</p></div><label class="dashboard-search"><span>Rechercher</span><input type="search" id="dashboard-stock-search" placeholder="Produit ou variation"></label></div>
+        <div class="dashboard-table-wrapper"><table class="dashboard-data-table"><thead><tr><th>Produit / variation</th><th>Enregistré</th><th>Utilisé</th><th>Réservé</th><th>Disponible</th><th>État</th><th>Risque de rupture</th></tr></thead><tbody id="dashboard-stock-body"></tbody></table></div>
+        <div class="dashboard-empty" data-empty-for="stock" hidden>Aucune variation ne correspond à la recherche.</div>
+    </article>
+    <dialog class="dashboard-xai-dialog" id="dashboard-stock-risk-dialog" aria-labelledby="dashboard-stock-risk-title">
+        <div class="dashboard-xai-header"><div><span class="dashboard-xai-eyebrow">Aide à la décision</span><h2 id="dashboard-stock-risk-title">Pourquoi ce risque ?</h2></div><button type="button" id="dashboard-stock-risk-close" aria-label="Fermer">×</button></div>
+        <div id="dashboard-stock-risk-loading" class="dashboard-xai-state">Chargement de l’explication...</div>
+        <div id="dashboard-stock-risk-content" hidden>
+            <p id="dashboard-stock-risk-product" class="dashboard-xai-product"></p>
+            <div id="dashboard-stock-risk-observed" class="dashboard-stock-risk-observed" hidden></div>
+            <dl class="dashboard-xai-metrics dashboard-xai-metrics-business"><div><dt>Stock disponible</dt><dd id="dashboard-stock-risk-available">-</dd></div><div><dt>Demande prévue à 7 jours</dt><dd id="dashboard-stock-risk-forecast">-</dd></div><div><dt>Tendance récente</dt><dd id="dashboard-stock-risk-trend">-</dd></div><div><dt>Variabilité</dt><dd id="dashboard-stock-risk-variability">-</dd></div></dl>
+            <section class="dashboard-xai-factors"><h3>Explication métier</h3><p>Ces signaux contribuent à la prévision, sans prouver une relation de cause à effet.</p><ul id="dashboard-stock-risk-insights" class="dashboard-insight-list"></ul><div id="dashboard-stock-risk-no-forecast" class="dashboard-xai-state" hidden>Aucune explication IA n’est disponible pour cette variation.</div></section>
+            <section class="dashboard-xai-recommendation"><span>Action suggérée</span><strong id="dashboard-stock-risk-action">-</strong></section>
+            <footer class="dashboard-xai-meta"><span>Modèle : <strong id="dashboard-stock-risk-model">-</strong></span><span>Prédiction : <strong id="dashboard-stock-risk-date">-</strong></span></footer>
+        </div>
+    </dialog>
+    <div class="dashboard-initial-loader" id="dashboard-loader"><span class="dashboard-spinner"></span><span>Chargement des produits…</span></div>
+</div>
+{% endblock %}
+{% block javascripts %}{{ parent() }}<script src="{{ asset('vendor/echarts/echarts.min.js') }}"></script><script src="{{ asset('js/dashboard-common.js') }}"></script><script src="{{ asset('js/dashboard-products.js') }}"></script>{% endblock %}

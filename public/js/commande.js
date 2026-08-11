@@ -410,7 +410,7 @@ $(document).ready(function () {
         );
 
         line.find('.commande-stock').text(
-            stock === null ? '—' : String(stock)
+            stock === null ? '-' : String(stock)
         );
         line.find('.commande-price').text(price.toFixed(3) + ' TND');
         line.find('.commande-line-total').text(

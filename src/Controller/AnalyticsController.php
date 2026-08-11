@@ -16,7 +16,7 @@ class AnalyticsController extends AbstractController
 {
     public function dashboard(): Response
     {
-        return $this->render('analytics/dashboard.html.twig');
+        return $this->render('analytics/overview.html.twig');
     }
 
     public function summary(
@@ -128,6 +128,32 @@ class AnalyticsController extends AbstractController
             'meta' => [
                 'count' => count($items),
                 'limit' => $limit,
+            ],
+        ]);
+    }
+
+    public function dashboardProducts(): Response
+    {
+        return $this->render('analytics/products.html.twig');
+    }
+
+    public function overview(
+        Request $request,
+        SupplierAnalyticsService $analytics,
+    ): JsonResponse {
+        try {
+            $range = AnalyticsDateRange::fromRequest($request);
+        } catch (\InvalidArgumentException $exception) {
+            return $this->validationError($exception);
+        }
+
+        return $this->json([
+            'data' => $analytics
+                ->overview($this->currentSupplier(), $range)
+                ->toArray(),
+            'meta' => [
+                'period' => $range->toArray(),
+                'previousPeriod' => $range->previous()->toArray(),
             ],
         ]);
     }

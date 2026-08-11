@@ -3,6 +3,7 @@
 namespace App\Service\Analytics;
 
 use App\Dto\Analytics\AnalyticsDateRange;
+use App\Dto\Analytics\DashboardOverviewDto;
 use App\Dto\Analytics\KpiSummaryDto;
 use App\Dto\Analytics\StockRiskExplanationDto;
 use App\Entity\User;
@@ -24,6 +25,21 @@ class SupplierAnalyticsService
         return $this->repository->summary(
             $this->supplierId($supplier),
             $range
+        );
+    }
+
+    public function overview(
+        User $supplier,
+        AnalyticsDateRange $range,
+    ): DashboardOverviewDto {
+        $supplierId = $this->supplierId($supplier);
+        $previous = $range->previous();
+
+        return new DashboardOverviewDto(
+            $this->repository->summary($supplierId, $range),
+            $this->repository->processingTime($supplierId, $range),
+            $this->repository->summary($supplierId, $previous),
+            $this->repository->processingTime($supplierId, $previous),
         );
     }
 
