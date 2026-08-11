@@ -2,11 +2,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const root = document.getElementById('supplier-products-dashboard');
     if (!root || typeof echarts === 'undefined' || !window.ComdelyDashboard) return;
     const ui = window.ComdelyDashboard;
-    const elements = { from: document.getElementById('dashboard-date-from'), to: document.getElementById('dashboard-date-to'), apply: document.getElementById('dashboard-apply-filters'), refresh: document.getElementById('dashboard-refresh'), feedback: document.getElementById('dashboard-feedback'), loader: document.getElementById('dashboard-loader'), lastUpdated: document.getElementById('dashboard-last-updated'), search: document.getElementById('dashboard-stock-search'), stockBody: document.getElementById('dashboard-stock-body'), dialog: document.getElementById('dashboard-stock-risk-dialog'), dialogLoading: document.getElementById('dashboard-stock-risk-loading'), dialogContent: document.getElementById('dashboard-stock-risk-content') };
+    const elements = { from: document.getElementById('dashboard-date-from'), to: document.getElementById('dashboard-date-to'), apply: document.getElementById('dashboard-apply-filters'), refresh: document.getElementById('dashboard-refresh'), feedback: document.getElementById('dashboard-feedback'), lastUpdated: document.getElementById('dashboard-last-updated'), search: document.getElementById('dashboard-stock-search'), stockBody: document.getElementById('dashboard-stock-body'), dialog: document.getElementById('dashboard-stock-risk-dialog'), dialogLoading: document.getElementById('dashboard-stock-risk-loading'), dialogContent: document.getElementById('dashboard-stock-risk-content') };
     const chart = echarts.init(document.getElementById('dashboard-products-chart'));
-    let controller = null;
+    const controllers = new Map();
     let explanationController = null;
-    let snapshot = null;
+    const snapshot = {};
     const riskLabels = { HIGH: 'Élevé', MEDIUM: 'Modéré', LOW: 'Faible', INSUFFICIENT_DATA: 'Non évalué' };
 
     function aggregateProducts(items) {
@@ -27,13 +27,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return { label: 'Disponible', className: 'is-ok' };
     }
 
-    function riskState(stock, prediction) {
+    function riskState(stock, prediction, risksLoading = false) {
         if (stock.currentlyOutOfStock || stock.stockAvailable <= 0) return { label: 'Rupture actuelle', className: 'is-high' };
+        if (risksLoading) return { label: 'Analyse...', className: 'is-analyzing' };
         if (!prediction || prediction.risk === 'INSUFFICIENT_DATA') return { label: 'Non évalué', className: 'is-insufficient-data' };
         return { label: riskLabels[prediction.risk] || prediction.risk, className: `is-${prediction.risk.toLowerCase()}` };
     }
 
-    function renderStock(items, risks) {
+    function renderStock(items, risks = [], risksLoading = false) {
         const active = items.filter((item) => !item.productDeleted && !item.variationDeleted);
         const risksByVariation = new Map(risks.map((item) => [Number(item.variationId), item]));
         document.getElementById('stock-active-count').textContent = ui.integer.format(active.length);
@@ -46,12 +47,12 @@ document.addEventListener('DOMContentLoaded', () => {
         visible.forEach((item) => {
             const state = stockState(item);
             const prediction = risksByVariation.get(Number(item.variationId)) || null;
-            const risk = riskState(item, prediction);
+            const risk = riskState(item, prediction, risksLoading);
             const row = document.createElement('tr');
             const values = [ui.productLabel(item), item.stockRegistered, item.stockUsed, item.stockReserved, item.stockAvailable];
             values.forEach((value, index) => { const cell = document.createElement('td'); cell.textContent = index === 0 ? value : ui.integer.format(value); if (index === 0) cell.className = 'dashboard-product-cell'; if (index === 4) cell.className = `dashboard-stock-value ${state.className}`; row.append(cell); });
             const status = document.createElement('td'); const stockBadge = document.createElement('span'); stockBadge.className = `dashboard-stock-badge ${state.className}`; stockBadge.textContent = state.label; status.append(stockBadge);
-            const riskCell = document.createElement('td'); riskCell.className = 'dashboard-stock-risk-cell'; const riskBadge = document.createElement('span'); riskBadge.className = `dashboard-risk-badge ${risk.className}`; riskBadge.textContent = risk.label; const why = document.createElement('button'); why.type = 'button'; why.className = 'dashboard-risk-explain'; why.dataset.variationId = item.variationId; why.textContent = '?'; why.title = 'Comprendre ce risque'; why.setAttribute('aria-label', `Comprendre le risque de rupture de ${ui.productLabel(item)}`); riskCell.append(riskBadge, why);
+            const riskCell = document.createElement('td'); riskCell.className = 'dashboard-stock-risk-cell'; const riskBadge = document.createElement('span'); riskBadge.className = `dashboard-risk-badge ${risk.className}`; riskBadge.textContent = risk.label; const why = document.createElement('button'); why.type = 'button'; why.className = 'dashboard-risk-explain'; why.dataset.variationId = item.variationId; why.textContent = '?'; why.title = risksLoading && item.stockAvailable > 0 ? 'Analyse du risque en cours' : 'Comprendre ce risque'; why.disabled = risksLoading && item.stockAvailable > 0; why.setAttribute('aria-label', `Comprendre le risque de rupture de ${ui.productLabel(item)}`); riskCell.append(riskBadge, why);
             row.append(status, riskCell); elements.stockBody.append(row);
         });
     }
@@ -80,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function explain(variationId) {
         const stock = snapshot?.stock.find((item) => Number(item.variationId) === Number(variationId));
         if (!stock) return;
-        const prediction = snapshot.risks.find((item) => Number(item.variationId) === Number(variationId)) || null;
+        const prediction = (snapshot.risks || []).find((item) => Number(item.variationId) === Number(variationId)) || null;
         explanationController?.abort(); explanationController = new AbortController();
         elements.dialogLoading.textContent = 'Chargement de l’explication...'; elements.dialogLoading.hidden = false; elements.dialogContent.hidden = true;
         if (!elements.dialog.open) elements.dialog.showModal();
@@ -93,18 +94,58 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function loading(value) { elements.loader.hidden = !value || snapshot !== null; elements.refresh.disabled = value; elements.apply.disabled = value; elements.refresh.classList.toggle('is-loading', value); if (value && snapshot) ui.setFeedback(elements.feedback, 'Actualisation en cours. Le dernier snapshot reste affiché.'); }
-    async function load() {
+    function setSectionLoading(section, loading, hasContent = false) {
+        document.querySelector(`[data-dashboard-section="${section}"]`)?.classList.toggle('is-loading', loading && !hasContent);
+        const indicator = document.querySelector(`[data-loading-for="${section}"]`);
+        if (indicator) indicator.hidden = !loading || hasContent;
+    }
+
+    function setSectionError(section, message = '', retry = null) {
+        const target = document.querySelector(`[data-error-for="${section}"]`); if (!target) return;
+        target.replaceChildren(); target.hidden = !message; if (!message) return; target.append(document.createTextNode(message));
+        if (retry) { const button = document.createElement('button'); button.type = 'button'; button.textContent = 'Réessayer'; button.addEventListener('click', retry); target.append(button); }
+    }
+
+    function updateLastUpdated() {
+        const updated = ui.latestTimestamp([snapshot.products?.map((item) => item.lastUpdatedAt) || [], snapshot.stock?.map((item) => item.lastUpdatedAt) || [], snapshot.risks?.map((item) => item.lastUpdatedAt) || []]);
+        elements.lastUpdated.textContent = updated ? updated.toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }) : 'Aucune donnée actualisée';
+    }
+
+    function updateRequestState() { elements.refresh.classList.toggle('is-loading', controllers.size > 0); }
+
+    async function loadProducts(period) {
+        const key = 'products'; controllers.get(key)?.abort(); const partController = new AbortController(); controllers.set(key, partController); updateRequestState(); setSectionLoading('products', true, Boolean(snapshot.products)); setSectionError('products');
+        const retry = () => loadProducts(period);
+        try { const response = await ui.requestJson(ui.buildUrl(root.dataset.productsUrl, { ...period, limit: 100 }), partController.signal); if (controllers.get(key) !== partController) return; snapshot.products = response.data; renderProducts(snapshot.products); updateLastUpdated(); }
+        catch (error) { if (error.name !== 'AbortError' && controllers.get(key) === partController) setSectionError('products', `Performances indisponibles. ${error.message}`, retry); }
+        finally { if (controllers.get(key) === partController) { controllers.delete(key); setSectionLoading('products', false); updateRequestState(); } }
+    }
+
+    async function loadStock() {
+        const key = 'stock'; controllers.get(key)?.abort(); const partController = new AbortController(); controllers.set(key, partController); updateRequestState(); setSectionLoading('stock', true, Boolean(snapshot.stock)); setSectionLoading('stock-kpis', true, Boolean(snapshot.stock)); setSectionError('stock');
+        try { const response = await ui.requestJson(ui.buildUrl(root.dataset.stockUrl, { limit: 200 }), partController.signal); if (controllers.get(key) !== partController) return; snapshot.stock = response.data; const risksLoading = controllers.has('risks'); renderStock(snapshot.stock, risksLoading ? [] : (snapshot.risks || []), risksLoading); updateLastUpdated(); }
+        catch (error) { if (error.name !== 'AbortError' && controllers.get(key) === partController) setSectionError('stock', `Stock indisponible. ${error.message}`, loadStock); }
+        finally { if (controllers.get(key) === partController) { controllers.delete(key); setSectionLoading('stock', false); setSectionLoading('stock-kpis', false); updateRequestState(); } }
+    }
+
+    async function loadRisks() {
+        const key = 'risks'; controllers.get(key)?.abort(); const partController = new AbortController(); controllers.set(key, partController); updateRequestState(); setSectionError('risks');
+        if (snapshot.stock) renderStock(snapshot.stock, [], true);
+        try { const response = await ui.requestJson(ui.buildUrl(root.dataset.risksUrl, { limit: 200 }), partController.signal); if (controllers.get(key) !== partController) return; snapshot.risks = response.data; if (snapshot.stock) renderStock(snapshot.stock, snapshot.risks); updateLastUpdated(); }
+        catch (error) { if (error.name !== 'AbortError' && controllers.get(key) === partController) { if (snapshot.stock) renderStock(snapshot.stock, snapshot.risks || []); setSectionError('risks', `Prévisions IA indisponibles. ${error.message}`, loadRisks); } }
+        finally { if (controllers.get(key) === partController) { controllers.delete(key); updateRequestState(); } }
+    }
+
+    function load() {
         if (!elements.from.value || !elements.to.value || elements.from.value > elements.to.value) return ui.setFeedback(elements.feedback, 'La période sélectionnée est invalide.');
-        controller?.abort(); controller = new AbortController(); const active = controller; loading(true); const period = { from: elements.from.value, to: elements.to.value };
-        try { const [products, stock, risks] = await Promise.all([ui.requestJson(ui.buildUrl(root.dataset.productsUrl, { ...period, limit: 100 }), active.signal), ui.requestJson(ui.buildUrl(root.dataset.stockUrl, { limit: 200 }), active.signal), ui.requestJson(ui.buildUrl(root.dataset.risksUrl, { limit: 200 }), active.signal)]); if (active !== controller) return; const next = { products: products.data, stock: stock.data, risks: risks.data }; renderProducts(next.products); renderStock(next.stock, next.risks); const updated = ui.latestTimestamp([next.products.map((item) => item.lastUpdatedAt), next.stock.map((item) => item.lastUpdatedAt), next.risks.map((item) => item.lastUpdatedAt)]); elements.lastUpdated.textContent = updated ? updated.toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }) : 'Aucune donnée actualisée'; snapshot = next; ui.setFeedback(elements.feedback); }
-        catch (error) { if (error.name !== 'AbortError') ui.setFeedback(elements.feedback, `${snapshot ? 'Actualisation impossible. Le dernier snapshot reste affiché.' : 'Impossible de charger les produits.'} ${error.message}`, load); }
-        finally { if (active === controller) { loading(false); controller = null; } }
+        controllers.forEach((item) => item.abort()); controllers.clear(); ui.setFeedback(elements.feedback);
+        const period = { from: elements.from.value, to: elements.to.value };
+        loadProducts(period); loadStock(); loadRisks();
     }
     document.querySelectorAll('.dashboard-period').forEach((button) => button.addEventListener('click', () => { ui.selectPeriod(elements.from, elements.to, Number(button.dataset.periodDays)); load(); }));
-    elements.apply.addEventListener('click', load); elements.refresh.addEventListener('click', load); elements.search.addEventListener('input', () => { if (snapshot) renderStock(snapshot.stock, snapshot.risks); });
+    elements.apply.addEventListener('click', load); elements.refresh.addEventListener('click', load); elements.search.addEventListener('input', () => { if (snapshot.stock) { const risksLoading = controllers.has('risks'); renderStock(snapshot.stock, risksLoading ? [] : (snapshot.risks || []), risksLoading); } });
     elements.stockBody.addEventListener('click', (event) => { const button = event.target.closest('.dashboard-risk-explain'); if (button) explain(button.dataset.variationId); });
     document.getElementById('dashboard-stock-risk-close').addEventListener('click', () => elements.dialog.close());
     elements.dialog.addEventListener('close', () => { explanationController?.abort(); explanationController = null; });
-    window.addEventListener('resize', () => chart.resize()); window.addEventListener('pagehide', () => { controller?.abort(); explanationController?.abort(); chart.dispose(); }); ui.selectPeriod(elements.from, elements.to, 90); load();
+    window.addEventListener('resize', () => chart.resize()); window.addEventListener('pagehide', () => { controllers.forEach((item) => item.abort()); explanationController?.abort(); chart.dispose(); }); ui.selectPeriod(elements.from, elements.to, 90); load();
 });

@@ -11,13 +11,16 @@
         <button type="button" class="dashboard-refresh-button dashboard-refresh-push" id="dashboard-refresh"><i class="bi bi-arrow-clockwise"></i><span>Actualiser</span></button>
     </section>
     <div id="dashboard-feedback" class="dashboard-feedback" role="status" aria-live="polite" hidden></div>
-    <section class="dashboard-kpis dashboard-kpis-four">
+    <section class="dashboard-kpis dashboard-kpis-four dashboard-progressive-section" data-dashboard-section="stock-kpis">
         <article class="dashboard-kpi-card"><span>Variations actives</span><strong id="stock-active-count">-</strong></article><article class="dashboard-kpi-card"><span>Ruptures actuelles</span><strong id="stock-out-count">-</strong></article><article class="dashboard-kpi-card"><span>Stocks faibles</span><strong id="stock-low-count">-</strong></article><article class="dashboard-kpi-card"><span>Unités réservées</span><strong id="stock-reserved-count">-</strong></article>
     </section>
-    <article class="dashboard-panel"><div class="dashboard-panel-heading"><div><h2>Produits les plus performants</h2><p>Top 10 par chiffre d’affaires HT sur la période</p></div></div><div id="dashboard-products-chart" class="dashboard-chart dashboard-chart-products"></div><div class="dashboard-empty" data-empty-for="products" hidden>Aucune vente sur cette période.</div></article>
-    <article class="dashboard-panel dashboard-stock-detail-panel">
+    <article class="dashboard-panel dashboard-progressive-section" data-dashboard-section="products"><div class="dashboard-panel-heading"><div><h2>Produits les plus performants</h2><p>Top 10 par chiffre d’affaires HT sur la période</p></div></div><div id="dashboard-products-chart" class="dashboard-chart dashboard-chart-products"></div><div class="dashboard-section-loading" data-loading-for="products"><span class="dashboard-spinner"></span><span>Chargement des performances...</span></div><div class="dashboard-section-error" data-error-for="products" hidden></div><div class="dashboard-empty" data-empty-for="products" hidden>Aucune vente sur cette période.</div></article>
+    <article class="dashboard-panel dashboard-stock-detail-panel dashboard-progressive-section" data-dashboard-section="stock">
         <div class="dashboard-panel-heading dashboard-stock-heading"><div><h2>Détail du stock par variation</h2><p>Stock enregistré, utilisé, réservé et réellement disponible</p></div><label class="dashboard-search"><span>Rechercher</span><input type="search" id="dashboard-stock-search" placeholder="Produit ou variation"></label></div>
         <div class="dashboard-table-wrapper"><table class="dashboard-data-table"><thead><tr><th>Produit / variation</th><th>Enregistré</th><th>Utilisé</th><th>Réservé</th><th>Disponible</th><th>État</th><th>Risque de rupture</th></tr></thead><tbody id="dashboard-stock-body"></tbody></table></div>
+        <div class="dashboard-section-loading" data-loading-for="stock"><span class="dashboard-spinner"></span><span>Chargement du stock...</span></div>
+        <div class="dashboard-section-error" data-error-for="stock" hidden></div>
+        <div class="dashboard-section-error" data-error-for="risks" hidden></div>
         <div class="dashboard-empty" data-empty-for="stock" hidden>Aucune variation ne correspond à la recherche.</div>
     </article>
     <dialog class="dashboard-xai-dialog" id="dashboard-stock-risk-dialog" aria-labelledby="dashboard-stock-risk-title">
@@ -32,7 +35,6 @@
             <footer class="dashboard-xai-meta"><span>Modèle : <strong id="dashboard-stock-risk-model">-</strong></span><span>Prédiction : <strong id="dashboard-stock-risk-date">-</strong></span></footer>
         </div>
     </dialog>
-    <div class="dashboard-initial-loader" id="dashboard-loader"><span class="dashboard-spinner"></span><span>Chargement des produits…</span></div>
 </div>
 {% endblock %}
 {% block javascripts %}{{ parent() }}<script src="{{ asset('vendor/echarts/echarts.min.js') }}"></script><script src="{{ asset('js/dashboard-common.js') }}"></script><script src="{{ asset('js/dashboard-products.js') }}"></script>{% endblock %}

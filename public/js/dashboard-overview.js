@@ -6,14 +6,16 @@ document.addEventListener('DOMContentLoaded', () => {
         from: document.getElementById('dashboard-date-from'), to: document.getElementById('dashboard-date-to'),
         apply: document.getElementById('dashboard-apply-filters'), refresh: document.getElementById('dashboard-refresh'),
         refreshInterval: document.getElementById('dashboard-refresh-interval'), feedback: document.getElementById('dashboard-feedback'),
-        loader: document.getElementById('dashboard-loader'), lastUpdated: document.getElementById('dashboard-last-updated'),
+        lastUpdated: document.getElementById('dashboard-last-updated'),
         statuses: document.getElementById('dashboard-status-list'), products: document.getElementById('dashboard-top-products'),
         alerts: document.getElementById('dashboard-alerts'),
     };
     const endpoints = { overview: root.dataset.overviewUrl, evolution: root.dataset.evolutionUrl, products: root.dataset.productsUrl, statuses: root.dataset.statusesUrl, stock: root.dataset.stockUrl, risks: root.dataset.risksUrl };
-    let controller = null;
+    const controllers = new Map();
     let refreshTimer = null;
-    let snapshot = null;
+    const snapshot = {};
+    let alertPending = new Set();
+    const alertErrors = new Map();
     const chart = echarts.init(document.getElementById('dashboard-evolution-chart'));
     const statusLabels = { EN_ATTENTE_CONFIRMATION: 'En attente', EN_PREPARATION: 'En préparation', PRETE: 'Prêtes', EXPEDIEE: 'Expédiées', EN_LIVRAISON: 'En livraison', LIVREE: 'Livrées', ANNULEE: 'Annulées' };
 
@@ -140,21 +142,79 @@ document.addEventListener('DOMContentLoaded', () => {
         alerts.slice(0, 5).forEach((item) => { const row = document.createElement('li'); row.className = `is-${item.level}`; const content = document.createElement('div'); const strong = document.createElement('strong'); strong.textContent = item.message; const small = document.createElement('small'); small.textContent = item.detail; content.append(strong, small); row.append(content); if (item.href) { const link = document.createElement('a'); link.href = item.href; link.textContent = 'Voir'; row.append(link); } elements.alerts.append(row); });
     }
 
-    function render(data) {
-        renderKpis(data.overview); renderEvolution(data.evolution); renderStatuses(data.statuses); renderProducts(data.products); renderAlerts(data);
-        const updated = ui.latestTimestamp([data.overview.lastUpdatedAt, data.products.map((item) => item.lastUpdatedAt), data.statuses.map((item) => item.lastUpdatedAt), data.stock.map((item) => item.lastUpdatedAt), data.risks.map((item) => item.lastUpdatedAt)]);
+    function updateLastUpdated() {
+        const updated = ui.latestTimestamp([
+            snapshot.overview?.lastUpdatedAt,
+            snapshot.products?.map((item) => item.lastUpdatedAt) || [],
+            snapshot.statuses?.map((item) => item.lastUpdatedAt) || [],
+            snapshot.stock?.map((item) => item.lastUpdatedAt) || [],
+            snapshot.risks?.map((item) => item.lastUpdatedAt) || [],
+        ]);
         elements.lastUpdated.textContent = updated ? updated.toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }) : 'Aucune donnée actualisée';
     }
 
-    function loading(value) { elements.loader.hidden = !value || snapshot !== null; elements.refresh.disabled = value; elements.apply.disabled = value; elements.refresh.classList.toggle('is-loading', value); if (value && snapshot) ui.setFeedback(elements.feedback, 'Actualisation en cours. Le dernier snapshot valide reste affiché.'); }
-    async function load() {
-        if (!elements.from.value || !elements.to.value || elements.from.value > elements.to.value) return ui.setFeedback(elements.feedback, 'La période sélectionnée est invalide.');
-        controller?.abort(); controller = new AbortController(); const active = controller; loading(true); const period = { from: elements.from.value, to: elements.to.value };
+    function setSectionLoading(section, loading, hasContent = false) {
+        const container = document.querySelector(`[data-dashboard-section="${section}"]`);
+        const indicator = document.querySelector(`[data-loading-for="${section}"]`);
+        container?.classList.toggle('is-loading', loading && !hasContent);
+        if (indicator) indicator.hidden = !loading || hasContent;
+    }
+
+    function setSectionError(section, message = '', retry = null) {
+        const target = document.querySelector(`[data-error-for="${section}"]`);
+        if (!target) return;
+        target.replaceChildren(); target.hidden = !message;
+        if (!message) return;
+        target.append(document.createTextNode(message));
+        if (retry) { const button = document.createElement('button'); button.type = 'button'; button.textContent = 'Réessayer'; button.addEventListener('click', retry); target.append(button); }
+    }
+
+    function updateRequestState() {
+        elements.refresh.classList.toggle('is-loading', controllers.size > 0);
+    }
+
+    function finishAlertPart(key) {
+        alertPending.delete(key);
+        if (alertPending.size > 0) return;
+        setSectionLoading('alerts', false);
+        if (alertErrors.size === 0 && snapshot.overview && snapshot.stock && snapshot.risks) {
+            renderAlerts(snapshot);
+            setSectionError('alerts');
+            return;
+        }
+        setSectionError('alerts', 'Certaines données nécessaires aux alertes sont indisponibles.', load);
+    }
+
+    async function loadPart(key, section, url, renderPart) {
+        controllers.get(key)?.abort();
+        const partController = new AbortController(); controllers.set(key, partController); updateRequestState();
+        if (section) { setSectionLoading(section, true, Object.hasOwn(snapshot, key)); setSectionError(section); }
         try {
-            const [overview, evolution, products, statuses, stock, risks] = await Promise.all([ui.requestJson(ui.buildUrl(endpoints.overview, period), active.signal), ui.requestJson(ui.buildUrl(endpoints.evolution, period), active.signal), ui.requestJson(ui.buildUrl(endpoints.products, { ...period, limit: 100 }), active.signal), ui.requestJson(endpoints.statuses, active.signal), ui.requestJson(ui.buildUrl(endpoints.stock, { limit: 200 }), active.signal), ui.requestJson(ui.buildUrl(endpoints.risks, { limit: 200 }), active.signal)]);
-            if (active !== controller) return; const next = { overview: overview.data, evolution: evolution.data, products: products.data, statuses: statuses.data, stock: stock.data, risks: risks.data }; render(next); snapshot = next; ui.setFeedback(elements.feedback);
-        } catch (error) { if (error.name !== 'AbortError') ui.setFeedback(elements.feedback, `${snapshot ? 'Actualisation impossible. Le dernier snapshot reste affiché.' : 'Impossible de charger le tableau de bord.'} ${error.message}`, load); }
-        finally { if (active === controller) { loading(false); controller = null; } }
+            const response = await ui.requestJson(url, partController.signal);
+            if (controllers.get(key) !== partController) return;
+            snapshot[key] = response.data; renderPart?.(response.data); updateLastUpdated();
+            alertErrors.delete(key);
+        } catch (error) {
+            if (error.name !== 'AbortError' && controllers.get(key) === partController) {
+                if (section) setSectionError(section, `Chargement impossible. ${error.message}`, () => loadPart(key, section, url, renderPart));
+                if (['overview', 'stock', 'risks'].includes(key)) alertErrors.set(key, error.message);
+            }
+        } finally {
+            if (controllers.get(key) === partController) { controllers.delete(key); if (section) setSectionLoading(section, false); if (['overview', 'stock', 'risks'].includes(key)) finishAlertPart(key); updateRequestState(); }
+        }
+    }
+
+    function load() {
+        if (!elements.from.value || !elements.to.value || elements.from.value > elements.to.value) return ui.setFeedback(elements.feedback, 'La période sélectionnée est invalide.');
+        controllers.forEach((item) => item.abort()); controllers.clear(); ui.setFeedback(elements.feedback);
+        const period = { from: elements.from.value, to: elements.to.value };
+        alertPending = new Set(['overview', 'stock', 'risks']); alertErrors.clear(); setSectionLoading('alerts', true, elements.alerts.children.length > 0); setSectionError('alerts');
+        loadPart('overview', 'overview', ui.buildUrl(endpoints.overview, period), renderKpis);
+        loadPart('evolution', 'evolution', ui.buildUrl(endpoints.evolution, period), renderEvolution);
+        loadPart('products', 'products', ui.buildUrl(endpoints.products, { ...period, limit: 100 }), renderProducts);
+        loadPart('statuses', 'statuses', endpoints.statuses, renderStatuses);
+        loadPart('stock', null, ui.buildUrl(endpoints.stock, { limit: 200 }));
+        loadPart('risks', null, ui.buildUrl(endpoints.risks, { limit: 200 }));
     }
 
     function configureRefresh() {
@@ -169,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     document.querySelectorAll('.dashboard-period').forEach((button) => button.addEventListener('click', () => { ui.selectPeriod(elements.from, elements.to, Number(button.dataset.periodDays)); load(); }));
     elements.apply.addEventListener('click', load); elements.refresh.addEventListener('click', load); elements.refreshInterval.addEventListener('change', configureRefresh);
-    window.addEventListener('resize', () => chart.resize()); window.addEventListener('pagehide', () => { controller?.abort(); if (refreshTimer) clearInterval(refreshTimer); chart.dispose(); });
+    window.addEventListener('resize', () => chart.resize()); window.addEventListener('pagehide', () => { controllers.forEach((item) => item.abort()); if (refreshTimer) clearInterval(refreshTimer); chart.dispose(); });
     ui.selectPeriod(elements.from, elements.to, 90);
     let saved = null;
     try {

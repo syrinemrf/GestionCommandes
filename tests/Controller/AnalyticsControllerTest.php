@@ -45,6 +45,8 @@ final class AnalyticsControllerTest extends WebTestCase
             '/api/analytics/overview',
             $crawler->filter('#supplier-dashboard')->attr('data-overview-url')
         );
+        self::assertCount(0, $crawler->filter('#dashboard-loader'));
+        self::assertCount(4, $crawler->filter('.dashboard-section-loading'));
 
         $crawler = $client->request('GET', '/dashboard/products');
         self::assertResponseIsSuccessful();
@@ -56,6 +58,8 @@ final class AnalyticsControllerTest extends WebTestCase
             '/api/analytics/risks',
             $crawler->filter('#supplier-products-dashboard')->attr('data-risks-url'),
         );
+        self::assertCount(0, $crawler->filter('#dashboard-loader'));
+        self::assertCount(2, $crawler->filter('.dashboard-section-loading'));
 
     }
 
