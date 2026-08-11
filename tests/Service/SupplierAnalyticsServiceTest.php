@@ -92,6 +92,24 @@ final class SupplierAnalyticsServiceTest extends TestCase
         $service->stockRisks($this->supplier(101), 'CRITICAL', 100);
     }
 
+    public function testStockDataTableNormalizesParametersAndUsesSupplier(): void
+    {
+        $repository = $this->createMock(SupplierAnalyticsRepository::class);
+        $repository->expects(self::once())
+            ->method('stockDataTable')
+            ->with(101, 0, 100, str_repeat('x', 100), 6, 'desc')
+            ->willReturn(['rows' => [], 'total' => 0, 'filtered' => 0]);
+
+        (new SupplierAnalyticsService($repository))->stockDataTable(
+            $this->supplier(101),
+            -20,
+            500,
+            str_repeat('x', 120),
+            6,
+            'invalid',
+        );
+    }
+
     public function testOverviewKeepsSupplierIsolationAndUsesPreviousPeriod(): void
     {
         $range = new AnalyticsDateRange(

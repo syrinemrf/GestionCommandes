@@ -78,6 +78,24 @@ class SupplierAnalyticsService
         );
     }
 
+    public function stockDataTable(
+        User $supplier,
+        int $start,
+        int $length,
+        string $search,
+        int $orderColumn,
+        string $orderDirection,
+    ): array {
+        return $this->repository->stockDataTable(
+            $this->supplierId($supplier),
+            max(0, $start),
+            min(100, max(5, $length)),
+            mb_substr(trim($search), 0, 100),
+            $orderColumn,
+            strtolower($orderDirection) === 'asc' ? 'asc' : 'desc',
+        );
+    }
+
     public function stockRisks(
         User $supplier,
         ?string $risk,

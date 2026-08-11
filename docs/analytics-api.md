@@ -168,6 +168,39 @@ activite » sans division par zero.
 }
 ```
 
+## GET `/api/analytics/stock-table`
+
+Endpoint DataTables en traitement serveur pour le détail du stock. Il accepte
+`draw`, `start`, `length`, `search[value]`, `order[0][column]` et
+`order[0][dir]`. La pagination, la recherche et le tri sont exécutés dans
+PostgreSQL. L'identifiant fournisseur provient toujours de la session Symfony.
+
+```json
+{
+  "draw": 1,
+  "recordsTotal": 24,
+  "recordsFiltered": 3,
+  "data": [{
+    "productId": 42,
+    "variationId": 91,
+    "productName": "Serum HydraGlow",
+    "variationName": "30 ml",
+    "stockRegistered": 120,
+    "stockUsed": 108,
+    "stockReserved": 4,
+    "stockAvailable": 8,
+    "currentlyOutOfStock": false,
+    "risk": "MEDIUM",
+    "hasPrediction": true,
+    "lastUpdatedAt": "2026-08-11 08:00:00+00"
+  }]
+}
+```
+
+La valeur métier `CURRENT_STOCKOUT` remplace le risque prédit lorsque le stock
+disponible est déjà nul. La situation observée reste ainsi prioritaire sur le
+modèle.
+
 ## GET `/api/analytics/risks?risk=HIGH&limit=100`
 
 `risk` est facultatif et accepte `HIGH`, `MEDIUM`, `LOW` ou

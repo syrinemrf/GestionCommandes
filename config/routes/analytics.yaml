@@ -38,6 +38,11 @@ analytics_stock:
     controller: App\Controller\AnalyticsController::stock
     methods: [GET]
 
+analytics_stock_table:
+    path: /api/analytics/stock-table
+    controller: App\Controller\AnalyticsController::stockTable
+    methods: [GET]
+
 analytics_risks:
     path: /api/analytics/risks
     controller: App\Controller\AnalyticsController::risks

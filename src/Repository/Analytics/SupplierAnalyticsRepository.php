@@ -11,6 +11,7 @@ use App\Dto\Analytics\ProductPerformanceDto;
 use App\Dto\Analytics\StockOverviewDto;
 use App\Dto\Analytics\StockRiskDto;
 use App\Dto\Analytics\StockRiskExplanationDto;
+use App\Dto\Analytics\StockTableRowDto;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -248,6 +249,118 @@ class SupplierAnalyticsRepository
         );
 
         return array_map(StockOverviewDto::fromRow(...), $rows);
+    }
+
+    /** @return array{rows: list<StockTableRowDto>, total: int, filtered: int} */
+    public function stockDataTable(
+        int $supplierId,
+        int $start,
+        int $length,
+        string $search,
+        int $orderColumn,
+        string $orderDirection,
+    ): array {
+        $orderExpressions = [
+            0 => 'lower(stock.product_name || coalesce(stock.variation_name, \'\'))',
+            1 => 'stock.stock_registered',
+            2 => 'stock.stock_used',
+            3 => 'stock.stock_reserved',
+            4 => 'stock.stock_available',
+            5 => 'stock.stock_available',
+            6 => 'effective_risk_rank',
+        ];
+        $orderBy = $orderExpressions[$orderColumn] ?? $orderExpressions[4];
+        $direction = $orderDirection === 'asc' ? 'asc' : 'desc';
+        $searchFilter = '';
+        $parameters = ['supplier_id' => $supplierId];
+        $types = ['supplier_id' => ParameterType::INTEGER];
+
+        if ($search !== '') {
+            $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search);
+            $parameters['search'] = sprintf('%%%s%%', $escaped);
+            $types['search'] = ParameterType::STRING;
+            $searchFilter = <<<'SQL'
+                and (
+                    stock.product_name ilike :search escape '\'
+                    or coalesce(stock.variation_name, '') ilike :search escape '\'
+                )
+                SQL;
+        }
+
+        $baseWhere = <<<SQL
+            from analytics.mart_supplier_stock_overview as stock
+            left join analytics.mart_supplier_stock_risk as prediction
+                on prediction.source_supplier_id = stock.source_supplier_id
+                and prediction.source_variation_id = stock.source_variation_id
+            where stock.source_supplier_id = :supplier_id
+              and not stock.product_is_deleted
+              and not stock.variation_is_deleted
+            SQL;
+
+        $total = (int) $this->connection->fetchOne(
+            <<<SQL
+                select count(*)
+                from analytics.mart_supplier_stock_overview as stock
+                where stock.source_supplier_id = :supplier_id
+                  and not stock.product_is_deleted
+                  and not stock.variation_is_deleted
+                SQL,
+            ['supplier_id' => $supplierId],
+            ['supplier_id' => ParameterType::INTEGER],
+        );
+        $filtered = (int) $this->connection->fetchOne(
+            "select count(*) {$baseWhere} {$searchFilter}",
+            $parameters,
+            $types,
+        );
+
+        $rows = $this->connection->fetchAllAssociative(
+            <<<SQL
+                select
+                    stock.source_product_id,
+                    stock.source_variation_id,
+                    stock.product_name,
+                    stock.variation_name,
+                    stock.stock_registered,
+                    stock.stock_used,
+                    stock.stock_reserved,
+                    stock.stock_available,
+                    stock.is_currently_out_of_stock,
+                    coalesce(prediction.risk, 'INSUFFICIENT_DATA') as risk,
+                    prediction.source_variation_id is not null as has_prediction,
+                    greatest(
+                        stock.last_updated_at,
+                        coalesce(prediction.last_updated_at, stock.last_updated_at)
+                    ) as last_updated_at,
+                    case
+                        when stock.is_currently_out_of_stock or stock.stock_available <= 0 then 1
+                        when prediction.risk = 'HIGH' then 2
+                        when prediction.risk = 'MEDIUM' then 3
+                        when prediction.risk = 'LOW' then 4
+                        else 5
+                    end as effective_risk_rank
+                {$baseWhere}
+                {$searchFilter}
+                order by {$orderBy} {$direction}, stock.source_variation_id
+                limit :result_limit offset :result_offset
+                SQL,
+            [
+                ...$parameters,
+                'result_limit' => $length,
+                'result_offset' => $start,
+            ],
+            [
+                ...$types,
+                'result_limit' => ParameterType::INTEGER,
+                'result_offset' => ParameterType::INTEGER,
+            ],
+        );
+
+        return [
+            'rows' => array_map(StockTableRowDto::fromRow(...), $rows),
+            'total' => $total,
+            'filtered' => $filtered,
+        ];
     }
 
     /** @return list<StockRiskDto> */

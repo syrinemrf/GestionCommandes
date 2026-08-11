@@ -158,6 +158,37 @@ class AnalyticsController extends AbstractController
         ]);
     }
 
+    public function stockTable(
+        Request $request,
+        SupplierAnalyticsService $analytics,
+    ): JsonResponse {
+        $search = $request->query->all('search');
+        $orders = $request->query->all('order');
+        $order = is_array($orders[0] ?? null) ? $orders[0] : [];
+        $orderColumn = filter_var(
+            $order['column'] ?? 4,
+            FILTER_VALIDATE_INT,
+        );
+        $result = $analytics->stockDataTable(
+            $this->currentSupplier(),
+            $request->query->getInt('start', 0),
+            $request->query->getInt('length', 10),
+            is_string($search['value'] ?? null) ? $search['value'] : '',
+            $orderColumn === false ? 4 : $orderColumn,
+            ($order['dir'] ?? 'asc') === 'asc' ? 'asc' : 'desc',
+        );
+
+        return $this->json([
+            'draw' => max(0, $request->query->getInt('draw', 0)),
+            'recordsTotal' => $result['total'],
+            'recordsFiltered' => $result['filtered'],
+            'data' => array_map(
+                static fn ($item): array => $item->toArray(),
+                $result['rows'],
+            ),
+        ]);
+    }
+
     public function risks(
         Request $request,
         SupplierAnalyticsService $analytics,

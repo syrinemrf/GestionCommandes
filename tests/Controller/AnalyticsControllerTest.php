@@ -6,6 +6,7 @@ use App\Dto\Analytics\DashboardOverviewDto;
 use App\Dto\Analytics\KpiSummaryDto;
 use App\Dto\Analytics\OrderProcessingTimeDto;
 use App\Dto\Analytics\StockRiskExplanationDto;
+use App\Dto\Analytics\StockTableRowDto;
 use App\Entity\User;
 use App\Service\Analytics\SupplierAnalyticsService;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -50,16 +51,16 @@ final class AnalyticsControllerTest extends WebTestCase
 
         $crawler = $client->request('GET', '/dashboard/products');
         self::assertResponseIsSuccessful();
-        self::assertCount(1, $crawler->filter('#dashboard-stock-body'));
+        self::assertCount(1, $crawler->filter('#dashboard-stock-table'));
         self::assertCount(1, $crawler->filter('th:contains("Risque de rupture")'));
         self::assertCount(0, $crawler->filter('th:contains("Dernier mouvement")'));
         self::assertCount(1, $crawler->filter('#dashboard-stock-risk-dialog'));
         self::assertSame(
-            '/api/analytics/risks',
-            $crawler->filter('#supplier-products-dashboard')->attr('data-risks-url'),
+            '/api/analytics/stock-table',
+            $crawler->filter('#supplier-products-dashboard')->attr('data-stock-table-url'),
         );
         self::assertCount(0, $crawler->filter('#dashboard-loader'));
-        self::assertCount(2, $crawler->filter('.dashboard-section-loading'));
+        self::assertCount(1, $crawler->filter('.dashboard-section-loading'));
 
     }
 
@@ -114,6 +115,50 @@ final class AnalyticsControllerTest extends WebTestCase
             'INVALID_QUERY_PARAMETERS',
             $this->responseData($client->getResponse())['error']['code']
         );
+    }
+
+    public function testStockDataTableUsesAuthenticatedSupplier(): void
+    {
+        $client = static::createClient();
+        $client->disableReboot();
+        $analytics = $this->createMock(SupplierAnalyticsService::class);
+        $analytics->expects(self::once())
+            ->method('stockDataTable')
+            ->with(
+                self::callback(fn (User $user): bool => $user->getId() === 101),
+                0,
+                10,
+                'masque',
+                4,
+                'asc',
+            )
+            ->willReturn([
+                'rows' => [new StockTableRowDto(
+                    41, 91, 'Masque Velours', '30 ml',
+                    20, 20, 0, 0, true, 'LOW', true,
+                    '2026-08-11 08:00:00+00',
+                )],
+                'total' => 12,
+                'filtered' => 1,
+            ]);
+        static::getContainer()->set(SupplierAnalyticsService::class, $analytics);
+        $this->loginSupplier($client, $this->supplier(101));
+
+        $client->request('GET', '/api/analytics/stock-table', [
+            'draw' => 7,
+            'start' => 0,
+            'length' => 10,
+            'search' => ['value' => 'masque'],
+            'order' => [['column' => 4, 'dir' => 'asc']],
+            'supplierId' => 202,
+        ]);
+
+        self::assertResponseIsSuccessful();
+        $data = $this->responseData($client->getResponse());
+        self::assertSame(7, $data['draw']);
+        self::assertSame(12, $data['recordsTotal']);
+        self::assertSame(1, $data['recordsFiltered']);
+        self::assertSame('CURRENT_STOCKOUT', $data['data'][0]['risk']);
     }
 
     public function testEmptyEvolutionReturnsAnEmptyArray(): void

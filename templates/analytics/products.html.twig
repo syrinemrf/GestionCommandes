@@ -1,7 +1,7 @@
 {% extends 'base.html.twig' %}
 {% block title %}Produits & Stock - Komdely{% endblock %}
 {% block body %}
-<div id="supplier-products-dashboard" class="dashboard" data-products-url="{{ path('analytics_products') }}" data-stock-url="{{ path('analytics_stock') }}" data-risks-url="{{ path('analytics_risks') }}" data-risk-explanation-url="{{ path('analytics_risks') }}">
+<div id="supplier-products-dashboard" class="dashboard" data-products-url="{{ path('analytics_products') }}" data-stock-url="{{ path('analytics_stock') }}" data-stock-table-url="{{ path('analytics_stock_table') }}" data-risk-explanation-url="{{ path('analytics_risks') }}">
     {% include 'analytics/_header.html.twig' with {title: 'Produits & Stock', subtitle: 'Identifiez vos meilleures ventes et les variations qui nécessitent votre attention.'} %}
     {% include 'analytics/_navigation.html.twig' %}
     <section class="dashboard-filters" aria-label="Période analysée">
@@ -16,12 +16,9 @@
     </section>
     <article class="dashboard-panel dashboard-progressive-section" data-dashboard-section="products"><div class="dashboard-panel-heading"><div><h2>Produits les plus performants</h2><p>Top 10 par chiffre d’affaires HT sur la période</p></div></div><div id="dashboard-products-chart" class="dashboard-chart dashboard-chart-products"></div><div class="dashboard-section-loading" data-loading-for="products"><span class="dashboard-spinner"></span><span>Chargement des performances...</span></div><div class="dashboard-section-error" data-error-for="products" hidden></div><div class="dashboard-empty" data-empty-for="products" hidden>Aucune vente sur cette période.</div></article>
     <article class="dashboard-panel dashboard-stock-detail-panel dashboard-progressive-section" data-dashboard-section="stock">
-        <div class="dashboard-panel-heading dashboard-stock-heading"><div><h2>Détail du stock par variation</h2><p>Stock enregistré, utilisé, réservé et réellement disponible</p></div><label class="dashboard-search"><span>Rechercher</span><input type="search" id="dashboard-stock-search" placeholder="Produit ou variation"></label></div>
-        <div class="dashboard-table-wrapper"><table class="dashboard-data-table"><thead><tr><th>Produit / variation</th><th>Enregistré</th><th>Utilisé</th><th>Réservé</th><th>Disponible</th><th>État</th><th>Risque de rupture</th></tr></thead><tbody id="dashboard-stock-body"></tbody></table></div>
-        <div class="dashboard-section-loading" data-loading-for="stock"><span class="dashboard-spinner"></span><span>Chargement du stock...</span></div>
+        <div class="dashboard-panel-heading dashboard-stock-heading"><div><h2>Détail du stock par variation</h2><p>Stock enregistré, utilisé, réservé et réellement disponible</p></div></div>
+        <div class="dashboard-table-wrapper"><table id="dashboard-stock-table" class="dashboard-data-table"><thead><tr><th>Produit / variation</th><th>Enregistré</th><th>Utilisé</th><th>Réservé</th><th>Disponible</th><th>État</th><th>Risque de rupture</th><th aria-label="Explication"></th></tr></thead></table></div>
         <div class="dashboard-section-error" data-error-for="stock" hidden></div>
-        <div class="dashboard-section-error" data-error-for="risks" hidden></div>
-        <div class="dashboard-empty" data-empty-for="stock" hidden>Aucune variation ne correspond à la recherche.</div>
     </article>
     <dialog class="dashboard-xai-dialog" id="dashboard-stock-risk-dialog" aria-labelledby="dashboard-stock-risk-title">
         <div class="dashboard-xai-header"><div><span class="dashboard-xai-eyebrow">Aide à la décision</span><h2 id="dashboard-stock-risk-title">Pourquoi ce risque ?</h2></div><button type="button" id="dashboard-stock-risk-close" aria-label="Fermer">×</button></div>
@@ -37,4 +34,5 @@
     </dialog>
 </div>
 {% endblock %}
-{% block javascripts %}{{ parent() }}<script src="{{ asset('vendor/echarts/echarts.min.js') }}"></script><script src="{{ asset('js/dashboard-common.js') }}"></script><script src="{{ asset('js/dashboard-products.js') }}"></script>{% endblock %}
+{% block javascripts %}{{ parent() }}<script src="{{ asset('vendor/jquery/jquery-3.7.1.min.js') }}"></script><script src="{{ asset('vendor/datatables/dataTables.min.js') }}"></script><script src="{{ asset('vendor/echarts/echarts.min.js') }}"></script><script src="{{ asset('js/dashboard-common.js') }}"></script><script src="{{ asset('js/dashboard-products.js') }}"></script>{% endblock %}
+{% block stylesheets %}{{ parent() }}<link rel="stylesheet" href="{{ asset('vendor/datatables/dataTables.dataTables.min.css') }}">{% endblock %}
