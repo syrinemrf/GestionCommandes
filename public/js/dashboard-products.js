@@ -28,9 +28,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function riskState(stock, prediction) {
-        if (stock.currentlyOutOfStock || stock.stockAvailable <= 0) return { label: 'Rupture actuelle', className: 'is-high', detail: 'Stock disponible nul' };
-        if (!prediction || prediction.risk === 'INSUFFICIENT_DATA') return { label: 'Non évalué', className: 'is-insufficient-data', detail: 'Historique insuffisant' };
-        return { label: riskLabels[prediction.risk] || prediction.risk, className: `is-${prediction.risk.toLowerCase()}`, detail: prediction.reason };
+        if (stock.currentlyOutOfStock || stock.stockAvailable <= 0) return { label: 'Rupture actuelle', className: 'is-high' };
+        if (!prediction || prediction.risk === 'INSUFFICIENT_DATA') return { label: 'Non évalué', className: 'is-insufficient-data' };
+        return { label: riskLabels[prediction.risk] || prediction.risk, className: `is-${prediction.risk.toLowerCase()}` };
     }
 
     function renderStock(items, risks) {
@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const values = [ui.productLabel(item), item.stockRegistered, item.stockUsed, item.stockReserved, item.stockAvailable];
             values.forEach((value, index) => { const cell = document.createElement('td'); cell.textContent = index === 0 ? value : ui.integer.format(value); if (index === 0) cell.className = 'dashboard-product-cell'; if (index === 4) cell.className = `dashboard-stock-value ${state.className}`; row.append(cell); });
             const status = document.createElement('td'); const stockBadge = document.createElement('span'); stockBadge.className = `dashboard-stock-badge ${state.className}`; stockBadge.textContent = state.label; status.append(stockBadge);
-            const riskCell = document.createElement('td'); riskCell.className = 'dashboard-stock-risk-cell'; const riskBadge = document.createElement('span'); riskBadge.className = `dashboard-risk-badge ${risk.className}`; riskBadge.textContent = risk.label; const detail = document.createElement('small'); detail.textContent = risk.detail; const why = document.createElement('button'); why.type = 'button'; why.className = 'dashboard-risk-explain'; why.dataset.variationId = item.variationId; why.textContent = 'Pourquoi ?'; riskCell.append(riskBadge, detail, why);
+            const riskCell = document.createElement('td'); riskCell.className = 'dashboard-stock-risk-cell'; const riskBadge = document.createElement('span'); riskBadge.className = `dashboard-risk-badge ${risk.className}`; riskBadge.textContent = risk.label; const why = document.createElement('button'); why.type = 'button'; why.className = 'dashboard-risk-explain'; why.dataset.variationId = item.variationId; why.textContent = 'Pourquoi ?'; riskCell.append(riskBadge, why);
             row.append(status, riskCell); elements.stockBody.append(row);
         });
     }
