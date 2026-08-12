@@ -28,6 +28,11 @@ analytics_products:
     controller: App\Controller\AnalyticsController::products
     methods: [GET]
 
+analytics_product_comparison:
+    path: /api/analytics/product-comparison
+    controller: App\Controller\AnalyticsController::productComparison
+    methods: [GET]
+
 analytics_statuses:
     path: /api/analytics/statuses
     controller: App\Controller\AnalyticsController::statuses

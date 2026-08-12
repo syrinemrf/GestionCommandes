@@ -123,6 +123,38 @@ activite » sans division par zero.
 }
 ```
 
+## GET `/api/analytics/product-comparison?from=2026-08-01&to=2026-08-04&limit=50`
+
+Cette route alimente le classement compact de la vue d'ensemble. Elle compare
+la periode demandee a la periode precedente de meme duree, au jour pres. Les
+commandes annulees ou supprimees sont exclues. Une evolution vaut `null` si la
+periode precedente est nulle et la periode courante non nulle, afin d'eviter
+toute division par zero.
+
+```json
+{
+  "data": [{
+    "productId": 42,
+    "productName": "Serum HydraGlow",
+    "currentRevenueHt": 7800.0,
+    "previousRevenueHt": 6964.286,
+    "currentUnitsSold": 168,
+    "previousUnitsSold": 160,
+    "currentOrderCount": 84,
+    "previousOrderCount": 79,
+    "revenueChangePercent": 12.0,
+    "unitsChangePercent": 5.0,
+    "lastUpdatedAt": "2026-08-11 08:00:00+00"
+  }],
+  "meta": {
+    "period": {"from": "2026-08-01", "to": "2026-08-04"},
+    "previousPeriod": {"from": "2026-07-28", "to": "2026-07-31"},
+    "count": 1,
+    "limit": 50
+  }
+}
+```
+
 ## GET `/api/analytics/statuses`
 
 ```json
@@ -302,5 +334,6 @@ DW_DATABASE_URL="postgresql://comdely_analytics_reader:CHANGE_ME@127.0.0.1:5433/
 ```
 
 Le role possede seulement `CONNECT`, `USAGE` sur `analytics` et `SELECT` sur
-les six marts exposes, dont `mart_supplier_order_processing_time`. Il n'a
+les sept marts exposes, dont `mart_supplier_product_daily_performance` et
+`mart_supplier_order_processing_time`. Il n'a
 aucun droit sur `raw`, `staging`, `meta`, les faits ou les dimensions.

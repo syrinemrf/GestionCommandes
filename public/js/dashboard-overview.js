@@ -7,17 +7,33 @@ document.addEventListener('DOMContentLoaded', () => {
         apply: document.getElementById('dashboard-apply-filters'), refresh: document.getElementById('dashboard-refresh'),
         refreshInterval: document.getElementById('dashboard-refresh-interval'), feedback: document.getElementById('dashboard-feedback'),
         lastUpdated: document.getElementById('dashboard-last-updated'),
-        statuses: document.getElementById('dashboard-status-list'), products: document.getElementById('dashboard-top-products'),
+        statuses: document.getElementById('dashboard-status-list'),
+        actionTotal: document.getElementById('dashboard-action-total'),
+        transitTotal: document.getElementById('dashboard-transit-total'),
+        products: document.getElementById('dashboard-top-products'),
         alerts: document.getElementById('dashboard-alerts'),
     };
-    const endpoints = { overview: root.dataset.overviewUrl, evolution: root.dataset.evolutionUrl, products: root.dataset.productsUrl, statuses: root.dataset.statusesUrl, stock: root.dataset.stockUrl, risks: root.dataset.risksUrl };
+    const endpoints = {
+        overview: root.dataset.overviewUrl,
+        evolution: root.dataset.evolutionUrl,
+        products: root.dataset.productComparisonUrl,
+        statuses: root.dataset.statusesUrl,
+        stock: root.dataset.stockUrl,
+        risks: root.dataset.risksUrl,
+        orders: root.dataset.ordersUrl,
+    };
     const controllers = new Map();
     let refreshTimer = null;
     const snapshot = {};
     let alertPending = new Set();
     const alertErrors = new Map();
+    let productMode = 'revenue';
     const chart = echarts.init(document.getElementById('dashboard-evolution-chart'));
-    const statusLabels = { EN_ATTENTE_CONFIRMATION: 'En attente', EN_PREPARATION: 'En préparation', PRETE: 'Prêtes', EXPEDIEE: 'Expédiées', EN_LIVRAISON: 'En livraison', LIVREE: 'Livrées', ANNULEE: 'Annulées' };
+    const actionableStatuses = {
+        EN_ATTENTE_CONFIRMATION: 'À confirmer',
+        EN_PREPARATION: 'En préparation',
+        PRETE: 'Prêtes à expédier',
+    };
 
     function comparison(elementId, value, { inverse = false, suffix = '%' } = {}) {
         const element = document.getElementById(elementId);
@@ -104,24 +120,99 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderStatuses(items) {
         elements.statuses.replaceChildren();
-        const active = items.filter((item) => item.currentOrderCount > 0);
-        document.querySelector('[data-empty-for="statuses"]').hidden = active.length > 0;
-        active.slice(0, 7).forEach((item) => {
-            const row = document.createElement('div'); row.className = 'dashboard-status-row';
-            const heading = document.createElement('div'); const label = document.createElement('span'); label.textContent = statusLabels[item.status] || item.status; const value = document.createElement('strong'); value.textContent = `${ui.integer.format(item.currentOrderCount)} · ${ui.number.format(item.currentOrderShare * 100)} %`; heading.append(label, value);
-            const track = document.createElement('div'); track.className = 'dashboard-status-track'; const bar = document.createElement('span'); bar.style.width = `${Math.max(2, item.currentOrderShare * 100)}%`; track.append(bar); row.append(heading, track); elements.statuses.append(row);
+        const counts = new Map(
+            items.map((item) => [item.status, Number(item.currentOrderCount) || 0])
+        );
+        const actionable = Object.entries(actionableStatuses)
+            .map(([status, label]) => ({ status, label, count: counts.get(status) || 0 }))
+            .filter((item) => item.count > 0);
+        const total = actionable.reduce((sum, item) => sum + item.count, 0);
+        const transit = (counts.get('EXPEDIEE') || 0) + (counts.get('EN_LIVRAISON') || 0);
+
+        elements.actionTotal.textContent = total === 1
+            ? '1 commande nécessite votre attention'
+            : `${ui.integer.format(total)} commandes nécessitent votre attention`;
+        elements.actionTotal.hidden = total === 0;
+        elements.statuses.hidden = total === 0;
+        document.querySelector('[data-empty-for="statuses"]').hidden = total > 0;
+
+        actionable.forEach((item) => {
+            const row = document.createElement('a');
+            row.href = ui.buildUrl(endpoints.orders, { statut: item.status });
+            row.className = 'dashboard-action-row';
+
+            const count = document.createElement('strong');
+            count.textContent = ui.integer.format(item.count);
+            const label = document.createElement('span');
+            label.textContent = item.label;
+            const action = document.createElement('small');
+            action.textContent = 'Voir →';
+            row.append(count, label, action);
+            elements.statuses.append(row);
         });
+
+        elements.transitTotal.hidden = transit === 0;
+        elements.transitTotal.textContent = transit === 1
+            ? '1 commande en cours d’acheminement'
+            : `${ui.integer.format(transit)} commandes en cours d’acheminement`;
     }
 
-    function aggregateProducts(items) {
-        const products = new Map();
-        items.filter((item) => !item.productDeleted).forEach((item) => { const value = products.get(item.productId) || { name: item.productName, revenue: 0, units: 0 }; value.revenue += Number(item.revenueHt) || 0; value.units += Number(item.unitsSold) || 0; products.set(item.productId, value); });
-        return Array.from(products.values()).sort((a, b) => b.revenue - a.revenue || b.units - a.units).slice(0, 5);
+    function rankedProducts(items) {
+        const products = [...items];
+
+        if (productMode === 'declining') {
+            return products
+                .filter((item) => item.revenueChangePercent !== null && item.revenueChangePercent < 0)
+                .sort((a, b) => a.revenueChangePercent - b.revenueChangePercent)
+                .slice(0, 5);
+        }
+
+        return products
+            .filter((item) => productMode === 'units'
+                ? item.currentUnitsSold > 0
+                : item.currentRevenueHt > 0)
+            .sort((a, b) => productMode === 'units'
+                ? b.currentUnitsSold - a.currentUnitsSold || b.currentRevenueHt - a.currentRevenueHt
+                : b.currentRevenueHt - a.currentRevenueHt || b.currentUnitsSold - a.currentUnitsSold)
+            .slice(0, 5);
     }
 
     function renderProducts(items) {
-        elements.products.replaceChildren(); const products = aggregateProducts(items); document.querySelector('[data-empty-for="products"]').hidden = products.length > 0;
-        products.forEach((item, index) => { const row = document.createElement('li'); const rank = document.createElement('span'); rank.className = 'dashboard-rank'; rank.textContent = index + 1; const name = document.createElement('div'); const strong = document.createElement('strong'); strong.textContent = item.name; const detail = document.createElement('small'); detail.textContent = `${ui.money(item.revenue)} · ${ui.integer.format(item.units)} unités`; name.append(strong, detail); row.append(rank, name); elements.products.append(row); });
+        elements.products.replaceChildren();
+        const products = rankedProducts(items);
+        document.querySelector('[data-empty-for="products"]').hidden = products.length > 0;
+
+        products.forEach((item, index) => {
+            const row = document.createElement('li');
+            const product = document.createElement('div');
+            product.className = 'dashboard-performance-product';
+            const rank = document.createElement('span');
+            rank.className = 'dashboard-rank';
+            rank.textContent = index + 1;
+            const name = document.createElement('strong');
+            name.textContent = item.productName;
+            product.append(rank, name);
+
+            const revenue = document.createElement('span');
+            revenue.textContent = ui.money(item.currentRevenueHt, revenue);
+            const units = document.createElement('span');
+            units.textContent = ui.integer.format(item.currentUnitsSold);
+            const change = document.createElement('small');
+            const variation = item.revenueChangePercent;
+            change.className = 'dashboard-performance-change is-neutral';
+            if (variation === null) {
+                change.textContent = item.currentRevenueHt > 0 ? 'Nouveau' : '-';
+            } else {
+                const amount = Number(variation) || 0;
+                change.textContent = amount === 0
+                    ? 'Stable'
+                    : `${amount > 0 ? '+' : ''}${ui.number.format(amount)} %`;
+                if (amount > 0) change.classList.add('is-positive');
+                if (amount < 0) change.classList.add('is-negative');
+            }
+            row.append(product, revenue, units, change);
+            elements.products.append(row);
+        });
     }
 
     function alertItem(message, detail, level, href) {
@@ -132,9 +223,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const alerts = [];
         const activeStock = data.stock.filter((item) => !item.productDeleted && !item.variationDeleted);
         const out = activeStock.filter((item) => item.currentlyOutOfStock || item.stockAvailable <= 0).length;
-        const high = data.risks.filter((item) => item.risk === 'HIGH').length;
+        const high = data.risks.filter(
+            (item) => item.risk === 'HIGH' && item.stockAvailable > 0
+        ).length;
         if (out) alerts.push(alertItem(`${out} rupture${out > 1 ? 's' : ''} actuelle${out > 1 ? 's' : ''}`, 'Stock disponible nul', 'danger', '/dashboard/products'));
-        if (high) alerts.push(alertItem(`${high} risque${high > 1 ? 's' : ''} ML élevé${high > 1 ? 's' : ''}`, 'Réapprovisionnement à examiner', 'danger', null));
+        if (high) alerts.push(alertItem(
+            `${high} variation${high > 1 ? 's' : ''} à risque élevé de rupture`,
+            'Stock insuffisant face à la demande prévue sur 7 jours',
+            'danger',
+            '/dashboard/products'
+        ));
         if ((data.overview.comparison.revenueHtPercent ?? 0) < 0) alerts.push(alertItem('Chiffre d’affaires en baisse', `${ui.number.format(Math.abs(data.overview.comparison.revenueHtPercent))} % vs période précédente`, 'warning', null));
         if ((data.overview.comparison.cancellationRatePoints ?? 0) > 0) alerts.push(alertItem('Taux d’annulation en hausse', `+${ui.number.format(data.overview.comparison.cancellationRatePoints)} point`, 'warning', null));
         if ((data.overview.comparison.processingTimeSecondsDelta ?? 0) > 1800) alerts.push(alertItem('Traitement plus lent', `+${ui.duration(data.overview.comparison.processingTimeSecondsDelta)}`, 'warning', null));
@@ -228,6 +326,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (seconds > 0) refreshTimer = setInterval(load, seconds * 1000);
     }
     document.querySelectorAll('.dashboard-period').forEach((button) => button.addEventListener('click', () => { ui.selectPeriod(elements.from, elements.to, Number(button.dataset.periodDays)); load(); }));
+    document.querySelectorAll('[data-product-mode]').forEach((button) => {
+        button.addEventListener('click', () => {
+            productMode = button.dataset.productMode;
+            document.querySelectorAll('[data-product-mode]').forEach(
+                (item) => item.classList.toggle('is-active', item === button)
+            );
+            renderProducts(snapshot.products || []);
+        });
+    });
     elements.apply.addEventListener('click', load); elements.refresh.addEventListener('click', load); elements.refreshInterval.addEventListener('change', configureRefresh);
     window.addEventListener('resize', () => chart.resize()); window.addEventListener('pagehide', () => { controllers.forEach((item) => item.abort()); if (refreshTimer) clearInterval(refreshTimer); chart.dispose(); });
     ui.selectPeriod(elements.from, elements.to, 90);

@@ -23,6 +23,8 @@ MariaDB utilisee par Symfony pour appliquer le filtre du fournisseur connecte.
 - `mart_supplier_daily_kpi` : date et fournisseur. Le calendrier est complet
   entre la premiere et la derniere commande, y compris les jours sans vente.
 - `mart_supplier_product_performance` : mois, fournisseur, produit et variation.
+- `mart_supplier_product_daily_performance` : date, fournisseur et produit ;
+  utilise pour comparer exactement deux periodes de meme duree.
   `product_rank` classe le chiffre d'affaires HT total du produit dans le mois.
 - `mart_supplier_order_status` : fournisseur et statut courant du Workflow.
   `average_transition_duration_seconds` mesure le delai entre la transition

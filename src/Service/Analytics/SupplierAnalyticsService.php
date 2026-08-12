@@ -63,6 +63,18 @@ class SupplierAnalyticsService
         );
     }
 
+    public function productPerformanceComparison(
+        User $supplier,
+        AnalyticsDateRange $range,
+        int $limit,
+    ): array {
+        return $this->repository->productPerformanceComparison(
+            $this->supplierId($supplier),
+            $range,
+            min(100, max(5, $limit)),
+        );
+    }
+
     public function orderStatuses(User $supplier): array
     {
         return $this->repository->orderStatuses(

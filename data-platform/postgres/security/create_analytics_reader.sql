@@ -32,6 +32,7 @@ revoke all on all tables in schema analytics
 
 grant select on table
     analytics.mart_supplier_daily_kpi,
+    analytics.mart_supplier_product_daily_performance,
     analytics.mart_supplier_product_performance,
     analytics.mart_supplier_order_status,
     analytics.mart_supplier_order_processing_time,

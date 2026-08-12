@@ -158,6 +158,37 @@ class AnalyticsController extends AbstractController
         ]);
     }
 
+    public function productComparison(
+        Request $request,
+        SupplierAnalyticsService $analytics,
+    ): JsonResponse {
+        try {
+            $range = AnalyticsDateRange::fromRequest($request);
+            $limit = AnalyticsDateRange::limitFromRequest($request, 50, 100);
+        } catch (\InvalidArgumentException $exception) {
+            return $this->validationError($exception);
+        }
+
+        $items = $analytics->productPerformanceComparison(
+            $this->currentSupplier(),
+            $range,
+            $limit,
+        );
+
+        return $this->json([
+            'data' => array_map(
+                static fn ($item): array => $item->toArray(),
+                $items,
+            ),
+            'meta' => [
+                'period' => $range->toArray(),
+                'previousPeriod' => $range->previous()->toArray(),
+                'count' => count($items),
+                'limit' => $limit,
+            ],
+        ]);
+    }
+
     public function stockTable(
         Request $request,
         SupplierAnalyticsService $analytics,

@@ -5,6 +5,7 @@ namespace App\Tests\Service;
 use App\Dto\Analytics\AnalyticsDateRange;
 use App\Dto\Analytics\KpiSummaryDto;
 use App\Dto\Analytics\OrderProcessingTimeDto;
+use App\Dto\Analytics\ProductPerformanceComparisonDto;
 use App\Dto\Analytics\StockRiskExplanationDto;
 use App\Entity\User;
 use App\Repository\Analytics\SupplierAnalyticsRepository;
@@ -108,6 +109,28 @@ final class SupplierAnalyticsServiceTest extends TestCase
             6,
             'invalid',
         );
+    }
+
+    public function testProductComparisonUsesSupplierAndNormalizesLimit(): void
+    {
+        $range = new AnalyticsDateRange(
+            new \DateTimeImmutable('2026-08-01'),
+            new \DateTimeImmutable('2026-08-04'),
+        );
+        $repository = $this->createMock(SupplierAnalyticsRepository::class);
+        $repository->expects(self::once())
+            ->method('productPerformanceComparison')
+            ->with(101, $range, 100)
+            ->willReturn([new ProductPerformanceComparisonDto(
+                42, 'Sérum HydraGlow', 120, 100, 12, 10, 8, 7,
+                '2026-08-11 08:00:00+00',
+            )]);
+
+        $result = (new SupplierAnalyticsService($repository))
+            ->productPerformanceComparison($this->supplier(101), $range, 500);
+
+        self::assertCount(1, $result);
+        self::assertSame(42, $result[0]->productId);
     }
 
     public function testOverviewKeepsSupplierIsolationAndUsesPreviousPeriod(): void

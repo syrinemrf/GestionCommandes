@@ -7,6 +7,7 @@ use App\Dto\Analytics\DailyKpiDto;
 use App\Dto\Analytics\KpiSummaryDto;
 use App\Dto\Analytics\OrderProcessingTimeDto;
 use App\Dto\Analytics\OrderStatusDto;
+use App\Dto\Analytics\ProductPerformanceComparisonDto;
 use App\Dto\Analytics\ProductPerformanceDto;
 use App\Dto\Analytics\StockOverviewDto;
 use App\Dto\Analytics\StockRiskDto;
@@ -175,6 +176,74 @@ class SupplierAnalyticsRepository
         );
 
         return array_map(ProductPerformanceDto::fromRow(...), $rows);
+    }
+
+    /** @return list<ProductPerformanceComparisonDto> */
+    public function productPerformanceComparison(
+        int $supplierId,
+        AnalyticsDateRange $range,
+        int $limit,
+    ): array {
+        $previous = $range->previous();
+        $rows = $this->connection->fetchAllAssociative(
+            <<<'SQL'
+                select
+                    source_product_id,
+                    max(product_name) as product_name,
+                    coalesce(sum(revenue_ht) filter (
+                        where calendar_date between :date_from and :date_to
+                    ), 0)::numeric(18, 3) as current_revenue_ht,
+                    coalesce(sum(revenue_ht) filter (
+                        where calendar_date between
+                            :previous_date_from and :previous_date_to
+                    ), 0)::numeric(18, 3) as previous_revenue_ht,
+                    coalesce(sum(units_sold) filter (
+                        where calendar_date between :date_from and :date_to
+                    ), 0)::bigint as current_units_sold,
+                    coalesce(sum(units_sold) filter (
+                        where calendar_date between
+                            :previous_date_from and :previous_date_to
+                    ), 0)::bigint as previous_units_sold,
+                    coalesce(sum(order_count) filter (
+                        where calendar_date between :date_from and :date_to
+                    ), 0)::bigint as current_order_count,
+                    coalesce(sum(order_count) filter (
+                        where calendar_date between
+                            :previous_date_from and :previous_date_to
+                    ), 0)::bigint as previous_order_count,
+                    max(last_updated_at) as last_updated_at
+                from analytics.mart_supplier_product_daily_performance
+                where source_supplier_id = :supplier_id
+                  and calendar_date between
+                      :previous_date_from and :date_to
+                  and not product_is_deleted
+                group by source_product_id
+                having
+                    coalesce(sum(revenue_ht), 0) > 0
+                    or coalesce(sum(units_sold), 0) > 0
+                order by current_revenue_ht desc, current_units_sold desc,
+                    source_product_id
+                limit :result_limit
+                SQL,
+            [
+                'supplier_id' => $supplierId,
+                'date_from' => $range->from->format('Y-m-d'),
+                'date_to' => $range->to->format('Y-m-d'),
+                'previous_date_from' => $previous->from->format('Y-m-d'),
+                'previous_date_to' => $previous->to->format('Y-m-d'),
+                'result_limit' => $limit,
+            ],
+            [
+                'supplier_id' => ParameterType::INTEGER,
+                'date_from' => ParameterType::STRING,
+                'date_to' => ParameterType::STRING,
+                'previous_date_from' => ParameterType::STRING,
+                'previous_date_to' => ParameterType::STRING,
+                'result_limit' => ParameterType::INTEGER,
+            ],
+        );
+
+        return array_map(ProductPerformanceComparisonDto::fromRow(...), $rows);
     }
 
     /** @return list<OrderStatusDto> */

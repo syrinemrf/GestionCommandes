@@ -45,7 +45,11 @@ Liste des commandes
                 <select id="commande-status-filter">
                     <option value="">Tous</option>
                     {% for value, label in statuts %}
-                        <option value="{{ value }}">{{ label }}</option>
+                        <option
+                            value="{{ value }}"
+                            {{ app.request.query.get('statut') == value ? 'selected' : '' }}>
+                            {{ label }}
+                        </option>
                     {% endfor %}
                 </select>
             </label>

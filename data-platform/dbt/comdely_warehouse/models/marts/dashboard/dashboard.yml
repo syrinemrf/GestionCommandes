@@ -89,6 +89,47 @@ models:
       - name: last_updated_at
         data_tests: [not_null]
 
+  - name: mart_supplier_product_daily_performance
+    description: >
+      Une ligne par date, fournisseur et produit ayant une vente valide. Ce mart permet
+      de comparer exactement une periode choisie avec la periode precedente de meme duree.
+      Les commandes annulees ou supprimees sont exclues et le prix historique des lignes
+      est conserve dans le chiffre d'affaires HT.
+    columns:
+      - name: supplier_product_daily_performance_key
+        data_tests: [not_null, unique]
+      - name: calendar_date
+        data_tests: [not_null]
+      - name: supplier_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_supplier')
+                field: supplier_key
+      - name: product_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_product')
+                field: product_key
+      - name: source_supplier_id
+        description: Cle naturelle MariaDB utilisee pour isoler le fournisseur.
+        data_tests: [not_null]
+      - name: source_product_id
+        data_tests: [not_null]
+      - name: product_name
+        data_tests: [not_null]
+      - name: units_sold
+        data_tests: [not_null]
+      - name: revenue_ht
+        data_tests: [not_null]
+      - name: order_count
+        data_tests: [not_null]
+      - name: last_updated_at
+        data_tests: [not_null]
+
   - name: mart_supplier_order_status
     description: >
       Une ligne par fournisseur et statut du Workflow. La repartition porte sur l'etat
