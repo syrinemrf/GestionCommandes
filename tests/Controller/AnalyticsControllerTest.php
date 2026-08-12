@@ -44,7 +44,7 @@ final class AnalyticsControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertCount(1, $crawler->filter('#dashboard-evolution-chart'));
         self::assertCount(1, $crawler->filter('h2:contains("Commandes à traiter")'));
-        self::assertCount(1, $crawler->filter('h2:contains("Performance des produits")'));
+        self::assertCount(1, $crawler->filter('h2:contains("Top 5 produits")'));
         self::assertSame(
             '/api/analytics/overview',
             $crawler->filter('#supplier-dashboard')->attr('data-overview-url')
@@ -52,8 +52,8 @@ final class AnalyticsControllerTest extends WebTestCase
         self::assertCount(0, $crawler->filter('#dashboard-loader'));
         self::assertCount(4, $crawler->filter('.dashboard-section-loading'));
         self::assertSame(
-            '/api/analytics/product-comparison',
-            $crawler->filter('#supplier-dashboard')->attr('data-product-comparison-url'),
+            '/api/analytics/products',
+            $crawler->filter('#supplier-dashboard')->attr('data-products-url'),
         );
         self::assertSame(
             '/commandes',
@@ -62,6 +62,13 @@ final class AnalyticsControllerTest extends WebTestCase
 
         $crawler = $client->request('GET', '/dashboard/products');
         self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('#dashboard-product-performance-table'));
+        self::assertCount(1, $crawler->filter('h2:contains("Performance des produits")'));
+        self::assertCount(0, $crawler->filter('#dashboard-products-chart'));
+        self::assertSame(
+            '/api/analytics/product-comparison',
+            $crawler->filter('#supplier-products-dashboard')->attr('data-product-comparison-url'),
+        );
         self::assertCount(1, $crawler->filter('#dashboard-stock-table'));
         self::assertCount(1, $crawler->filter('th:contains("Risque de rupture")'));
         self::assertCount(0, $crawler->filter('th:contains("Dernier mouvement")'));

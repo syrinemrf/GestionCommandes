@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const endpoints = {
         overview: root.dataset.overviewUrl,
         evolution: root.dataset.evolutionUrl,
-        products: root.dataset.productComparisonUrl,
+        products: root.dataset.productsUrl,
         statuses: root.dataset.statusesUrl,
         stock: root.dataset.stockUrl,
         risks: root.dataset.risksUrl,
@@ -27,7 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const snapshot = {};
     let alertPending = new Set();
     const alertErrors = new Map();
-    let productMode = 'revenue';
     const chart = echarts.init(document.getElementById('dashboard-evolution-chart'));
     const actionableStatuses = {
         EN_ATTENTE_CONFIRMATION: 'À confirmer',
@@ -159,65 +158,41 @@ document.addEventListener('DOMContentLoaded', () => {
             : `${ui.integer.format(transit)} commandes en cours d’acheminement`;
     }
 
-    function rankedProducts(items) {
-        const products = [...items];
+    function aggregateProducts(items) {
+        const products = new Map();
+        items.filter((item) => !item.productDeleted).forEach((item) => {
+            const value = products.get(item.productId) || {
+                name: item.productName,
+                revenue: 0,
+                units: 0,
+            };
+            value.revenue += Number(item.revenueHt) || 0;
+            value.units += Number(item.unitsSold) || 0;
+            products.set(item.productId, value);
+        });
 
-        if (productMode === 'declining') {
-            return products
-                .filter((item) => item.revenueChangePercent !== null && item.revenueChangePercent < 0)
-                .sort((a, b) => a.revenueChangePercent - b.revenueChangePercent)
-                .slice(0, 5);
-        }
-
-        return products
-            .filter((item) => productMode === 'units'
-                ? item.currentUnitsSold > 0
-                : item.currentRevenueHt > 0)
-            .sort((a, b) => productMode === 'units'
-                ? b.currentUnitsSold - a.currentUnitsSold || b.currentRevenueHt - a.currentRevenueHt
-                : b.currentRevenueHt - a.currentRevenueHt || b.currentUnitsSold - a.currentUnitsSold)
+        return Array.from(products.values())
+            .sort((a, b) => b.revenue - a.revenue || b.units - a.units)
             .slice(0, 5);
     }
 
     function renderProducts(items) {
         elements.products.replaceChildren();
-        const products = rankedProducts(items);
+        const products = aggregateProducts(items);
         document.querySelector('[data-empty-for="products"]').hidden = products.length > 0;
 
         products.forEach((item, index) => {
             const row = document.createElement('li');
-            const product = document.createElement('div');
-            product.className = 'dashboard-performance-product';
             const rank = document.createElement('span');
             rank.className = 'dashboard-rank';
             rank.textContent = index + 1;
+            const content = document.createElement('div');
             const name = document.createElement('strong');
-            name.textContent = item.productName;
-            product.append(rank, name);
-
-            const revenue = document.createElement('span');
-            revenue.textContent = ui.money(item.currentRevenueHt, revenue);
-            const units = document.createElement('span');
-            units.textContent = ui.integer.format(item.currentUnitsSold);
-            const change = document.createElement('small');
-            const variation = productMode === 'units'
-                ? item.unitsChangePercent
-                : item.revenueChangePercent;
-            change.className = 'dashboard-performance-change is-neutral';
-            if (variation === null) {
-                const currentValue = productMode === 'units'
-                    ? item.currentUnitsSold
-                    : item.currentRevenueHt;
-                change.textContent = currentValue > 0 ? 'Nouveau' : '-';
-            } else {
-                const amount = Number(variation) || 0;
-                change.textContent = amount === 0
-                    ? 'Stable'
-                    : `${amount > 0 ? '+' : ''}${ui.number.format(amount)} %`;
-                if (amount > 0) change.classList.add('is-positive');
-                if (amount < 0) change.classList.add('is-negative');
-            }
-            row.append(product, revenue, units, change);
+            name.textContent = item.name;
+            const detail = document.createElement('small');
+            detail.textContent = `${ui.money(item.revenue)} · ${ui.integer.format(item.units)} unités`;
+            content.append(name, detail);
+            row.append(rank, content);
             elements.products.append(row);
         });
     }
@@ -333,19 +308,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (seconds > 0) refreshTimer = setInterval(load, seconds * 1000);
     }
     document.querySelectorAll('.dashboard-period').forEach((button) => button.addEventListener('click', () => { ui.selectPeriod(elements.from, elements.to, Number(button.dataset.periodDays)); load(); }));
-    document.querySelectorAll('[data-product-mode]').forEach((button) => {
-        button.addEventListener('click', () => {
-            productMode = button.dataset.productMode;
-            document.querySelectorAll('[data-product-mode]').forEach(
-                (item) => {
-                    const active = item === button;
-                    item.classList.toggle('is-active', active);
-                    item.setAttribute('aria-selected', String(active));
-                }
-            );
-            renderProducts(snapshot.products || []);
-        });
-    });
     elements.apply.addEventListener('click', load); elements.refresh.addEventListener('click', load); elements.refreshInterval.addEventListener('change', configureRefresh);
     window.addEventListener('resize', () => chart.resize()); window.addEventListener('pagehide', () => { controllers.forEach((item) => item.abort()); if (refreshTimer) clearInterval(refreshTimer); chart.dispose(); });
     ui.selectPeriod(elements.from, elements.to, 90);

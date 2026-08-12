@@ -1,25 +1,63 @@
 document.addEventListener('DOMContentLoaded', () => {
     const root = document.getElementById('supplier-products-dashboard');
-    if (!root || typeof echarts === 'undefined' || !window.ComdelyDashboard || !window.jQuery || !$.fn.DataTable) return;
+    if (!root || !window.ComdelyDashboard || !window.jQuery || !$.fn.DataTable) return;
     const ui = window.ComdelyDashboard;
-    const elements = { from: document.getElementById('dashboard-date-from'), to: document.getElementById('dashboard-date-to'), apply: document.getElementById('dashboard-apply-filters'), refresh: document.getElementById('dashboard-refresh'), feedback: document.getElementById('dashboard-feedback'), lastUpdated: document.getElementById('dashboard-last-updated'), stockTable: document.getElementById('dashboard-stock-table'), dialog: document.getElementById('dashboard-stock-risk-dialog'), dialogLoading: document.getElementById('dashboard-stock-risk-loading'), dialogContent: document.getElementById('dashboard-stock-risk-content') };
-    const chart = echarts.init(document.getElementById('dashboard-products-chart'));
+    const elements = { from: document.getElementById('dashboard-date-from'), to: document.getElementById('dashboard-date-to'), apply: document.getElementById('dashboard-apply-filters'), refresh: document.getElementById('dashboard-refresh'), feedback: document.getElementById('dashboard-feedback'), lastUpdated: document.getElementById('dashboard-last-updated'), performanceTable: document.getElementById('dashboard-product-performance-table'), stockTable: document.getElementById('dashboard-stock-table'), dialog: document.getElementById('dashboard-stock-risk-dialog'), dialogLoading: document.getElementById('dashboard-stock-risk-loading'), dialogContent: document.getElementById('dashboard-stock-risk-content') };
     const controllers = new Map();
     let explanationController = null;
     const snapshot = {};
+    let productMode = 'revenue';
+    let performanceDataTable = null;
     let stockDataTable = null;
     const riskLabels = { HIGH: 'Élevé', MEDIUM: 'Modéré', LOW: 'Faible', INSUFFICIENT_DATA: 'Non évalué' };
 
-    function aggregateProducts(items) {
-        const products = new Map();
-        items.filter((item) => !item.productDeleted).forEach((item) => { const current = products.get(item.productId) || { name: item.productName, revenue: 0, units: 0, orders: 0 }; current.revenue += Number(item.revenueHt) || 0; current.units += Number(item.unitsSold) || 0; current.orders += Number(item.orderCount) || 0; products.set(item.productId, current); });
-        return Array.from(products.values()).sort((a, b) => b.revenue - a.revenue || b.units - a.units).slice(0, 10).reverse();
+    function productChange(row) {
+        return productMode === 'units'
+            ? row.unitsChangePercent
+            : row.revenueChangePercent;
+    }
+
+    function performanceRows(items) {
+        if (productMode === 'declining') {
+            return items.filter((item) => item.revenueChangePercent !== null && item.revenueChangePercent < 0);
+        }
+
+        return items.filter((item) => productMode === 'units'
+            ? item.currentUnitsSold > 0
+            : item.currentRevenueHt > 0);
+    }
+
+    function initializePerformanceTable() {
+        performanceDataTable = $(elements.performanceTable).DataTable({
+            data: [],
+            pageLength: 5,
+            lengthChange: false,
+            columns: [
+                { data: 'productName', className: 'dashboard-product-cell' },
+                { data: 'currentRevenueHt', render: (value, type) => type === 'display' ? ui.money(value) : Number(value) },
+                { data: 'currentUnitsSold', render: (value, type) => type === 'display' ? ui.integer.format(value) : Number(value) },
+                { data: null, render: (data, type, row) => {
+                    const value = productChange(row);
+                    if (type !== 'display') return value ?? Number.POSITIVE_INFINITY;
+                    if (value === null) return '<span class="dashboard-performance-change is-neutral">Nouveau</span>';
+                    const amount = Number(value) || 0;
+                    const label = amount === 0 ? 'Stable' : `${amount > 0 ? '+' : ''}${ui.number.format(amount)} %`;
+                    const state = amount > 0 ? 'is-positive' : amount < 0 ? 'is-negative' : 'is-neutral';
+                    return `<span class="dashboard-performance-change ${state}">${label}</span>`;
+                } },
+            ],
+            order: [[1, 'desc']],
+        });
     }
 
     function renderProducts(items) {
-        const products = aggregateProducts(items); const empty = products.length === 0; document.querySelector('[data-empty-for="products"]').hidden = !empty; chart.getDom().hidden = empty;
-        if (empty) return chart.clear();
-        chart.setOption({ color: ['#047857'], tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: '#0f172a', borderWidth: 0, textStyle: { color: '#fff' }, formatter: (params) => { const item = products[params[0].dataIndex]; return `${item.name}<br><strong>${ui.exactMoney.format(item.revenue)} TND HT</strong><br>${ui.integer.format(item.units)} unités`; } }, grid: { left: 12, right: 30, top: 12, bottom: 12, containLabel: true }, xAxis: { type: 'value', axisLabel: { color: '#64748b', formatter: (value) => ui.money(value).replace(' TND', '') } }, yAxis: { type: 'category', data: products.map((item) => item.name), axisLabel: { color: '#475569', width: 180, overflow: 'truncate' } }, series: [{ type: 'bar', data: products.map((item) => item.revenue), barMaxWidth: 24, itemStyle: { borderRadius: [0, 5, 5, 0] } }] }, { notMerge: true });
+        performanceDataTable.clear().rows.add(performanceRows(items));
+        performanceDataTable.order(productMode === 'units'
+            ? [[2, 'desc']]
+            : productMode === 'declining'
+                ? [[3, 'asc']]
+                : [[1, 'desc']]);
+        performanceDataTable.draw();
     }
 
     function renderStockKpis(items) {
@@ -138,7 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadProducts(period) {
         const key = 'products'; controllers.get(key)?.abort(); const partController = new AbortController(); controllers.set(key, partController); updateRequestState(); setSectionLoading('products', true, Boolean(snapshot.products)); setSectionError('products');
         const retry = () => loadProducts(period);
-        try { const response = await ui.requestJson(ui.buildUrl(root.dataset.productsUrl, { ...period, limit: 100 }), partController.signal); if (controllers.get(key) !== partController) return; snapshot.products = response.data; renderProducts(snapshot.products); updateLastUpdated(); }
+        try { const response = await ui.requestJson(ui.buildUrl(root.dataset.productComparisonUrl, { ...period, limit: 100 }), partController.signal); if (controllers.get(key) !== partController) return; snapshot.products = response.data; renderProducts(snapshot.products); updateLastUpdated(); }
         catch (error) { if (error.name !== 'AbortError' && controllers.get(key) === partController) setSectionError('products', `Performances indisponibles. ${error.message}`, retry); }
         finally { if (controllers.get(key) === partController) { controllers.delete(key); setSectionLoading('products', false); updateRequestState(); } }
     }
@@ -157,9 +195,16 @@ document.addEventListener('DOMContentLoaded', () => {
         loadProducts(period); loadStockKpis(); if (reloadTable && stockDataTable) stockDataTable.ajax.reload(null, false);
     }
     document.querySelectorAll('.dashboard-period').forEach((button) => button.addEventListener('click', () => { ui.selectPeriod(elements.from, elements.to, Number(button.dataset.periodDays)); load(); }));
+    document.querySelectorAll('[data-product-mode]').forEach((button) => button.addEventListener('click', () => {
+        productMode = button.dataset.productMode;
+        document.querySelectorAll('[data-product-mode]').forEach((item) => {
+            const active = item === button; item.classList.toggle('is-active', active); item.setAttribute('aria-selected', String(active));
+        });
+        renderProducts(snapshot.products || []);
+    }));
     elements.apply.addEventListener('click', load); elements.refresh.addEventListener('click', load);
     elements.stockTable.addEventListener('click', (event) => { const button = event.target.closest('.dashboard-risk-explain'); if (!button) return; explain(stockDataTable.row(button.closest('tr')).data()); });
     document.getElementById('dashboard-stock-risk-close').addEventListener('click', () => elements.dialog.close());
     elements.dialog.addEventListener('close', () => { explanationController?.abort(); explanationController = null; });
-    window.addEventListener('resize', () => chart.resize()); window.addEventListener('pagehide', () => { controllers.forEach((item) => item.abort()); explanationController?.abort(); chart.dispose(); }); initializeStockTable(); ui.selectPeriod(elements.from, elements.to, 90); load(false);
+    window.addEventListener('pagehide', () => { controllers.forEach((item) => item.abort()); explanationController?.abort(); }); initializePerformanceTable(); initializeStockTable(); ui.selectPeriod(elements.from, elements.to, 90); load(false);
 });

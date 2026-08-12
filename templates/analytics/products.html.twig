@@ -1,7 +1,7 @@
 {% extends 'base.html.twig' %}
 {% block title %}Produits & Stock - Komdely{% endblock %}
 {% block body %}
-<div id="supplier-products-dashboard" class="dashboard" data-products-url="{{ path('analytics_products') }}" data-stock-url="{{ path('analytics_stock') }}" data-stock-table-url="{{ path('analytics_stock_table') }}" data-risk-explanation-url="{{ path('analytics_risks') }}">
+<div id="supplier-products-dashboard" class="dashboard" data-product-comparison-url="{{ path('analytics_product_comparison') }}" data-stock-url="{{ path('analytics_stock') }}" data-stock-table-url="{{ path('analytics_stock_table') }}" data-risk-explanation-url="{{ path('analytics_risks') }}">
     {% include 'analytics/_header.html.twig' with {title: 'Produits & Stock', subtitle: 'Identifiez vos meilleures ventes et les variations qui nécessitent votre attention.'} %}
     {% include 'analytics/_navigation.html.twig' %}
     <section class="dashboard-filters" aria-label="Période analysée">
@@ -14,7 +14,23 @@
     <section class="dashboard-kpis dashboard-kpis-four dashboard-progressive-section" data-dashboard-section="stock-kpis">
         <article class="dashboard-kpi-card"><span>Variations actives</span><strong id="stock-active-count">-</strong></article><article class="dashboard-kpi-card"><span>Ruptures actuelles</span><strong id="stock-out-count">-</strong></article><article class="dashboard-kpi-card"><span>Stocks faibles</span><strong id="stock-low-count">-</strong></article><article class="dashboard-kpi-card"><span>Unités réservées</span><strong id="stock-reserved-count">-</strong></article>
     </section>
-    <article class="dashboard-panel dashboard-progressive-section" data-dashboard-section="products"><div class="dashboard-panel-heading"><div><h2>Produits les plus performants</h2><p>Top 10 par chiffre d’affaires HT sur la période</p></div></div><div id="dashboard-products-chart" class="dashboard-chart dashboard-chart-products"></div><div class="dashboard-section-loading" data-loading-for="products"><span class="dashboard-spinner"></span><span>Chargement des performances...</span></div><div class="dashboard-section-error" data-error-for="products" hidden></div><div class="dashboard-empty" data-empty-for="products" hidden>Aucune vente sur cette période.</div></article>
+    <article class="dashboard-panel dashboard-progressive-section" data-dashboard-section="products">
+        <div class="dashboard-panel-heading dashboard-performance-heading">
+            <div><h2>Performance des produits</h2><p>Comparée à la période précédente de même durée</p></div>
+            <div class="dashboard-performance-tabs" role="tablist" aria-label="Classement des produits">
+                <button type="button" class="is-active" role="tab" aria-selected="true" data-product-mode="revenue">Top CA</button>
+                <button type="button" role="tab" aria-selected="false" data-product-mode="units">Plus vendus</button>
+                <button type="button" role="tab" aria-selected="false" data-product-mode="declining">En baisse</button>
+            </div>
+        </div>
+        <div class="dashboard-table-wrapper dashboard-performance-table-wrapper">
+            <table id="dashboard-product-performance-table" class="dashboard-data-table dashboard-product-performance-table">
+                <thead><tr><th>Produit</th><th>CA HT</th><th>Unités</th><th>Évolution</th></tr></thead>
+            </table>
+        </div>
+        <div class="dashboard-section-loading" data-loading-for="products"><span class="dashboard-spinner"></span><span>Chargement des performances...</span></div>
+        <div class="dashboard-section-error" data-error-for="products" hidden></div>
+    </article>
     <article class="dashboard-panel dashboard-stock-detail-panel dashboard-progressive-section" data-dashboard-section="stock">
         <div class="dashboard-panel-heading dashboard-stock-heading"><div><h2>Détail du stock par variation</h2><p>Stock enregistré, utilisé, réservé et réellement disponible</p></div></div>
         <div class="dashboard-table-wrapper"><table id="dashboard-stock-table" class="dashboard-data-table"><thead><tr><th>Produit / variation</th><th>Enregistré</th><th>Utilisé</th><th>Réservé</th><th>Disponible</th><th>État</th><th>Risque de rupture</th><th aria-label="Explication"></th></tr></thead></table></div>
@@ -34,5 +50,5 @@
     </dialog>
 </div>
 {% endblock %}
-{% block javascripts %}{{ parent() }}<script src="{{ asset('vendor/jquery/jquery-3.7.1.min.js') }}"></script><script src="{{ asset('vendor/datatables/dataTables.min.js') }}"></script><script src="{{ asset('vendor/echarts/echarts.min.js') }}"></script><script src="{{ asset('js/dashboard-common.js') }}"></script><script src="{{ asset('js/dashboard-products.js') }}"></script>{% endblock %}
+{% block javascripts %}{{ parent() }}<script src="{{ asset('vendor/jquery/jquery-3.7.1.min.js') }}"></script><script src="{{ asset('vendor/datatables/dataTables.min.js') }}"></script><script src="{{ asset('js/dashboard-common.js') }}"></script><script src="{{ asset('js/dashboard-products.js') }}"></script>{% endblock %}
 {% block stylesheets %}{{ parent() }}<link rel="stylesheet" href="{{ asset('vendor/datatables/dataTables.dataTables.min.css') }}">{% endblock %}
