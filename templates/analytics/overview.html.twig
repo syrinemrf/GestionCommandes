@@ -38,7 +38,7 @@
     <section class="dashboard-decision-grid">
         <article class="dashboard-panel dashboard-compact-panel dashboard-progressive-section" data-dashboard-section="statuses">
             <div class="dashboard-panel-heading"><div><h2>Commandes à traiter</h2><p>Situation actuelle</p></div></div>
-            <strong id="dashboard-action-total" class="dashboard-action-total">-</strong>
+            <strong id="dashboard-action-total" class="dashboard-action-total" hidden>-</strong>
             <div id="dashboard-status-list" class="dashboard-action-list"></div>
             <p id="dashboard-transit-total" class="dashboard-transit-total" hidden></p>
             <div class="dashboard-section-loading" data-loading-for="statuses"><span class="dashboard-spinner"></span><span>Chargement...</span></div>
@@ -48,9 +48,9 @@
         <article class="dashboard-panel dashboard-compact-panel dashboard-progressive-section" data-dashboard-section="products">
             <div class="dashboard-panel-heading dashboard-performance-heading"><div><h2>Performance des produits</h2><p>Comparée à la période précédente</p></div><a href="{{ path('analytics_dashboard_products') }}" class="dashboard-text-link">Voir l’analyse</a></div>
             <div class="dashboard-performance-tabs" role="tablist" aria-label="Classement des produits">
-                <button type="button" class="is-active" data-product-mode="revenue">Top CA</button>
-                <button type="button" data-product-mode="units">Plus vendus</button>
-                <button type="button" data-product-mode="declining">En baisse</button>
+                <button type="button" class="is-active" role="tab" aria-selected="true" data-product-mode="revenue">Top CA</button>
+                <button type="button" role="tab" aria-selected="false" data-product-mode="units">Plus vendus</button>
+                <button type="button" role="tab" aria-selected="false" data-product-mode="declining">En baisse</button>
             </div>
             <div class="dashboard-performance-columns" aria-hidden="true"><span>Produit</span><span>CA HT</span><span>Unités</span><span>Évolution</span></div>
             <ol id="dashboard-top-products" class="dashboard-performance-list"></ol>

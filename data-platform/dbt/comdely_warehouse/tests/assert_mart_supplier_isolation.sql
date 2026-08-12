@@ -18,6 +18,19 @@ with violations as (
 
     union all
 
+    select 'product_daily_performance', mart.source_supplier_id
+    from {{ ref('mart_supplier_product_daily_performance') }} as mart
+    inner join {{ ref('dim_supplier') }} as supplier
+        on supplier.supplier_key = mart.supplier_key
+    inner join {{ ref('dim_product') }} as product
+        on product.product_key = mart.product_key
+    where supplier.source_supplier_id <> mart.source_supplier_id
+       or product.source_supplier_id <> mart.source_supplier_id
+       or supplier.source_system <> mart.source_system
+       or product.source_system <> mart.source_system
+
+    union all
+
     select 'order_status', mart.source_supplier_id
     from {{ ref('mart_supplier_order_status') }} as mart
     inner join {{ ref('dim_supplier') }} as supplier on supplier.supplier_key = mart.supplier_key

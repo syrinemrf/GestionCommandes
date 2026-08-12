@@ -129,12 +129,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const total = actionable.reduce((sum, item) => sum + item.count, 0);
         const transit = (counts.get('EXPEDIEE') || 0) + (counts.get('EN_LIVRAISON') || 0);
 
-        elements.actionTotal.textContent = total === 1
-            ? '1 commande nécessite votre attention'
-            : `${ui.integer.format(total)} commandes nécessitent votre attention`;
-        elements.actionTotal.hidden = total === 0;
+        elements.actionTotal.textContent = total === 0
+            ? 'Aucune commande ne nécessite votre attention'
+            : total === 1
+                ? '1 commande nécessite votre attention'
+                : `${ui.integer.format(total)} commandes nécessitent votre attention`;
+        elements.actionTotal.hidden = false;
         elements.statuses.hidden = total === 0;
-        document.querySelector('[data-empty-for="statuses"]').hidden = total > 0;
+        document.querySelector('[data-empty-for="statuses"]').hidden = true;
 
         actionable.forEach((item) => {
             const row = document.createElement('a');
@@ -198,10 +200,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const units = document.createElement('span');
             units.textContent = ui.integer.format(item.currentUnitsSold);
             const change = document.createElement('small');
-            const variation = item.revenueChangePercent;
+            const variation = productMode === 'units'
+                ? item.unitsChangePercent
+                : item.revenueChangePercent;
             change.className = 'dashboard-performance-change is-neutral';
             if (variation === null) {
-                change.textContent = item.currentRevenueHt > 0 ? 'Nouveau' : '-';
+                const currentValue = productMode === 'units'
+                    ? item.currentUnitsSold
+                    : item.currentRevenueHt;
+                change.textContent = currentValue > 0 ? 'Nouveau' : '-';
             } else {
                 const amount = Number(variation) || 0;
                 change.textContent = amount === 0
@@ -330,7 +337,11 @@ document.addEventListener('DOMContentLoaded', () => {
         button.addEventListener('click', () => {
             productMode = button.dataset.productMode;
             document.querySelectorAll('[data-product-mode]').forEach(
-                (item) => item.classList.toggle('is-active', item === button)
+                (item) => {
+                    const active = item === button;
+                    item.classList.toggle('is-active', active);
+                    item.setAttribute('aria-selected', String(active));
+                }
             );
             renderProducts(snapshot.products || []);
         });
