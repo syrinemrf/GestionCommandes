@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const controllers = new Map();
     let refreshTimer = null;
+    let productMode = 'revenue';
     const snapshot = {};
     let alertPending = new Set();
     const alertErrors = new Map();
@@ -158,41 +159,50 @@ document.addEventListener('DOMContentLoaded', () => {
             : `${ui.integer.format(transit)} commandes en cours d’acheminement`;
     }
 
-    function aggregateProducts(items) {
-        const products = new Map();
-        items.filter((item) => !item.productDeleted).forEach((item) => {
-            const value = products.get(item.productId) || {
-                name: item.productName,
-                revenue: 0,
-                units: 0,
-            };
-            value.revenue += Number(item.revenueHt) || 0;
-            value.units += Number(item.unitsSold) || 0;
-            products.set(item.productId, value);
-        });
+    function rankedProducts(items) {
+        if (productMode === 'declining') {
+            return items
+                .filter((item) => item.revenueChangePercent !== null && item.revenueChangePercent < 0)
+                .sort((a, b) => a.revenueChangePercent - b.revenueChangePercent)
+                .slice(0, 5);
+        }
 
-        return Array.from(products.values())
-            .sort((a, b) => b.revenue - a.revenue || b.units - a.units)
+        return items
+            .filter((item) => productMode === 'units' ? item.currentUnitsSold > 0 : item.currentRevenueHt > 0)
+            .sort((a, b) => productMode === 'units'
+                ? b.currentUnitsSold - a.currentUnitsSold || b.currentRevenueHt - a.currentRevenueHt
+                : b.currentRevenueHt - a.currentRevenueHt || b.currentUnitsSold - a.currentUnitsSold)
             .slice(0, 5);
     }
 
     function renderProducts(items) {
         elements.products.replaceChildren();
-        const products = aggregateProducts(items);
+        const products = rankedProducts(items);
         document.querySelector('[data-empty-for="products"]').hidden = products.length > 0;
 
-        products.forEach((item, index) => {
+        products.forEach((item) => {
             const row = document.createElement('li');
-            const rank = document.createElement('span');
-            rank.className = 'dashboard-rank';
-            rank.textContent = index + 1;
             const content = document.createElement('div');
+            content.className = 'dashboard-performance-product';
             const name = document.createElement('strong');
-            name.textContent = item.name;
-            const detail = document.createElement('small');
-            detail.textContent = `${ui.money(item.revenue)} · ${ui.integer.format(item.units)} unités`;
-            content.append(name, detail);
-            row.append(rank, content);
+            name.textContent = item.productName;
+            content.append(name);
+            const revenue = document.createElement('span');
+            revenue.textContent = ui.money(item.currentRevenueHt, revenue);
+            const units = document.createElement('span');
+            units.textContent = ui.integer.format(item.currentUnitsSold);
+            const change = productMode === 'units' ? item.unitsChangePercent : item.revenueChangePercent;
+            const evolution = document.createElement('span');
+            evolution.className = 'dashboard-performance-change';
+            if (change === null) {
+                evolution.textContent = 'Nouveau';
+            } else {
+                const amount = Number(change) || 0;
+                evolution.textContent = amount === 0 ? 'Stable' : `${amount > 0 ? '+' : ''}${ui.number.format(amount)} %`;
+                if (amount > 0) evolution.classList.add('is-positive');
+                if (amount < 0) evolution.classList.add('is-negative');
+            }
+            row.append(content, revenue, units, evolution);
             elements.products.append(row);
         });
     }
@@ -308,6 +318,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (seconds > 0) refreshTimer = setInterval(load, seconds * 1000);
     }
     document.querySelectorAll('.dashboard-period').forEach((button) => button.addEventListener('click', () => { ui.selectPeriod(elements.from, elements.to, Number(button.dataset.periodDays)); load(); }));
+    document.querySelectorAll('[data-product-mode]').forEach((button) => button.addEventListener('click', () => {
+        productMode = button.dataset.productMode;
+        document.querySelectorAll('[data-product-mode]').forEach((item) => {
+            const active = item === button;
+            item.classList.toggle('is-active', active);
+            item.setAttribute('aria-selected', String(active));
+        });
+        renderProducts(snapshot.products || []);
+    }));
     elements.apply.addEventListener('click', load); elements.refresh.addEventListener('click', load); elements.refreshInterval.addEventListener('change', configureRefresh);
     window.addEventListener('resize', () => chart.resize()); window.addEventListener('pagehide', () => { controllers.forEach((item) => item.abort()); if (refreshTimer) clearInterval(refreshTimer); chart.dispose(); });
     ui.selectPeriod(elements.from, elements.to, 90);

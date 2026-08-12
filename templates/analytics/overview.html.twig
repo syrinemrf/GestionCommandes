@@ -3,7 +3,7 @@
 {% block title %}Vue d’ensemble - Komdely{% endblock %}
 
 {% block body %}
-<div id="supplier-dashboard" class="dashboard" data-overview-url="{{ path('analytics_overview') }}" data-evolution-url="{{ path('analytics_evolution') }}" data-products-url="{{ path('analytics_products') }}" data-statuses-url="{{ path('analytics_statuses') }}" data-stock-url="{{ path('analytics_stock') }}" data-risks-url="{{ path('analytics_risks') }}" data-orders-url="{{ path('commande_list') }}">
+<div id="supplier-dashboard" class="dashboard" data-overview-url="{{ path('analytics_overview') }}" data-evolution-url="{{ path('analytics_evolution') }}" data-products-url="{{ path('analytics_product_comparison') }}" data-statuses-url="{{ path('analytics_statuses') }}" data-stock-url="{{ path('analytics_stock') }}" data-risks-url="{{ path('analytics_risks') }}" data-orders-url="{{ path('commande_list') }}">
     {% include 'analytics/_header.html.twig' with {title: 'Vue d’ensemble', subtitle: 'Les indicateurs essentiels pour piloter votre activité.'} %}
     {% include 'analytics/_navigation.html.twig' %}
 
@@ -27,15 +27,14 @@
     </section>
     <div class="dashboard-section-error" data-error-for="overview" hidden></div>
 
-    <article class="dashboard-panel dashboard-overview-chart-panel dashboard-progressive-section" data-dashboard-section="evolution">
-        <div class="dashboard-panel-heading"><div><h2>Évolution de l’activité</h2><p id="dashboard-evolution-subtitle">Commandes et chiffre d’affaires HT</p></div></div>
-        <div class="dashboard-chart dashboard-chart-main" id="dashboard-evolution-chart" role="img" aria-label="Évolution des commandes et du chiffre d’affaires"></div>
-        <div class="dashboard-section-loading" data-loading-for="evolution"><span class="dashboard-spinner"></span><span>Chargement de l’évolution...</span></div>
-        <div class="dashboard-section-error" data-error-for="evolution" hidden></div>
-        <div class="dashboard-empty" data-empty-for="evolution" hidden>Aucune activité sur cette période.</div>
-    </article>
-
-    <section class="dashboard-decision-grid">
+    <section class="dashboard-overview-primary-grid">
+        <article class="dashboard-panel dashboard-overview-chart-panel dashboard-progressive-section" data-dashboard-section="evolution">
+            <div class="dashboard-panel-heading"><div><h2>Évolution de l’activité</h2><p id="dashboard-evolution-subtitle">Commandes et chiffre d’affaires HT</p></div></div>
+            <div class="dashboard-chart dashboard-chart-main" id="dashboard-evolution-chart" role="img" aria-label="Évolution des commandes et du chiffre d’affaires"></div>
+            <div class="dashboard-section-loading" data-loading-for="evolution"><span class="dashboard-spinner"></span><span>Chargement de l’évolution...</span></div>
+            <div class="dashboard-section-error" data-error-for="evolution" hidden></div>
+            <div class="dashboard-empty" data-empty-for="evolution" hidden>Aucune activité sur cette période.</div>
+        </article>
         <article class="dashboard-panel dashboard-compact-panel dashboard-progressive-section" data-dashboard-section="statuses">
             <div class="dashboard-panel-heading"><div><h2>Commandes à traiter</h2><p>Situation actuelle</p></div></div>
             <strong id="dashboard-action-total" class="dashboard-action-total" hidden>-</strong>
@@ -45,12 +44,24 @@
             <div class="dashboard-section-error" data-error-for="statuses" hidden></div>
             <div class="dashboard-empty dashboard-empty-compact" data-empty-for="statuses" hidden>Aucune commande ne nécessite votre attention.</div>
         </article>
-        <article class="dashboard-panel dashboard-compact-panel dashboard-progressive-section" data-dashboard-section="products">
-            <div class="dashboard-panel-heading"><div><h2>Top 5 produits</h2><p>Par chiffre d’affaires HT</p></div><a href="{{ path('analytics_dashboard_products') }}" class="dashboard-text-link">Voir l’analyse</a></div>
-            <ol id="dashboard-top-products" class="dashboard-ranked-list"></ol>
+    </section>
+
+    <section class="dashboard-overview-secondary-grid">
+        <article class="dashboard-panel dashboard-performance-panel dashboard-progressive-section" data-dashboard-section="products">
+            <div class="dashboard-panel-heading dashboard-performance-heading">
+                <div><h2>Performance des produits</h2><p>Comparée à la période précédente de même durée</p></div>
+                <a href="{{ path('analytics_dashboard_products') }}" class="dashboard-text-link">Voir le stock</a>
+            </div>
+            <div class="dashboard-performance-tabs" role="tablist" aria-label="Classement des produits">
+                <button type="button" class="is-active" role="tab" aria-selected="true" data-product-mode="revenue">Top CA</button>
+                <button type="button" role="tab" aria-selected="false" data-product-mode="units">Plus vendus</button>
+                <button type="button" role="tab" aria-selected="false" data-product-mode="declining">En baisse</button>
+            </div>
+            <div class="dashboard-performance-columns" aria-hidden="true"><span>Produit</span><span>CA HT</span><span>Unités</span><span>Évolution</span></div>
+            <ol id="dashboard-top-products" class="dashboard-performance-list"></ol>
             <div class="dashboard-section-loading" data-loading-for="products"><span class="dashboard-spinner"></span><span>Chargement...</span></div>
             <div class="dashboard-section-error" data-error-for="products" hidden></div>
-            <div class="dashboard-empty dashboard-empty-compact" data-empty-for="products" hidden>Aucune vente.</div>
+            <div class="dashboard-empty dashboard-empty-compact" data-empty-for="products" hidden>Aucune donnée pour ce classement.</div>
         </article>
         <article class="dashboard-panel dashboard-compact-panel dashboard-alert-panel dashboard-progressive-section" data-dashboard-section="alerts"><div class="dashboard-panel-heading"><div><h2>À surveiller</h2><p>5 alertes prioritaires maximum</p></div></div><ul id="dashboard-alerts" class="dashboard-alert-list"></ul><div class="dashboard-section-loading" data-loading-for="alerts"><span class="dashboard-spinner"></span><span>Analyse des alertes...</span></div><div class="dashboard-section-error" data-error-for="alerts" hidden></div><div class="dashboard-empty dashboard-empty-compact" data-empty-for="alerts" hidden>Aucune alerte prioritaire.</div></article>
     </section>

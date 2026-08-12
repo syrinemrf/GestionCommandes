@@ -1,36 +1,17 @@
 {% extends 'base.html.twig' %}
 {% block title %}Produits & Stock - Komdely{% endblock %}
 {% block body %}
-<div id="supplier-products-dashboard" class="dashboard" data-product-comparison-url="{{ path('analytics_product_comparison') }}" data-stock-url="{{ path('analytics_stock') }}" data-stock-table-url="{{ path('analytics_stock_table') }}" data-risk-explanation-url="{{ path('analytics_risks') }}">
-    {% include 'analytics/_header.html.twig' with {title: 'Produits & Stock', subtitle: 'Identifiez vos meilleures ventes et les variations qui nécessitent votre attention.'} %}
+<div id="supplier-products-dashboard" class="dashboard" data-stock-url="{{ path('analytics_stock') }}" data-stock-table-url="{{ path('analytics_stock_table') }}" data-risk-explanation-url="{{ path('analytics_risks') }}">
+    {% include 'analytics/_header.html.twig' with {title: 'Produits & Stock', subtitle: 'Suivez le stock disponible et les variations qui nécessitent votre attention.'} %}
     {% include 'analytics/_navigation.html.twig' %}
-    <section class="dashboard-filters" aria-label="Période analysée">
-        <label><span>Du</span><input type="date" id="dashboard-date-from"></label><label><span>Au</span><input type="date" id="dashboard-date-to"></label>
-        <button type="button" class="btn-primary" id="dashboard-apply-filters">Appliquer</button>
-        <button type="button" class="btn-secondary dashboard-period" data-period-days="30">30 jours</button><button type="button" class="btn-secondary dashboard-period" data-period-days="90">90 jours</button><button type="button" class="btn-secondary dashboard-period" data-period-days="365">12 mois</button>
+    <section class="dashboard-filters dashboard-stock-toolbar" aria-label="Actualisation du stock">
+        <p>Situation actuelle du stock</p>
         <button type="button" class="dashboard-refresh-button dashboard-refresh-push" id="dashboard-refresh"><i class="bi bi-arrow-clockwise"></i><span>Actualiser</span></button>
     </section>
     <div id="dashboard-feedback" class="dashboard-feedback" role="status" aria-live="polite" hidden></div>
     <section class="dashboard-kpis dashboard-kpis-four dashboard-progressive-section" data-dashboard-section="stock-kpis">
         <article class="dashboard-kpi-card"><span>Variations actives</span><strong id="stock-active-count">-</strong></article><article class="dashboard-kpi-card"><span>Ruptures actuelles</span><strong id="stock-out-count">-</strong></article><article class="dashboard-kpi-card"><span>Stocks faibles</span><strong id="stock-low-count">-</strong></article><article class="dashboard-kpi-card"><span>Unités réservées</span><strong id="stock-reserved-count">-</strong></article>
     </section>
-    <article class="dashboard-panel dashboard-progressive-section" data-dashboard-section="products">
-        <div class="dashboard-panel-heading dashboard-performance-heading">
-            <div><h2>Performance des produits</h2><p>Comparée à la période précédente de même durée</p></div>
-            <div class="dashboard-performance-tabs" role="tablist" aria-label="Classement des produits">
-                <button type="button" class="is-active" role="tab" aria-selected="true" data-product-mode="revenue">Top CA</button>
-                <button type="button" role="tab" aria-selected="false" data-product-mode="units">Plus vendus</button>
-                <button type="button" role="tab" aria-selected="false" data-product-mode="declining">En baisse</button>
-            </div>
-        </div>
-        <div class="dashboard-table-wrapper dashboard-performance-table-wrapper">
-            <table id="dashboard-product-performance-table" class="dashboard-data-table dashboard-product-performance-table">
-                <thead><tr><th>Produit</th><th>CA HT</th><th>Unités</th><th>Évolution</th></tr></thead>
-            </table>
-        </div>
-        <div class="dashboard-section-loading" data-loading-for="products"><span class="dashboard-spinner"></span><span>Chargement des performances...</span></div>
-        <div class="dashboard-section-error" data-error-for="products" hidden></div>
-    </article>
     <article class="dashboard-panel dashboard-stock-detail-panel dashboard-progressive-section" data-dashboard-section="stock">
         <div class="dashboard-panel-heading dashboard-stock-heading"><div><h2>Détail du stock par variation</h2><p>Stock enregistré, utilisé, réservé et réellement disponible</p></div></div>
         <div class="dashboard-table-wrapper"><table id="dashboard-stock-table" class="dashboard-data-table"><thead><tr><th>Produit / variation</th><th>Enregistré</th><th>Utilisé</th><th>Réservé</th><th>Disponible</th><th>État</th><th>Risque de rupture</th><th aria-label="Explication"></th></tr></thead></table></div>
