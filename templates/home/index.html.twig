@@ -1,58 +1,137 @@
-{% extends "base.html.twig" %}
+{% extends 'base_public.html.twig' %}
 
-{% block title %}Accueil - Gestion Commandes{% endblock %}
+{% block title %}Komdely - Pilotez vos commandes et vos stocks{% endblock %}
 
 {% block body %}
-    <div class="form-card">
+{% set workspacePath = app.user and is_granted('ROLE_ADMIN') ? path('user_list') : path('analytics_dashboard') %}
+{% set accessPath = app.user ? workspacePath : path('app_login') %}
 
-        <h1>Accueil</h1>
-
-        <p class="home-text">
-            Bienvenue dans l'application de gestion des commandes.
-         </p>
-
-        <div class="home-actions">
-
-            {% if app.user %}
-
-                {% if is_granted('ROLE_ADMIN') %}
-
-                    <a
-                        href="{{ path('user_list') }}"
-                        class="btn btn-primary"
-                    >
-                        <i class="bi bi-people"></i>
-                        Utilisateurs
-                    </a>
-
-                {% endif %}
-
-                <a
-                    href="{{ path('app_logout') }}"
-                    class="btn btn-secondary logout-confirm"
-                >
-                    <i class="bi bi-box-arrow-right"></i>
-                    Déconnexion
-                </a>
-
-            {% else %}
-
-                <a
-                    href="{{ path('app_login') }}"
-                    class="btn btn-primary"
-                >
-                    <i class="bi bi-box-arrow-in-right"></i>
-                    Se connecter
-                </a>
-
-                <p class="home-info">
-                    Vous n'avez pas de compte ? Contactez l'administrateur.
-                </p>
-
-            {% endif %}
-
-        </div>
-
+<header class="public-header" id="top">
+    <div class="public-container public-nav">
+        <a href="#top" class="public-brand" aria-label="Komdely - Accueil">
+            <img src="{{ asset('images/branding/komdely-logo.png') }}" alt="Komdely">
+        </a>
+        <button type="button" class="public-menu-toggle" aria-expanded="false" aria-controls="public-navigation" aria-label="Ouvrir le menu">
+            <i class="bi bi-list" aria-hidden="true"></i>
+        </button>
+        <nav id="public-navigation" class="public-navigation" aria-label="Navigation principale">
+            <a href="#fonctionnalites">Fonctionnalités</a>
+            <a href="#fonctionnement">Comment ça marche</a>
+            <a href="#a-propos">À propos</a>
+            <a href="#contact">Contact</a>
+        </nav>
+        <a href="{{ accessPath }}" class="public-login-button">
+            <i class="bi {{ app.user ? 'bi-grid' : 'bi-box-arrow-in-right' }}" aria-hidden="true"></i>
+            <span>{{ app.user ? 'Mon espace' : 'Se connecter' }}</span>
+        </a>
     </div>
+</header>
+
+<main>
+    <section class="public-hero" aria-labelledby="hero-title">
+        <div class="public-container public-hero-grid">
+            <div class="public-hero-copy">
+                <span class="public-eyebrow"><i class="bi bi-circle-fill" aria-hidden="true"></i> Gestion des commandes, produits et stocks</span>
+                <h1 id="hero-title">Gérez vos commandes, vos produits et vos stocks depuis un seul espace.</h1>
+                <p>Komdely centralise le suivi de votre activité pour vous aider à travailler plus efficacement et à agir au bon moment.</p>
+                <div class="public-hero-actions">
+                    <a href="{{ accessPath }}" class="public-button public-button-primary"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i>{{ app.user ? 'Accéder à mon espace' : 'Se connecter' }}</a>
+                    <a href="#fonctionnalites" class="public-button public-button-secondary">Découvrir les fonctionnalités <i class="bi bi-arrow-down" aria-hidden="true"></i></a>
+                </div>
+                <dl class="public-hero-highlights">
+                    <div><dt>Commandes</dt><dd>Suivi de bout en bout</dd></div>
+                    <div><dt>Stocks</dt><dd>Alertes et réservations</dd></div>
+                    <div><dt>Activité</dt><dd>Indicateurs clés</dd></div>
+                </dl>
+            </div>
+            <div class="public-product-preview public-product-preview-hero" aria-label="Aperçu du tableau de bord Komdely">
+                <div class="preview-browser-bar"><span></span><span></span><span></span><small>app.komdely.local/dashboard</small></div>
+                <div class="preview-app">
+                    <aside class="preview-sidebar">
+                        <div class="preview-sidebar-brand"><img src="{{ asset('images/branding/logoKomdely.png') }}" alt="Komdely"></div>
+                        <ul><li class="is-active"><i class="bi bi-bar-chart-line"></i> Mon évolution</li><li><i class="bi bi-box-seam"></i> Produits</li><li><i class="bi bi-receipt"></i> Commandes</li></ul>
+                    </aside>
+                    <div class="preview-workspace">
+                        <div class="preview-period">90 jours</div>
+                        <div class="preview-kpis"><div><small>Commandes</small><strong>106</strong><em>-13,1 %</em></div><div><small>CA HT</small><strong>18,5 k TND</strong><em>-7,2 %</em></div><div><small>Panier moyen</small><strong>190,9 TND</strong><em>+4,8 %</em></div></div>
+                        <div class="preview-dashboard-row">
+                            <div class="preview-chart"><strong>Évolution de l'activité</strong><small>Commandes et CA HT</small><svg viewBox="0 0 260 105" role="img" aria-label="Courbe d'évolution"><path class="preview-area" d="M0 95 L0 78 L28 55 L56 68 L84 36 L112 45 L140 19 L168 39 L198 10 L228 34 L260 17 L260 95 Z"></path><polyline points="0,78 28,55 56,68 84,36 112,45 140,19 168,39 198,10 228,34 260,17"></polyline></svg></div>
+                            <div class="preview-actions"><strong>À traiter</strong><b>5</b><small>commandes</small><span>À confirmer <i>1</i></span><span>En préparation <i>2</i></span><span>Prêtes <i>2</i></span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="public-section public-section-tint" id="a-propos" aria-labelledby="benefits-title">
+        <div class="public-container">
+            <header class="public-section-heading"><span>Bénéfices</span><h2 id="benefits-title">Moins de tableaux, plus de visibilité</h2><p>Un espace unique pensé pour le quotidien des fournisseurs et des petites entreprises.</p></header>
+            <div class="public-benefit-grid">
+                {% set benefits = [
+                    ['boxes', 'Centralisez vos opérations', 'Commandes, produits et stocks réunis dans un outil accessible depuis votre navigateur.'],
+                    ['exclamation-triangle', 'Gardez le contrôle sur vos stocks', 'Repérez rapidement les ruptures, les stocks faibles et les quantités réservées ou utilisées.'],
+                    ['truck', 'Suivez vos commandes', 'Visualisez la progression de chaque commande, de la confirmation jusqu’à la livraison.'],
+                    ['graph-up', 'Comprenez votre activité', 'Consultez vos indicateurs, vos tendances et les performances de vos produits.']
+                ] %}
+                {% for benefit in benefits %}<article class="public-card public-benefit-card"><span class="public-icon"><i class="bi bi-{{ benefit[0] }}" aria-hidden="true"></i></span><h3>{{ benefit[1] }}</h3><p>{{ benefit[2] }}</p></article>{% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <section class="public-section" id="fonctionnalites" aria-labelledby="features-title">
+        <div class="public-container">
+            <header class="public-section-heading"><span>Fonctionnalités</span><h2 id="features-title">Tout ce qu’il faut pour piloter vos commandes</h2><p>Des modules simples et connectés, du catalogue produit jusqu’aux analyses.</p></header>
+            <div class="public-feature-grid">
+                {% set features = [
+                    ['clipboard2-check', 'Commandes', ['Création et suivi des commandes', 'Statuts et cycle de traitement', 'Détails ligne par ligne', 'Montants HT et TTC', 'Documents associés']],
+                    ['box-seam', 'Produits & stock', ['Catalogue produits et variations', 'Quantités enregistrées et utilisées', 'Quantités réservées et disponibles', 'Alertes de rupture et de stock faible']],
+                    ['grid', 'Tableau de bord', ['Chiffre d’affaires et nombre de commandes', 'Panier moyen et taux d’annulation', 'Délai moyen de traitement', 'Évolution de l’activité']],
+                    ['stars', 'Analyse intelligente', ['Produits à surveiller en priorité', 'Anticipation des risques de rupture', 'Recommandations claires', 'Explications compréhensibles']]
+                ] %}
+                {% for feature in features %}<article class="public-card public-feature-card"><div class="public-feature-title"><span class="public-icon is-dark"><i class="bi bi-{{ feature[0] }}" aria-hidden="true"></i></span><h3>{{ feature[1] }}</h3></div><ul>{% for item in feature[2] %}<li>{{ item }}</li>{% endfor %}</ul></article>{% endfor %}
+            </div>
+            <div class="public-secondary-features"><p><i class="bi bi-life-preserver" aria-hidden="true"></i><strong>Support & réclamations.</strong> Suivez vos demandes depuis votre espace.</p><p><i class="bi bi-person-lock" aria-hidden="true"></i><strong>Accès sécurisés.</strong> Les droits sont adaptés au rôle de chaque utilisateur.</p></div>
+        </div>
+    </section>
+
+    <section class="public-section public-section-tint" id="fonctionnement" aria-labelledby="steps-title">
+        <div class="public-container">
+            <header class="public-section-heading"><span>Comment ça marche</span><h2 id="steps-title">Trois étapes, un seul espace</h2></header>
+            <ol class="public-step-grid">
+                <li class="public-card"><span>1</span><h3>Gérez vos produits</h3><p>Ajoutez votre catalogue, vos variations, vos prix et vos quantités disponibles.</p></li>
+                <li class="public-card"><span>2</span><h3>Traitez vos commandes</h3><p>Suivez chaque commande et son état d’avancement jusqu’à la livraison.</p></li>
+                <li class="public-card"><span>3</span><h3>Pilotez votre activité</h3><p>Analysez vos performances et identifiez ce qui nécessite votre attention.</p></li>
+            </ol>
+        </div>
+    </section>
+
+    <section class="public-section public-showcase" aria-labelledby="showcase-title">
+        <div class="public-container">
+            <header class="public-section-heading"><span>Aperçu du produit</span><h2 id="showcase-title">Une interface claire, pensée pour le métier</h2><p>Commandes et suivi du stock : les écrans que vous utilisez chaque jour.</p></header>
+            <div class="public-showcase-grid">
+                <article class="public-mini-app"><div class="mini-app-sidebar"><div class="mini-sidebar-logo"><img src="{{ asset('images/branding/logoKomdely.png') }}" alt="Komdely"></div><span><i class="bi bi-bar-chart-line"></i> Mon évolution</span><span><i class="bi bi-box-seam"></i> Produits</span><span class="is-active"><i class="bi bi-receipt"></i> Commandes</span></div><div class="mini-app-content"><header><div><b>Commandes</b><small>Liste des commandes enregistrées</small></div><em>+ Nouvelle commande</em></header><div class="mini-order-row is-head"><span>Numéro</span><span>Client</span><span>Total TTC</span><span>Statut</span></div><div class="mini-order-row"><b>CMD-2043</b><span>Atelier Veluna</span><strong>1 240 TND</strong><i>En préparation</i></div><div class="mini-order-row"><b>CMD-2042</b><span>Boutique Solane</span><strong>486 TND</strong><i>Prête</i></div><div class="mini-order-row"><b>CMD-2041</b><span>Maison Ivory</span><strong>2 130 TND</strong><i>Livrée</i></div></div></article>
+                <article class="public-mini-app"><div class="mini-app-sidebar"><div class="mini-sidebar-logo"><img src="{{ asset('images/branding/logoKomdely.png') }}" alt="Komdely"></div><span><i class="bi bi-bar-chart-line"></i> Mon évolution</span><span class="is-active"><i class="bi bi-box-seam"></i> Produits</span><span><i class="bi bi-receipt"></i> Commandes</span></div><div class="mini-app-content mini-products"><header><div><b>Produits</b><small>Liste des produits enregistrés</small></div><em>+ Nouveau produit</em></header><div class="mini-product-row is-head"><span>Produit</span><span>Prix</span><span>Stock restant</span></div><div class="mini-product-row"><span class="mini-product-name"><i></i> Sérum éclat</span><strong>42 TND</strong><em class="is-danger">Rupture</em></div><div class="mini-product-row"><span class="mini-product-name"><i></i> Baume nutritif</span><strong>28 TND</strong><em class="is-warning">18 unités</em></div><div class="mini-product-row"><span class="mini-product-name"><i></i> Huile sèche</span><strong>36 TND</strong><em class="is-success">76 unités</em></div></div></article>
+            </div>
+        </div>
+    </section>
+
+    <section class="public-section public-section-tint" id="contact" aria-labelledby="contact-title">
+        <div class="public-container">
+            <header class="public-section-heading"><span>Demander un accès</span><h2 id="contact-title">Vous n’avez pas encore de compte ?</h2><p>Pour créer un compte Komdely, contactez-nous directement. Notre équipe vous accompagne dans la configuration de votre espace.</p></header>
+            <div class="public-contact-grid">
+                <article class="public-card public-contact-card"><span class="public-icon is-dark"><i class="bi bi-telephone" aria-hidden="true"></i></span><span class="public-contact-label">Téléphone</span><strong class="public-contact-value">+216 12 345 678</strong><small class="public-contact-meta">Lun - Ven, 9h - 18h</small><a href="tel:+21612345678">Appeler <i class="bi bi-arrow-right"></i></a></article>
+                <article class="public-card public-contact-card"><span class="public-icon is-dark"><i class="bi bi-envelope" aria-hidden="true"></i></span><span class="public-contact-label">Email</span><strong class="public-contact-value">contact@komdely.com</strong><small class="public-contact-meta">Réponse sous 24h</small><a href="mailto:contact@komdely.com">Envoyer un email <i class="bi bi-arrow-right"></i></a></article>
+                <article class="public-card public-contact-card"><span class="public-icon is-dark"><i class="bi bi-whatsapp" aria-hidden="true"></i></span><span class="public-contact-label">WhatsApp</span><strong class="public-contact-value">+216 12 345 678</strong><small class="public-contact-meta">Disponible sur WhatsApp</small><a href="https://wa.me/21612345678" target="_blank" rel="noopener noreferrer">Discuter <i class="bi bi-arrow-right"></i></a></article>
+            </div>
+        </div>
+    </section>
+
+    <section class="public-cta"><div class="public-container"><div><h2>Prêt à mieux piloter votre activité ?</h2><p>Retrouvez vos commandes, vos stocks et vos indicateurs au même endroit.</p><a href="{{ accessPath }}" class="public-button public-button-mint"><i class="bi bi-box-arrow-in-right"></i>{{ app.user ? 'Accéder à mon espace' : 'Se connecter à Komdely' }}</a></div></div></section>
+</main>
+
+<footer class="public-footer"><div class="public-container public-footer-main"><div><img src="{{ asset('images/branding/komdely-logo.png') }}" alt="Komdely"><p>Gestion des commandes, des produits et des stocks pour les fournisseurs et petites entreprises.</p></div><nav aria-label="Navigation de pied de page"><a href="#fonctionnalites">Fonctionnalités</a><a href="#a-propos">À propos</a><a href="#contact">Contact</a><a href="{{ app.user ? path('support_home') : path('app_login') }}">Support</a></nav></div><div class="public-container public-footer-bottom">© 2026 Komdely. Tous droits réservés.</div></footer>
+<a href="#top" class="public-back-top" aria-label="Revenir en haut"><i class="bi bi-arrow-up"></i></a>
 {% endblock %}
 
+{% block javascripts %}<script src="{{ asset('js/home.js') }}?v=20260813-1"></script>{% endblock %}

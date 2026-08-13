@@ -35,7 +35,7 @@ Liste des produits
                         <option value="">Tous</option>
                         {% for fournisseur in fournisseurs %}
                             <option value="{{ fournisseur.id }}">
-                                {% if fournisseur.libelle %}{{ fournisseur.libelle }} — {% endif %}
+                                {% if fournisseur.libelle %}{{ fournisseur.libelle }} - {% endif %}
                                 {{ fournisseur.prenom }} {{ fournisseur.nom }}
                             </option>
                         {% endfor %}

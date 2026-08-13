@@ -10,7 +10,18 @@
     padding: 0 35px;
     flex-shrink: 0;
 }
-.page-content { flex: 1; padding: 35px; background: var(--color-gray-light); }
+.page-content {
+    flex: 1;
+    padding: 35px;
+    background-color: var(--color-gray-light);
+    background-image:
+        linear-gradient(rgba(245, 247, 251, .45), rgba(245, 247, 251, .45)),
+        url('../images/backgrounds/bg-Komdely.png');
+    background-position: center;
+    background-size: cover;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+}
 
 /* Sidebar */
 .sidebar {
@@ -56,7 +67,7 @@
     color: #d1d5db;
     transition: all 0.3s ease;
 }
-.sidebar nav a i { width: 25px; font-size: 20px; text-align: center; }
+.sidebar nav a i { width: 25px; font-size: 17px; text-align: center; }
 .sidebar nav a span { width: 25px; font-size: 17px; text-align: center; }
 .sidebar nav a:hover,
 .sidebar nav a.is-active {

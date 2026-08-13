@@ -1,0 +1,153 @@
+x-airflow-common: &airflow-common
+  image: comdely-airflow:${AIRFLOW_VERSION:-3.1.8}
+  build:
+    context: .
+    dockerfile: data-platform/airflow/Dockerfile
+    args:
+      AIRFLOW_VERSION: ${AIRFLOW_VERSION:-3.1.8}
+  profiles: [airflow]
+  environment: &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_METADATA_USER:?Set AIRFLOW_METADATA_USER}:${AIRFLOW_METADATA_PASSWORD:?Set AIRFLOW_METADATA_PASSWORD}@airflow-postgres:5432/${AIRFLOW_METADATA_DB:-airflow_metadata}
+    AIRFLOW__CORE__FERNET_KEY: ""
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-apiserver:8080/execution/
+    AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW_API_JWT_SECRET:?Set AIRFLOW_API_JWT_SECRET}
+    AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+    SOURCE_DATABASE_URL: ${AIRFLOW_SOURCE_DATABASE_URL:?Set AIRFLOW_SOURCE_DATABASE_URL}
+    DW_DATABASE_URL: postgresql+psycopg://${DW_POSTGRES_USER:-comdely_dw}:${DW_POSTGRES_PASSWORD:?Set DW_POSTGRES_PASSWORD}@warehouse:5432/${DW_POSTGRES_DB:-comdely_dw}
+    ELT_BATCH_SIZE: ${ELT_BATCH_SIZE:-500}
+    ELT_SOURCE_SYSTEM: ${ELT_SOURCE_SYSTEM:-comdely_mariadb}
+    ELT_SOURCE_TIMEZONE: ${ELT_SOURCE_TIMEZONE:-Africa/Tunis}
+    DBT_POSTGRES_HOST: warehouse
+    DBT_POSTGRES_PORT: "5432"
+    DBT_POSTGRES_USER: ${DW_POSTGRES_USER:-comdely_dw}
+    DBT_POSTGRES_PASSWORD: ${DW_POSTGRES_PASSWORD:?Set DW_POSTGRES_PASSWORD}
+    DBT_POSTGRES_DB: ${DW_POSTGRES_DB:-comdely_dw}
+    DBT_POSTGRES_SCHEMA: analytics
+    DBT_THREADS: ${DBT_THREADS:-4}
+    COMDELY_DW_SCHEDULE: ${COMDELY_DW_SCHEDULE:-0 2 * * *}
+    COMDELY_ML_TRAINING_SCHEDULE: ${COMDELY_ML_TRAINING_SCHEDULE:-0 3 * * 0}
+    ML_ARTIFACT_DIR: /opt/comdely/ml-artifacts
+    ML_MIGRATIONS_DIR: /opt/comdely/postgres-migrations
+    PYTHONUNBUFFERED: "1"
+  volumes:
+    - ./data-platform/airflow/dags:/opt/airflow/dags:ro
+    - airflow_logs:/opt/airflow/logs
+    - ml_artifacts:/opt/comdely/ml-artifacts
+  extra_hosts:
+    - host.docker.internal:host-gateway
+  user: ${AIRFLOW_UID:-50000}:0
+  depends_on:
+    airflow-postgres:
+      condition: service_healthy
+    warehouse:
+      condition: service_healthy
+
+services:
+  airflow-postgres:
+    image: postgres:16-alpine
+    profiles: [airflow]
+    environment:
+      POSTGRES_DB: ${AIRFLOW_METADATA_DB:-airflow_metadata}
+      POSTGRES_USER: ${AIRFLOW_METADATA_USER:?Set AIRFLOW_METADATA_USER}
+      POSTGRES_PASSWORD: ${AIRFLOW_METADATA_PASSWORD:?Set AIRFLOW_METADATA_PASSWORD}
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U ${AIRFLOW_METADATA_USER:?Set AIRFLOW_METADATA_USER} -d ${AIRFLOW_METADATA_DB:-airflow_metadata}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+    volumes:
+      - airflow_metadata_data:/var/lib/postgresql/data
+
+  airflow-init:
+    <<: *airflow-common
+    user: "0:0"
+    command:
+      - bash
+      - -c
+      - >-
+        mkdir -p /opt/comdely/ml-artifacts &&
+        chown -R ${AIRFLOW_UID:-50000}:0 /opt/comdely/ml-artifacts &&
+        chmod -R g+rwX /opt/comdely/ml-artifacts &&
+        airflow version
+    environment:
+      <<: *airflow-common-env
+      _AIRFLOW_DB_MIGRATE: "true"
+      _AIRFLOW_WWW_USER_CREATE: "true"
+      _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_ADMIN_USERNAME:-airflow}
+      _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD:?Set AIRFLOW_ADMIN_PASSWORD}
+    restart: "no"
+
+  airflow-apiserver:
+    <<: *airflow-common
+    command: api-server
+    ports:
+      - ${AIRFLOW_UI_PORT:-8081}:8080
+    healthcheck:
+      test: [CMD, curl, --fail, http://localhost:8080/api/v2/monitor/health]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    depends_on:
+      airflow-postgres:
+        condition: service_healthy
+      warehouse:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    healthcheck:
+      test: [CMD, curl, --fail, http://localhost:8974/health]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    depends_on:
+      airflow-postgres:
+        condition: service_healthy
+      warehouse:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-dag-processor:
+    <<: *airflow-common
+    command: dag-processor
+    healthcheck:
+      test: [CMD-SHELL, "airflow jobs check --job-type DagProcessorJob --hostname \"$${HOSTNAME}\""]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    depends_on:
+      airflow-postgres:
+        condition: service_healthy
+      warehouse:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-cli:
+    <<: *airflow-common
+    profiles: [airflow-debug]
+    command: [bash, -c, airflow]
+    environment:
+      <<: *airflow-common-env
+      CONNECTION_CHECK_MAX_COUNT: "0"
+
+volumes:
+  airflow_metadata_data:
+  airflow_logs:
+  ml_artifacts:

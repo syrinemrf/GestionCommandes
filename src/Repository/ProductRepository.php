@@ -18,6 +18,26 @@ class ProductRepository extends ServiceEntityRepository
         parent::__construct($registry, Product::class);
     }
 
+    /**
+     * @return Product[]
+     */
+    public function findRecentForHome(?User $fournisseur, int $limit = 5): array
+    {
+        $qb = $this->createQueryBuilder('product')
+            ->andWhere('product.isDeleted = :deleted')
+            ->setParameter('deleted', false)
+            ->orderBy('product.createdAt', 'DESC')
+            ->addOrderBy('product.id', 'DESC')
+            ->setMaxResults($limit);
+
+        if ($fournisseur !== null) {
+            $qb->andWhere('product.fournisseur = :fournisseur')
+                ->setParameter('fournisseur', $fournisseur);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
     public function findForDatatable(int $start, int $length, string $search, ?User $fournisseur = null): array
     {
         $qb = $this->createQueryBuilder('p')
@@ -36,6 +56,8 @@ class ProductRepository extends ServiceEntityRepository
                 ->setParameter('s', '%' . $search . '%');
         }
 
+        // Product ne possède pas encore de date de création : l'identifiant
+        // auto-incrémenté est le meilleur indicateur disponible de récence.
         $qb->orderBy('p.id', 'DESC')
             ->setFirstResult($start)
             ->setMaxResults($length);

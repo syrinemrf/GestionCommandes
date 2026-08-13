@@ -1,0 +1,32 @@
+name: comdely_warehouse
+version: 1.0.0
+config-version: 2
+
+profile: comdely_warehouse
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: target
+clean-targets:
+  - target
+  - dbt_packages
+
+models:
+  comdely_warehouse:
+    staging:
+      +materialized: view
+      +schema: staging
+    marts:
+      dimensions:
+        +materialized: table
+        +schema: analytics
+      facts:
+        +schema: analytics
+      ml:
+        +materialized: table
+        +schema: analytics

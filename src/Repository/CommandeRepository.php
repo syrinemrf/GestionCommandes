@@ -18,6 +18,28 @@ class CommandeRepository extends ServiceEntityRepository
         parent::__construct($registry, Commande::class);
     }
 
+    /**
+     * @return Commande[]
+     */
+    public function findRecentForHome(?User $fournisseur, int $limit = 5): array
+    {
+        $qb = $this->createQueryBuilder('commande')
+            ->leftJoin('commande.client', 'client')
+            ->addSelect('client')
+            ->andWhere('commande.isDeleted = :deleted')
+            ->setParameter('deleted', false)
+            ->orderBy('commande.date', 'DESC')
+            ->addOrderBy('commande.id', 'DESC')
+            ->setMaxResults($limit);
+
+        if ($fournisseur !== null) {
+            $qb->andWhere('commande.fournisseur = :fournisseur')
+                ->setParameter('fournisseur', $fournisseur);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
     public function findForDatatable(
         int $start,
         int $length,
@@ -81,7 +103,8 @@ class CommandeRepository extends ServiceEntityRepository
 
         $filteredQuery = clone $qb;
 
-        $qb->orderBy('commande.id', 'DESC')
+        $qb->orderBy('commande.date', 'DESC')
+            ->addOrderBy('commande.id', 'DESC')
             ->setFirstResult($start)
             ->setMaxResults($length);
 

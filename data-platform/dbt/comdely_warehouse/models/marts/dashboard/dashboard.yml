@@ -1,0 +1,248 @@
+version: 2
+
+models:
+  - name: mart_supplier_daily_kpi
+    description: >
+      Une ligne par jour et fournisseur entre les dates minimale et maximale des commandes.
+      Les commandes supprimees sont exclues. Les commandes annulees comptent dans le volume
+      et le taux d'annulation, mais pas dans le chiffre d'affaires, les unites ni le panier moyen.
+      Le taux d'annulation est un ratio compris entre 0 et 1. Le panier moyen utilise uniquement
+      les commandes non annulees.
+    columns:
+      - name: supplier_daily_kpi_key
+        data_tests: [not_null, unique]
+      - name: calendar_date
+        data_tests: [not_null]
+      - name: supplier_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_supplier')
+                field: supplier_key
+      - name: source_supplier_id
+        description: Cle naturelle MariaDB utilisee par Symfony pour isoler le fournisseur.
+        data_tests: [not_null]
+      - name: order_count
+        data_tests: [not_null]
+      - name: cancelled_order_count
+        data_tests: [not_null]
+      - name: cancellation_rate
+        data_tests: [not_null]
+      - name: revenue_ht
+        data_tests: [not_null]
+      - name: revenue_ttc
+        data_tests: [not_null]
+      - name: ordered_units
+        data_tests: [not_null]
+      - name: average_order_value_ht
+        data_tests: [not_null]
+      - name: last_updated_at
+        data_tests: [not_null]
+
+  - name: mart_supplier_product_performance
+    description: >
+      Une ligne par mois, fournisseur, produit et variation ayant une vente valide.
+      Les montants utilisent le prix historique de la ligne. Les commandes annulees ou
+      supprimees sont exclues. Le classement est calcule au niveau produit par fournisseur
+      et par mois, puis reporte sur chaque variation du produit.
+    columns:
+      - name: supplier_product_performance_key
+        data_tests: [not_null, unique]
+      - name: period_start
+        data_tests: [not_null]
+      - name: supplier_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_supplier')
+                field: supplier_key
+      - name: product_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_product')
+                field: product_key
+      - name: variation_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_variation')
+                field: variation_key
+      - name: source_supplier_id
+        data_tests: [not_null]
+      - name: source_product_id
+        data_tests: [not_null]
+      - name: source_variation_id
+        data_tests: [not_null]
+      - name: units_sold
+        data_tests: [not_null]
+      - name: revenue_ht
+        data_tests: [not_null]
+      - name: order_count
+        data_tests: [not_null]
+      - name: product_rank
+        data_tests: [not_null]
+      - name: last_updated_at
+        data_tests: [not_null]
+
+  - name: mart_supplier_product_daily_performance
+    description: >
+      Une ligne par date, fournisseur et produit ayant une vente valide. Ce mart permet
+      de comparer exactement une periode choisie avec la periode precedente de meme duree.
+      Les commandes annulees ou supprimees sont exclues et le prix historique des lignes
+      est conserve dans le chiffre d'affaires HT.
+    columns:
+      - name: supplier_product_daily_performance_key
+        data_tests: [not_null, unique]
+      - name: calendar_date
+        data_tests: [not_null]
+      - name: supplier_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_supplier')
+                field: supplier_key
+      - name: product_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_product')
+                field: product_key
+      - name: source_supplier_id
+        description: Cle naturelle MariaDB utilisee pour isoler le fournisseur.
+        data_tests: [not_null]
+      - name: source_product_id
+        data_tests: [not_null]
+      - name: product_name
+        data_tests: [not_null]
+      - name: units_sold
+        data_tests: [not_null]
+      - name: revenue_ht
+        data_tests: [not_null]
+      - name: order_count
+        data_tests: [not_null]
+      - name: last_updated_at
+        data_tests: [not_null]
+
+  - name: mart_supplier_order_status
+    description: >
+      Une ligne par fournisseur et statut du Workflow. La repartition porte sur l'etat
+      courant des commandes non supprimees. La duree moyenne mesure le temps ecoule depuis
+      la transition precedente jusqu'a l'entree dans le statut, lorsque cette duree existe.
+    columns:
+      - name: supplier_order_status_key
+        data_tests: [not_null, unique]
+      - name: supplier_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_supplier')
+                field: supplier_key
+      - name: source_supplier_id
+        data_tests: [not_null]
+      - name: order_status
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - EN_ATTENTE_CONFIRMATION
+                  - EN_PREPARATION
+                  - PRETE
+                  - EXPEDIEE
+                  - EN_LIVRAISON
+                  - LIVREE
+                  - ANNULEE
+      - name: current_order_count
+        data_tests: [not_null]
+      - name: current_order_share
+        data_tests: [not_null]
+      - name: measured_transition_count
+        data_tests: [not_null]
+      - name: last_updated_at
+        data_tests: [not_null]
+
+  - name: mart_supplier_stock_overview
+    description: >
+      Une ligne par variation. Le stock enregistre correspond a product_variation.stock.
+      Le stock physique vaut stock enregistre moins stock utilise. Le stock disponible vaut
+      stock enregistre moins stock utilise moins stock reserve. Les produits et variations
+      supprimes restent presents et sont signales par leurs indicateurs.
+    columns:
+      - name: supplier_stock_overview_key
+        data_tests: [not_null, unique]
+      - name: supplier_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_supplier')
+                field: supplier_key
+      - name: product_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_product')
+                field: product_key
+      - name: variation_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_variation')
+                field: variation_key
+      - name: source_supplier_id
+        data_tests: [not_null]
+      - name: source_product_id
+        data_tests: [not_null]
+      - name: source_variation_id
+        data_tests: [not_null]
+      - name: stock_registered
+        data_tests: [not_null]
+      - name: stock_used
+        data_tests: [not_null]
+      - name: stock_reserved
+        data_tests: [not_null]
+      - name: stock_physical
+        data_tests: [not_null]
+      - name: stock_available
+        data_tests: [not_null]
+      - name: has_observed_stockout
+        data_tests: [not_null]
+      - name: last_updated_at
+        data_tests: [not_null]
+
+  - name: mart_supplier_order_processing_time
+    description: >
+      Une ligne par commande non supprimée ayant terminé le cycle entre
+      EN_PREPARATION et EXPEDIEE. Les commandes annulées avant la fin du cycle
+      sont absentes. Les durées intermédiaires sont renseignées lorsque PRETE
+      est présent et chronologiquement cohérent.
+    columns:
+      - name: supplier_order_processing_key
+        data_tests: [not_null, unique]
+      - name: supplier_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_supplier')
+                field: supplier_key
+      - name: source_supplier_id
+        data_tests: [not_null]
+      - name: source_order_id
+        data_tests: [not_null]
+      - name: processing_completed_date
+        data_tests: [not_null]
+      - name: processing_seconds
+        data_tests: [not_null]
+      - name: last_updated_at
+        data_tests: [not_null]

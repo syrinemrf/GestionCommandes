@@ -42,7 +42,7 @@ $(document).ready(function () {
         commandesTable = tableElement.DataTable({
             processing: true,
             serverSide: true,
-            pageLength: 15,
+            pageLength: 8,
             lengthChange: false,
             ajax: {
                 url: tableElement.data('url'),
@@ -410,7 +410,7 @@ $(document).ready(function () {
         );
 
         line.find('.commande-stock').text(
-            stock === null ? '—' : String(stock)
+            stock === null ? '-' : String(stock)
         );
         line.find('.commande-price').text(price.toFixed(3) + ' TND');
         line.find('.commande-line-total').text(

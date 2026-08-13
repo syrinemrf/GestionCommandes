@@ -1,0 +1,66 @@
+analytics_dashboard:
+    path: /dashboard
+    controller: App\Controller\AnalyticsController::dashboard
+    methods: [GET]
+
+analytics_dashboard_products:
+    path: /dashboard/products
+    controller: App\Controller\AnalyticsController::dashboardProducts
+    methods: [GET]
+
+analytics_overview:
+    path: /api/analytics/overview
+    controller: App\Controller\AnalyticsController::overview
+    methods: [GET]
+
+analytics_summary:
+    path: /api/analytics/summary
+    controller: App\Controller\AnalyticsController::summary
+    methods: [GET]
+
+analytics_evolution:
+    path: /api/analytics/evolution
+    controller: App\Controller\AnalyticsController::evolution
+    methods: [GET]
+
+analytics_products:
+    path: /api/analytics/products
+    controller: App\Controller\AnalyticsController::products
+    methods: [GET]
+
+analytics_product_comparison:
+    path: /api/analytics/product-comparison
+    controller: App\Controller\AnalyticsController::productComparison
+    methods: [GET]
+
+analytics_product_comparison_table:
+    path: /api/analytics/product-comparison-table
+    controller: App\Controller\AnalyticsController::productComparisonTable
+    methods: [GET]
+
+analytics_statuses:
+    path: /api/analytics/statuses
+    controller: App\Controller\AnalyticsController::statuses
+    methods: [GET]
+
+analytics_stock:
+    path: /api/analytics/stock
+    controller: App\Controller\AnalyticsController::stock
+    methods: [GET]
+
+analytics_stock_table:
+    path: /api/analytics/stock-table
+    controller: App\Controller\AnalyticsController::stockTable
+    methods: [GET]
+
+analytics_risks:
+    path: /api/analytics/risks
+    controller: App\Controller\AnalyticsController::risks
+    methods: [GET]
+
+analytics_risk_explanation:
+    path: /api/analytics/risks/{variationId}/explanation
+    controller: App\Controller\AnalyticsController::riskExplanation
+    methods: [GET]
+    requirements:
+        variationId: '\d+'

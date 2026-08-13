@@ -1,0 +1,640 @@
+<?php
+
+namespace App\Repository\Analytics;
+
+use App\Dto\Analytics\AnalyticsDateRange;
+use App\Dto\Analytics\DailyKpiDto;
+use App\Dto\Analytics\KpiSummaryDto;
+use App\Dto\Analytics\OrderProcessingTimeDto;
+use App\Dto\Analytics\OrderStatusDto;
+use App\Dto\Analytics\ProductPerformanceComparisonDto;
+use App\Dto\Analytics\ProductPerformanceDto;
+use App\Dto\Analytics\StockOverviewDto;
+use App\Dto\Analytics\StockRiskDto;
+use App\Dto\Analytics\StockRiskExplanationDto;
+use App\Dto\Analytics\StockTableRowDto;
+use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ParameterType;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
+
+class SupplierAnalyticsRepository
+{
+    public function __construct(
+        #[Autowire(service: 'doctrine.dbal.data_warehouse_connection')]
+        private Connection $connection,
+    ) {
+    }
+
+    public function summary(
+        int $supplierId,
+        AnalyticsDateRange $range,
+    ): KpiSummaryDto {
+        $row = $this->connection->fetchAssociative(
+            <<<'SQL'
+                select
+                    coalesce(sum(order_count), 0)::bigint as order_count,
+                    coalesce(sum(cancelled_order_count), 0)::bigint as cancelled_order_count,
+                    case
+                        when coalesce(sum(order_count), 0) = 0 then 0
+                        else round(
+                            sum(cancelled_order_count)::numeric / sum(order_count),
+                            6
+                        )
+                    end as cancellation_rate,
+                    coalesce(sum(revenue_ht), 0)::numeric(18, 3) as revenue_ht,
+                    coalesce(sum(revenue_ttc), 0)::numeric(18, 3) as revenue_ttc,
+                    coalesce(sum(ordered_units), 0)::bigint as ordered_units,
+                    case
+                        when coalesce(sum(order_count - cancelled_order_count), 0) = 0 then 0
+                        else round(
+                            sum(revenue_ht) / sum(order_count - cancelled_order_count),
+                            3
+                        )
+                    end as average_order_value_ht,
+                    case
+                        when coalesce(sum(order_count - cancelled_order_count), 0) = 0 then 0
+                        else round(
+                            sum(revenue_ttc) / sum(order_count - cancelled_order_count),
+                            3
+                        )
+                    end as average_order_value_ttc,
+                    max(last_updated_at) as last_updated_at
+                from analytics.mart_supplier_daily_kpi
+                where source_supplier_id = :supplier_id
+                  and calendar_date between :date_from and :date_to
+                SQL,
+            $this->rangeParameters($supplierId, $range),
+            $this->rangeParameterTypes(),
+        );
+
+        return KpiSummaryDto::fromRow($row ?: [
+            'order_count' => 0,
+            'cancelled_order_count' => 0,
+            'cancellation_rate' => 0,
+            'revenue_ht' => 0,
+            'revenue_ttc' => 0,
+            'ordered_units' => 0,
+            'average_order_value_ht' => 0,
+            'average_order_value_ttc' => 0,
+            'last_updated_at' => null,
+        ]);
+    }
+
+    public function processingTime(
+        int $supplierId,
+        AnalyticsDateRange $range,
+    ): OrderProcessingTimeDto {
+        $row = $this->connection->fetchAssociative(
+            <<<'SQL'
+                select
+                    count(*)::bigint as completed_order_count,
+                    avg(processing_seconds)::numeric(18, 2) as average_seconds,
+                    percentile_cont(0.5) within group (
+                        order by processing_seconds
+                    )::numeric(18, 2) as median_seconds,
+                    avg(preparation_to_ready_seconds)::numeric(18, 2)
+                        as preparation_to_ready_seconds,
+                    avg(ready_to_shipped_seconds)::numeric(18, 2)
+                        as ready_to_shipped_seconds,
+                    max(last_updated_at) as last_updated_at
+                from analytics.mart_supplier_order_processing_time
+                where source_supplier_id = :supplier_id
+                  and processing_completed_date between :date_from and :date_to
+                SQL,
+            $this->rangeParameters($supplierId, $range),
+            $this->rangeParameterTypes(),
+        );
+
+        return OrderProcessingTimeDto::fromRow($row ?: []);
+    }
+
+    /** @return list<DailyKpiDto> */
+    public function evolution(
+        int $supplierId,
+        AnalyticsDateRange $range,
+    ): array {
+        $rows = $this->connection->fetchAllAssociative(
+            <<<'SQL'
+                select
+                    calendar_date,
+                    order_count,
+                    cancelled_order_count,
+                    revenue_ht,
+                    revenue_ttc,
+                    ordered_units
+                from analytics.mart_supplier_daily_kpi
+                where source_supplier_id = :supplier_id
+                  and calendar_date between :date_from and :date_to
+                order by calendar_date
+                SQL,
+            $this->rangeParameters($supplierId, $range),
+            $this->rangeParameterTypes(),
+        );
+
+        return array_map(DailyKpiDto::fromRow(...), $rows);
+    }
+
+    /** @return list<ProductPerformanceDto> */
+    public function productPerformance(
+        int $supplierId,
+        AnalyticsDateRange $range,
+        int $limit,
+    ): array {
+        $rows = $this->connection->fetchAllAssociative(
+            <<<'SQL'
+                select
+                    period_start,
+                    source_product_id,
+                    source_variation_id,
+                    product_name,
+                    variation_name,
+                    units_sold,
+                    revenue_ht,
+                    revenue_ttc,
+                    order_count,
+                    product_rank,
+                    product_is_deleted,
+                    variation_is_deleted,
+                    last_updated_at
+                from analytics.mart_supplier_product_performance
+                where source_supplier_id = :supplier_id
+                  and period_start between
+                      date_trunc('month', cast(:date_from as date))::date
+                      and date_trunc('month', cast(:date_to as date))::date
+                order by period_start desc, product_rank, revenue_ht desc,
+                    source_product_id, source_variation_id
+                limit :result_limit
+                SQL,
+            [
+                ...$this->rangeParameters($supplierId, $range),
+                'result_limit' => $limit,
+            ],
+            [
+                ...$this->rangeParameterTypes(),
+                'result_limit' => ParameterType::INTEGER,
+            ],
+        );
+
+        return array_map(ProductPerformanceDto::fromRow(...), $rows);
+    }
+
+    /** @return list<ProductPerformanceComparisonDto> */
+    public function productPerformanceComparison(
+        int $supplierId,
+        AnalyticsDateRange $range,
+        int $limit,
+    ): array {
+        $previous = $range->previous();
+        $rows = $this->connection->fetchAllAssociative(
+            <<<'SQL'
+                select
+                    source_product_id,
+                    max(product_name) as product_name,
+                    coalesce(sum(revenue_ht) filter (
+                        where calendar_date between :date_from and :date_to
+                    ), 0)::numeric(18, 3) as current_revenue_ht,
+                    coalesce(sum(revenue_ht) filter (
+                        where calendar_date between
+                            :previous_date_from and :previous_date_to
+                    ), 0)::numeric(18, 3) as previous_revenue_ht,
+                    coalesce(sum(units_sold) filter (
+                        where calendar_date between :date_from and :date_to
+                    ), 0)::bigint as current_units_sold,
+                    coalesce(sum(units_sold) filter (
+                        where calendar_date between
+                            :previous_date_from and :previous_date_to
+                    ), 0)::bigint as previous_units_sold,
+                    coalesce(sum(order_count) filter (
+                        where calendar_date between :date_from and :date_to
+                    ), 0)::bigint as current_order_count,
+                    coalesce(sum(order_count) filter (
+                        where calendar_date between
+                            :previous_date_from and :previous_date_to
+                    ), 0)::bigint as previous_order_count,
+                    max(last_updated_at) as last_updated_at
+                from analytics.mart_supplier_product_daily_performance
+                where source_supplier_id = :supplier_id
+                  and calendar_date between
+                      :previous_date_from and :date_to
+                  and not product_is_deleted
+                group by source_product_id
+                having
+                    coalesce(sum(revenue_ht), 0) > 0
+                    or coalesce(sum(units_sold), 0) > 0
+                order by current_revenue_ht desc, current_units_sold desc,
+                    source_product_id
+                limit :result_limit
+                SQL,
+            [
+                'supplier_id' => $supplierId,
+                'date_from' => $range->from->format('Y-m-d'),
+                'date_to' => $range->to->format('Y-m-d'),
+                'previous_date_from' => $previous->from->format('Y-m-d'),
+                'previous_date_to' => $previous->to->format('Y-m-d'),
+                'result_limit' => $limit,
+            ],
+            [
+                'supplier_id' => ParameterType::INTEGER,
+                'date_from' => ParameterType::STRING,
+                'date_to' => ParameterType::STRING,
+                'previous_date_from' => ParameterType::STRING,
+                'previous_date_to' => ParameterType::STRING,
+                'result_limit' => ParameterType::INTEGER,
+            ],
+        );
+
+        return array_map(ProductPerformanceComparisonDto::fromRow(...), $rows);
+    }
+
+    /** @return array{rows: list<ProductPerformanceComparisonDto>, total: int, filtered: int} */
+    public function productPerformanceDataTable(
+        int $supplierId,
+        AnalyticsDateRange $range,
+        string $mode,
+        int $start,
+        int $length,
+        string $search,
+        int $orderColumn,
+        string $orderDirection,
+    ): array {
+        $previous = $range->previous();
+        $modeFilter = match ($mode) {
+            'units' => 'current_units_sold > 0',
+            'declining' => 'previous_revenue_ht > 0 and current_revenue_ht < previous_revenue_ht',
+            default => 'current_revenue_ht > 0',
+        };
+        $changeExpression = <<<'SQL'
+            case
+                when previous_revenue_ht = 0 then null
+                else ((current_revenue_ht - previous_revenue_ht)
+                    / previous_revenue_ht) * 100
+            end
+            SQL;
+        $orderExpressions = [
+            0 => 'lower(product_name)',
+            1 => 'current_revenue_ht',
+            2 => 'current_units_sold',
+            3 => $changeExpression,
+        ];
+        $orderBy = $orderExpressions[$orderColumn] ?? $orderExpressions[1];
+        $direction = $orderDirection === 'asc' ? 'asc' : 'desc';
+        $parameters = [
+            'supplier_id' => $supplierId,
+            'date_from' => $range->from->format('Y-m-d'),
+            'date_to' => $range->to->format('Y-m-d'),
+            'previous_date_from' => $previous->from->format('Y-m-d'),
+            'previous_date_to' => $previous->to->format('Y-m-d'),
+        ];
+        $types = [
+            'supplier_id' => ParameterType::INTEGER,
+            'date_from' => ParameterType::STRING,
+            'date_to' => ParameterType::STRING,
+            'previous_date_from' => ParameterType::STRING,
+            'previous_date_to' => ParameterType::STRING,
+        ];
+        $searchFilter = '';
+        if ($search !== '') {
+            $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search);
+            $parameters['search'] = sprintf('%%%s%%', $escaped);
+            $types['search'] = ParameterType::STRING;
+            $searchFilter = "and product_name ilike :search escape '\\'";
+        }
+
+        $performanceCte = <<<'SQL'
+            with performance as (
+                select
+                    source_product_id,
+                    max(product_name) as product_name,
+                    coalesce(sum(revenue_ht) filter (
+                        where calendar_date between :date_from and :date_to
+                    ), 0)::numeric(18, 3) as current_revenue_ht,
+                    coalesce(sum(revenue_ht) filter (
+                        where calendar_date between :previous_date_from and :previous_date_to
+                    ), 0)::numeric(18, 3) as previous_revenue_ht,
+                    coalesce(sum(units_sold) filter (
+                        where calendar_date between :date_from and :date_to
+                    ), 0)::bigint as current_units_sold,
+                    coalesce(sum(units_sold) filter (
+                        where calendar_date between :previous_date_from and :previous_date_to
+                    ), 0)::bigint as previous_units_sold,
+                    coalesce(sum(order_count) filter (
+                        where calendar_date between :date_from and :date_to
+                    ), 0)::bigint as current_order_count,
+                    coalesce(sum(order_count) filter (
+                        where calendar_date between :previous_date_from and :previous_date_to
+                    ), 0)::bigint as previous_order_count,
+                    max(last_updated_at) as last_updated_at
+                from analytics.mart_supplier_product_daily_performance
+                where source_supplier_id = :supplier_id
+                  and calendar_date between :previous_date_from and :date_to
+                  and not product_is_deleted
+                group by source_product_id
+            )
+            SQL;
+        $baseWhere = "from performance where {$modeFilter}";
+
+        $total = (int) $this->connection->fetchOne(
+            "{$performanceCte} select count(*) {$baseWhere}",
+            $parameters,
+            $types,
+        );
+        $filtered = $search === '' ? $total : (int) $this->connection->fetchOne(
+            "{$performanceCte} select count(*) {$baseWhere} {$searchFilter}",
+            $parameters,
+            $types,
+        );
+
+        $rowParameters = $parameters + ['result_limit' => $length, 'result_offset' => $start];
+        $rowTypes = $types + [
+            'result_limit' => ParameterType::INTEGER,
+            'result_offset' => ParameterType::INTEGER,
+        ];
+        $rows = $this->connection->fetchAllAssociative(
+            <<<SQL
+                {$performanceCte}
+                select *
+                {$baseWhere}
+                {$searchFilter}
+                order by {$orderBy} {$direction}, source_product_id
+                limit :result_limit offset :result_offset
+                SQL,
+            $rowParameters,
+            $rowTypes,
+        );
+
+        return [
+            'rows' => array_map(ProductPerformanceComparisonDto::fromRow(...), $rows),
+            'total' => $total,
+            'filtered' => $filtered,
+        ];
+    }
+
+    /** @return list<OrderStatusDto> */
+    public function orderStatuses(int $supplierId): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            <<<'SQL'
+                select
+                    order_status,
+                    current_order_count,
+                    current_order_share,
+                    measured_transition_count,
+                    average_transition_duration_seconds,
+                    last_updated_at
+                from analytics.mart_supplier_order_status
+                where source_supplier_id = :supplier_id
+                order by case order_status
+                    when 'EN_ATTENTE_CONFIRMATION' then 1
+                    when 'EN_PREPARATION' then 2
+                    when 'PRETE' then 3
+                    when 'EXPEDIEE' then 4
+                    when 'EN_LIVRAISON' then 5
+                    when 'LIVREE' then 6
+                    when 'ANNULEE' then 7
+                    else 99
+                end
+                SQL,
+            ['supplier_id' => $supplierId],
+            ['supplier_id' => ParameterType::INTEGER],
+        );
+
+        return array_map(OrderStatusDto::fromRow(...), $rows);
+    }
+
+    /** @return list<StockOverviewDto> */
+    public function stockOverview(int $supplierId, int $limit): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            <<<'SQL'
+                select
+                    source_product_id,
+                    source_variation_id,
+                    product_name,
+                    variation_name,
+                    stock_registered,
+                    stock_used,
+                    stock_reserved,
+                    stock_physical,
+                    stock_available,
+                    is_currently_out_of_stock,
+                    has_observed_stockout,
+                    last_movement_type,
+                    last_movement_quantity,
+                    last_movement_at,
+                    product_is_deleted,
+                    variation_is_deleted,
+                    last_updated_at
+                from analytics.mart_supplier_stock_overview
+                where source_supplier_id = :supplier_id
+                order by is_currently_out_of_stock desc, stock_available,
+                    source_product_id, source_variation_id
+                limit :result_limit
+                SQL,
+            [
+                'supplier_id' => $supplierId,
+                'result_limit' => $limit,
+            ],
+            [
+                'supplier_id' => ParameterType::INTEGER,
+                'result_limit' => ParameterType::INTEGER,
+            ],
+        );
+
+        return array_map(StockOverviewDto::fromRow(...), $rows);
+    }
+
+    /** @return array{rows: list<StockTableRowDto>, total: int, filtered: int} */
+    public function stockDataTable(
+        int $supplierId,
+        int $start,
+        int $length,
+        string $search,
+        int $orderColumn,
+        string $orderDirection,
+    ): array {
+        $orderExpressions = [
+            0 => 'lower(stock.product_name || coalesce(stock.variation_name, \'\'))',
+            1 => 'stock.stock_registered',
+            2 => 'stock.stock_used',
+            3 => 'stock.stock_reserved',
+            4 => 'stock.stock_available',
+            5 => 'stock.stock_available',
+            6 => 'effective_risk_rank',
+        ];
+        $orderBy = $orderExpressions[$orderColumn] ?? $orderExpressions[4];
+        $direction = $orderDirection === 'asc' ? 'asc' : 'desc';
+        $searchFilter = '';
+        $parameters = ['supplier_id' => $supplierId];
+        $types = ['supplier_id' => ParameterType::INTEGER];
+
+        if ($search !== '') {
+            $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search);
+            $parameters['search'] = sprintf('%%%s%%', $escaped);
+            $types['search'] = ParameterType::STRING;
+            $searchFilter = <<<'SQL'
+                and (
+                    stock.product_name ilike :search escape '\'
+                    or coalesce(stock.variation_name, '') ilike :search escape '\'
+                )
+                SQL;
+        }
+
+        $baseWhere = <<<SQL
+            from analytics.mart_supplier_stock_overview as stock
+            left join analytics.mart_supplier_stock_risk as prediction
+                on prediction.source_supplier_id = stock.source_supplier_id
+                and prediction.source_variation_id = stock.source_variation_id
+            where stock.source_supplier_id = :supplier_id
+              and not stock.product_is_deleted
+              and not stock.variation_is_deleted
+            SQL;
+
+        $total = (int) $this->connection->fetchOne(
+            <<<SQL
+                select count(*)
+                from analytics.mart_supplier_stock_overview as stock
+                where stock.source_supplier_id = :supplier_id
+                  and not stock.product_is_deleted
+                  and not stock.variation_is_deleted
+                SQL,
+            ['supplier_id' => $supplierId],
+            ['supplier_id' => ParameterType::INTEGER],
+        );
+        $filtered = (int) $this->connection->fetchOne(
+            "select count(*) {$baseWhere} {$searchFilter}",
+            $parameters,
+            $types,
+        );
+
+        $rows = $this->connection->fetchAllAssociative(
+            <<<SQL
+                select
+                    stock.source_product_id,
+                    stock.source_variation_id,
+                    stock.product_name,
+                    stock.variation_name,
+                    stock.stock_registered,
+                    stock.stock_used,
+                    stock.stock_reserved,
+                    stock.stock_available,
+                    stock.is_currently_out_of_stock,
+                    coalesce(prediction.risk, 'INSUFFICIENT_DATA') as risk,
+                    prediction.source_variation_id is not null as has_prediction,
+                    greatest(
+                        stock.last_updated_at,
+                        coalesce(prediction.last_updated_at, stock.last_updated_at)
+                    ) as last_updated_at,
+                    case
+                        when stock.is_currently_out_of_stock or stock.stock_available <= 0 then 1
+                        when prediction.risk = 'HIGH' then 2
+                        when prediction.risk = 'MEDIUM' then 3
+                        when prediction.risk = 'LOW' then 4
+                        else 5
+                    end as effective_risk_rank
+                {$baseWhere}
+                {$searchFilter}
+                order by {$orderBy} {$direction}, stock.source_variation_id
+                limit :result_limit offset :result_offset
+                SQL,
+            [
+                ...$parameters,
+                'result_limit' => $length,
+                'result_offset' => $start,
+            ],
+            [
+                ...$types,
+                'result_limit' => ParameterType::INTEGER,
+                'result_offset' => ParameterType::INTEGER,
+            ],
+        );
+
+        return [
+            'rows' => array_map(StockTableRowDto::fromRow(...), $rows),
+            'total' => $total,
+            'filtered' => $filtered,
+        ];
+    }
+
+    /** @return list<StockRiskDto> */
+    public function stockRisks(int $supplierId, ?string $risk, int $limit): array
+    {
+        $riskFilter = $risk === null ? '' : 'and risk = :risk';
+        $parameters = [
+            'supplier_id' => $supplierId,
+            'result_limit' => $limit,
+        ];
+        $types = [
+            'supplier_id' => ParameterType::INTEGER,
+            'result_limit' => ParameterType::INTEGER,
+        ];
+        if ($risk !== null) {
+            $parameters['risk'] = $risk;
+            $types['risk'] = ParameterType::STRING;
+        }
+        $rows = $this->connection->fetchAllAssociative(
+            <<<SQL
+                select
+                    source_product_id, source_variation_id, product_name,
+                    variation_name, prediction_date, predicted_at,
+                    forecast_central_7d, forecast_q90_7d, stock_available,
+                    risk, recommended_quantity, model_version, demand_history,
+                    shap_factors, last_updated_at
+                from analytics.mart_supplier_stock_risk
+                where source_supplier_id = :supplier_id
+                  {$riskFilter}
+                order by case risk
+                    when 'HIGH' then 1 when 'MEDIUM' then 2
+                    when 'LOW' then 3 else 4 end,
+                    recommended_quantity desc, source_variation_id
+                limit :result_limit
+                SQL,
+            $parameters,
+            $types,
+        );
+
+        return array_map(StockRiskDto::fromRow(...), $rows);
+    }
+
+    public function stockRiskExplanation(
+        int $supplierId,
+        int $variationId,
+    ): ?StockRiskExplanationDto {
+        $row = $this->connection->fetchAssociative(
+            <<<'SQL'
+                select
+                    source_variation_id, product_name, variation_name,
+                    predicted_at, forecast_central_7d, forecast_q90_7d,
+                    stock_available, risk, recommended_quantity,
+                    business_explanation, shap_factors, demand_history,
+                    model_version
+                from analytics.mart_supplier_stock_risk
+                where source_supplier_id = :supplier_id
+                  and source_variation_id = :variation_id
+                SQL,
+            ['supplier_id' => $supplierId, 'variation_id' => $variationId],
+            ['supplier_id' => ParameterType::INTEGER, 'variation_id' => ParameterType::INTEGER],
+        );
+
+        return $row ? StockRiskExplanationDto::fromRow($row) : null;
+    }
+
+    private function rangeParameters(
+        int $supplierId,
+        AnalyticsDateRange $range,
+    ): array {
+        return [
+            'supplier_id' => $supplierId,
+            'date_from' => $range->from->format('Y-m-d'),
+            'date_to' => $range->to->format('Y-m-d'),
+        ];
+    }
+
+    private function rangeParameterTypes(): array
+    {
+        return [
+            'supplier_id' => ParameterType::INTEGER,
+            'date_from' => ParameterType::STRING,
+            'date_to' => ParameterType::STRING,
+        ];
+    }
+}

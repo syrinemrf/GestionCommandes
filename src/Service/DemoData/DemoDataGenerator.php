@@ -186,6 +186,7 @@ final class DemoDataGenerator
                     ->setFournisseur($supplier)
                     ->setImage($this->resolveProductImage((string) $productDefinition['key']))
                     ->setIsDeleted(false)
+                    ->setCreatedAt($options->startDate)
                     ->setDemoBatch($batchId);
                 $this->entityManager->persist($product);
 

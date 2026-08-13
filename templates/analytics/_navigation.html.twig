@@ -1,0 +1,5 @@
+{% set route = app.request.attributes.get('_route')|default('') %}
+<nav class="dashboard-tabs" aria-label="Sections du tableau de bord">
+    <a href="{{ path('analytics_dashboard') }}"{% if route == 'analytics_dashboard' %} class="is-active" aria-current="page"{% endif %}>Vue d’ensemble</a>
+    <a href="{{ path('analytics_dashboard_products') }}"{% if route == 'analytics_dashboard_products' %} class="is-active" aria-current="page"{% endif %}>Produits &amp; Stock</a>
+</nav>

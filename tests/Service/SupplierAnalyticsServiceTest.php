@@ -1,0 +1,212 @@
+<?php
+
+namespace App\Tests\Service;
+
+use App\Dto\Analytics\AnalyticsDateRange;
+use App\Dto\Analytics\KpiSummaryDto;
+use App\Dto\Analytics\OrderProcessingTimeDto;
+use App\Dto\Analytics\ProductPerformanceComparisonDto;
+use App\Dto\Analytics\StockRiskExplanationDto;
+use App\Entity\User;
+use App\Repository\Analytics\SupplierAnalyticsRepository;
+use App\Service\Analytics\SupplierAnalyticsService;
+use PHPUnit\Framework\TestCase;
+
+final class SupplierAnalyticsServiceTest extends TestCase
+{
+    public function testTwoSuppliersUseTheirOwnMariaDbIdentifier(): void
+    {
+        $range = new AnalyticsDateRange(
+            new \DateTimeImmutable('2026-08-01'),
+            new \DateTimeImmutable('2026-08-04')
+        );
+        $seenSupplierIds = [];
+        $repository = $this->createMock(SupplierAnalyticsRepository::class);
+        $repository
+            ->expects(self::exactly(2))
+            ->method('summary')
+            ->willReturnCallback(
+                function (int $supplierId) use (&$seenSupplierIds): KpiSummaryDto {
+                    $seenSupplierIds[] = $supplierId;
+
+                    return $this->summary($supplierId === 101 ? 11 : 22);
+                }
+            );
+
+        $service = new SupplierAnalyticsService($repository);
+
+        self::assertSame(
+            11,
+            $service->summary($this->supplier(101), $range)->orderCount
+        );
+        self::assertSame(
+            22,
+            $service->summary($this->supplier(202), $range)->orderCount
+        );
+        self::assertSame([101, 202], $seenSupplierIds);
+    }
+
+    public function testRiskExplanationIsIsolatedForTwoSuppliers(): void
+    {
+        $seenSupplierIds = [];
+        $repository = $this->createMock(SupplierAnalyticsRepository::class);
+        $repository
+            ->expects(self::exactly(2))
+            ->method('stockRiskExplanation')
+            ->willReturnCallback(function (int $supplierId, int $variationId) use (&$seenSupplierIds): StockRiskExplanationDto {
+                $seenSupplierIds[] = $supplierId;
+
+                return new StockRiskExplanationDto(
+                    $variationId,
+                    sprintf('Produit %d', $supplierId),
+                    null,
+                    4,
+                    8.0,
+                    12.0,
+                    4,
+                    'HIGH',
+                    8,
+                    [],
+                    'model-v1',
+                    '2026-08-10T10:00:00+00:00',
+                );
+            });
+        $service = new SupplierAnalyticsService($repository);
+
+        $first = $service->stockRiskExplanation($this->supplier(101), 501);
+        $second = $service->stockRiskExplanation($this->supplier(202), 501);
+
+        self::assertSame('Produit 101', $first->productName);
+        self::assertSame('Produit 202', $second->productName);
+        self::assertFalse($first->toArray()['shapAvailable']);
+        self::assertSame([], $first->toArray()['factors']);
+        self::assertSame([101, 202], $seenSupplierIds);
+    }
+
+    public function testInvalidRiskFilterIsRejectedBeforeQueryingTheDw(): void
+    {
+        $repository = $this->createMock(SupplierAnalyticsRepository::class);
+        $repository->expects(self::never())->method('stockRisks');
+        $service = new SupplierAnalyticsService($repository);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $service->stockRisks($this->supplier(101), 'CRITICAL', 100);
+    }
+
+    public function testStockDataTableNormalizesParametersAndUsesSupplier(): void
+    {
+        $repository = $this->createMock(SupplierAnalyticsRepository::class);
+        $repository->expects(self::once())
+            ->method('stockDataTable')
+            ->with(101, 0, 100, str_repeat('x', 100), 6, 'desc')
+            ->willReturn(['rows' => [], 'total' => 0, 'filtered' => 0]);
+
+        (new SupplierAnalyticsService($repository))->stockDataTable(
+            $this->supplier(101),
+            -20,
+            500,
+            str_repeat('x', 120),
+            6,
+            'invalid',
+        );
+    }
+
+    public function testProductComparisonUsesSupplierAndNormalizesLimit(): void
+    {
+        $range = new AnalyticsDateRange(
+            new \DateTimeImmutable('2026-08-01'),
+            new \DateTimeImmutable('2026-08-04'),
+        );
+        $repository = $this->createMock(SupplierAnalyticsRepository::class);
+        $repository->expects(self::once())
+            ->method('productPerformanceComparison')
+            ->with(101, $range, 100)
+            ->willReturn([new ProductPerformanceComparisonDto(
+                42, 'Sérum HydraGlow', 120, 100, 12, 10, 8, 7,
+                '2026-08-11 08:00:00+00',
+            )]);
+
+        $result = (new SupplierAnalyticsService($repository))
+            ->productPerformanceComparison($this->supplier(101), $range, 500);
+
+        self::assertCount(1, $result);
+        self::assertSame(42, $result[0]->productId);
+    }
+
+    public function testProductDataTableNormalizesParametersAndUsesSupplier(): void
+    {
+        $range = new AnalyticsDateRange(
+            new \DateTimeImmutable('2026-08-01'),
+            new \DateTimeImmutable('2026-08-04'),
+        );
+        $repository = $this->createMock(SupplierAnalyticsRepository::class);
+        $repository->expects(self::once())
+            ->method('productPerformanceDataTable')
+            ->with(101, $range, 'units', 0, 25, str_repeat('x', 100), 2, 'desc')
+            ->willReturn(['rows' => [], 'total' => 0, 'filtered' => 0]);
+
+        (new SupplierAnalyticsService($repository))->productPerformanceDataTable(
+            $this->supplier(101),
+            $range,
+            'units',
+            -10,
+            100,
+            str_repeat('x', 120),
+            2,
+            'invalid',
+        );
+    }
+
+    public function testOverviewKeepsSupplierIsolationAndUsesPreviousPeriod(): void
+    {
+        $range = new AnalyticsDateRange(
+            new \DateTimeImmutable('2026-08-01'),
+            new \DateTimeImmutable('2026-08-04')
+        );
+        $supplierIds = [];
+        $ranges = [];
+        $repository = $this->createMock(SupplierAnalyticsRepository::class);
+        $repository->expects(self::exactly(2))->method('summary')
+            ->willReturnCallback(function (int $supplierId, AnalyticsDateRange $period) use (&$supplierIds, &$ranges): KpiSummaryDto {
+                $supplierIds[] = $supplierId;
+                $ranges[] = $period->toArray();
+                return $this->summary(10);
+            });
+        $repository->expects(self::exactly(2))->method('processingTime')
+            ->willReturn(new OrderProcessingTimeDto(2, 3600, 3600, 2400, 1200, null));
+
+        $overview = (new SupplierAnalyticsService($repository))
+            ->overview($this->supplier(101), $range);
+
+        self::assertSame([101, 101], $supplierIds);
+        self::assertSame(['from' => '2026-08-01', 'to' => '2026-08-04'], $ranges[0]);
+        self::assertSame(['from' => '2026-07-28', 'to' => '2026-07-31'], $ranges[1]);
+        self::assertSame(0.0, $overview->toArray()['comparison']['orderCountPercent']);
+    }
+
+    private function supplier(int $id): User
+    {
+        $supplier = (new User())
+            ->setEmail(sprintf('supplier-%d@example.test', $id))
+            ->setRole('ROLE_FOURNISSEUR')
+            ->setIsDeleted(false);
+        (new \ReflectionProperty($supplier, 'id'))->setValue($supplier, $id);
+
+        return $supplier;
+    }
+
+    private function summary(int $orders): KpiSummaryDto
+    {
+        return new KpiSummaryDto(
+            $orders,
+            0,
+            0.0,
+            0.0,
+            0.0,
+            0,
+            0.0,
+            0.0,
+            null,
+        );
+    }
+}

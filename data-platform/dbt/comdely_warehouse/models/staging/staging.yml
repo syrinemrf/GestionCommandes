@@ -1,0 +1,122 @@
+version: 2
+
+models:
+  - name: stg_user
+    description: Utilisateurs et fournisseurs normalisés, sans hash de mot de passe.
+    columns:
+      - name: source_user_id
+        data_tests: [not_null, unique]
+      - name: source_system
+        data_tests: [not_null]
+
+  - name: stg_client
+    description: Clients normalisés avec conservation de la suppression logique.
+    columns:
+      - name: source_client_id
+        data_tests: [not_null, unique]
+      - name: source_supplier_id
+        data_tests: [not_null]
+
+  - name: stg_product
+    description: Produits et prix de base courants.
+    columns:
+      - name: source_product_id
+        data_tests: [not_null, unique]
+      - name: source_supplier_id
+        data_tests: [not_null]
+      - name: base_price_ht
+        data_tests: [not_null]
+      - name: product_created_at
+        data_tests: [not_null]
+
+  - name: stg_product_variation
+    description: Variations et état courant des stocks.
+    columns:
+      - name: source_variation_id
+        data_tests: [not_null, unique]
+      - name: source_product_id
+        data_tests: [not_null]
+
+  - name: stg_order
+    description: Commandes avec montants HT, TVA et TTC uniformisés.
+    columns:
+      - name: source_order_id
+        data_tests: [not_null, unique]
+      - name: order_status
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - EN_ATTENTE_CONFIRMATION
+                  - EN_PREPARATION
+                  - PRETE
+                  - EXPEDIEE
+                  - EN_LIVRAISON
+                  - LIVREE
+                  - ANNULEE
+
+  - name: stg_order_line
+    description: Lignes avec noms et prix historiques conservés.
+    columns:
+      - name: source_order_line_id
+        data_tests: [not_null, unique]
+      - name: source_order_id
+        data_tests: [not_null]
+      - name: historical_unit_price_ht
+        data_tests: [not_null]
+
+  - name: stg_stock_movement
+    description: Journal immuable des opérations de stock.
+    columns:
+      - name: source_stock_movement_id
+        data_tests: [not_null, unique]
+      - name: movement_type
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - ENTREE_APPROVISIONNEMENT
+                  - RESERVATION_COMMANDE
+                  - LIBERATION_RESERVATION
+                  - SORTIE_COMMANDE
+                  - RETOUR
+                  - AJUSTEMENT
+
+  - name: stg_order_status_history
+    description: Transitions de statut ordonnées chronologiquement.
+    columns:
+      - name: source_status_history_id
+        data_tests: [not_null, unique]
+      - name: new_status
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - EN_ATTENTE_CONFIRMATION
+                  - EN_PREPARATION
+                  - PRETE
+                  - EXPEDIEE
+                  - EN_LIVRAISON
+                  - LIVREE
+                  - ANNULEE
+
+  - name: stg_parameter
+    description: Paramètres opérationnels courants.
+    columns:
+      - name: source_parameter_id
+        data_tests: [not_null, unique]
+
+  - name: stg_claim
+    description: Réclamations normalisées, réservées à de futurs modèles support.
+    columns:
+      - name: source_claim_id
+        data_tests: [not_null, unique]
+
+  - name: stg_claim_message
+    description: Messages de réclamation normalisés.
+    columns:
+      - name: source_claim_message_id
+        data_tests: [not_null, unique]

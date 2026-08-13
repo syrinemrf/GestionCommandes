@@ -123,7 +123,7 @@ class ReclamationController extends AbstractController
                         . ' '
                         . $fournisseurTicket->getNom()
                     )
-                    : '—',
+                    : '-',
                 'admin' => $adminAssigne
                     ? trim(
                         $adminAssigne->getPrenom()
