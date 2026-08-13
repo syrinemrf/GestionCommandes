@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
             serverSide: true,
             pageLength: 6,
             lengthChange: false,
-            searchDelay: 350,
+            searching: false,
             ajax: {
                 url: root.dataset.stockTableUrl,
                 type: 'GET',
