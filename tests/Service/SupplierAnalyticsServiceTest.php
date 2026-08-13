@@ -133,6 +133,30 @@ final class SupplierAnalyticsServiceTest extends TestCase
         self::assertSame(42, $result[0]->productId);
     }
 
+    public function testProductDataTableNormalizesParametersAndUsesSupplier(): void
+    {
+        $range = new AnalyticsDateRange(
+            new \DateTimeImmutable('2026-08-01'),
+            new \DateTimeImmutable('2026-08-04'),
+        );
+        $repository = $this->createMock(SupplierAnalyticsRepository::class);
+        $repository->expects(self::once())
+            ->method('productPerformanceDataTable')
+            ->with(101, $range, 'units', 0, 25, str_repeat('x', 100), 2, 'desc')
+            ->willReturn(['rows' => [], 'total' => 0, 'filtered' => 0]);
+
+        (new SupplierAnalyticsService($repository))->productPerformanceDataTable(
+            $this->supplier(101),
+            $range,
+            'units',
+            -10,
+            100,
+            str_repeat('x', 120),
+            2,
+            'invalid',
+        );
+    }
+
     public function testOverviewKeepsSupplierIsolationAndUsesPreviousPeriod(): void
     {
         $range = new AnalyticsDateRange(

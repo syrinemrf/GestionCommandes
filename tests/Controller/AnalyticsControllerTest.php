@@ -43,6 +43,7 @@ final class AnalyticsControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertCount(1, $crawler->filter('#dashboard-evolution-chart'));
+        self::assertCount(1, $crawler->filter('#dashboard-product-performance-table'));
         self::assertCount(1, $crawler->filter('h2:contains("Commandes à traiter")'));
         self::assertCount(1, $crawler->filter('h2:contains("Performance des produits")'));
         self::assertSame(
@@ -50,10 +51,10 @@ final class AnalyticsControllerTest extends WebTestCase
             $crawler->filter('#supplier-dashboard')->attr('data-overview-url')
         );
         self::assertCount(0, $crawler->filter('#dashboard-loader'));
-        self::assertCount(4, $crawler->filter('.dashboard-section-loading'));
+        self::assertCount(3, $crawler->filter('.dashboard-section-loading'));
         self::assertSame(
-            '/api/analytics/product-comparison',
-            $crawler->filter('#supplier-dashboard')->attr('data-products-url'),
+            '/api/analytics/product-comparison-table',
+            $crawler->filter('#supplier-dashboard')->attr('data-products-table-url'),
         );
         self::assertSame(
             '/commandes',
@@ -231,6 +232,57 @@ final class AnalyticsControllerTest extends WebTestCase
             ['from' => '2026-07-28', 'to' => '2026-07-31'],
             $response['meta']['previousPeriod'],
         );
+    }
+
+    public function testProductComparisonDataTableUsesAuthenticatedSupplier(): void
+    {
+        $client = static::createClient();
+        $client->disableReboot();
+        $analytics = $this->createMock(SupplierAnalyticsService::class);
+        $analytics->expects(self::once())
+            ->method('productPerformanceDataTable')
+            ->with(
+                self::callback(fn (User $user): bool => $user->getId() === 101),
+                self::callback(fn ($range): bool => $range->toArray() === [
+                    'from' => '2026-08-01',
+                    'to' => '2026-08-04',
+                ]),
+                'declining',
+                5,
+                5,
+                'serum',
+                3,
+                'asc',
+            )
+            ->willReturn([
+                'rows' => [new ProductPerformanceComparisonDto(
+                    42, 'Sérum HydraGlow', 80, 100, 8, 10, 7, 9,
+                    '2026-08-11 08:00:00+00',
+                )],
+                'total' => 4,
+                'filtered' => 1,
+            ]);
+        static::getContainer()->set(SupplierAnalyticsService::class, $analytics);
+        $this->loginSupplier($client, $this->supplier(101));
+
+        $client->request('GET', '/api/analytics/product-comparison-table', [
+            'supplierId' => 202,
+            'from' => '2026-08-01',
+            'to' => '2026-08-04',
+            'mode' => 'declining',
+            'draw' => 3,
+            'start' => 5,
+            'length' => 5,
+            'search' => ['value' => 'serum'],
+            'order' => [['column' => 3, 'dir' => 'asc']],
+        ]);
+
+        self::assertResponseIsSuccessful();
+        $response = $this->responseData($client->getResponse());
+        self::assertSame(3, $response['draw']);
+        self::assertSame(4, $response['recordsTotal']);
+        self::assertSame(1, $response['recordsFiltered']);
+        self::assertSame(42, $response['data'][0]['productId']);
     }
 
     public function testBrowserSupplierIdIsIgnoredForTwoSuppliers(): void

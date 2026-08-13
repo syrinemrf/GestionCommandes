@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const root = document.getElementById('supplier-dashboard');
-    if (!root || typeof echarts === 'undefined' || !window.ComdelyDashboard) return;
+    if (!root || typeof echarts === 'undefined' || !window.ComdelyDashboard || !window.jQuery || !$.fn.DataTable) return;
     const ui = window.ComdelyDashboard;
     const elements = {
         from: document.getElementById('dashboard-date-from'), to: document.getElementById('dashboard-date-to'),
@@ -10,13 +10,13 @@ document.addEventListener('DOMContentLoaded', () => {
         statuses: document.getElementById('dashboard-status-list'),
         actionTotal: document.getElementById('dashboard-action-total'),
         transitTotal: document.getElementById('dashboard-transit-total'),
-        products: document.getElementById('dashboard-top-products'),
+        productTable: document.getElementById('dashboard-product-performance-table'),
         alerts: document.getElementById('dashboard-alerts'),
     };
     const endpoints = {
         overview: root.dataset.overviewUrl,
         evolution: root.dataset.evolutionUrl,
-        products: root.dataset.productsUrl,
+        products: root.dataset.productsTableUrl,
         statuses: root.dataset.statusesUrl,
         stock: root.dataset.stockUrl,
         risks: root.dataset.risksUrl,
@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const controllers = new Map();
     let refreshTimer = null;
     let productMode = 'revenue';
+    let performanceTable = null;
     const snapshot = {};
     let alertPending = new Set();
     const alertErrors = new Map();
@@ -111,9 +112,15 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderEvolution(items) {
         const aggregate = aggregateEvolution(items);
         const empty = aggregate.values.length === 0 || aggregate.values.every((item) => item.orders === 0 && item.revenue === 0);
+        const grouping = aggregate.mode === 'daily'
+            ? 'par jour'
+            : aggregate.mode === 'weekly'
+                ? 'par semaine, du lundi au dimanche'
+                : 'par mois';
         document.querySelector('[data-empty-for="evolution"]').hidden = !empty;
         chart.getDom().hidden = empty;
         document.getElementById('dashboard-evolution-subtitle').textContent = `Commandes et CA HT - vue ${aggregate.mode === 'daily' ? 'quotidienne' : aggregate.mode === 'weekly' ? 'hebdomadaire' : 'mensuelle'}`;
+        document.getElementById('dashboard-evolution-help').textContent = `Chaque point regroupe les données ${grouping}. La courbe verte montre le nombre de commandes sur l’axe gauche. La courbe bleue montre le chiffre d’affaires HT en TND sur l’axe droit.`;
         if (empty) return chart.clear();
         chart.setOption({ color: ['#047857', '#2563eb'], tooltip: { trigger: 'axis', backgroundColor: '#0f172a', borderWidth: 0, textStyle: { color: '#fff' } }, legend: { top: 0, data: ['Commandes', 'CA HT'] }, grid: { left: 52, right: 70, top: 46, bottom: 36 }, xAxis: { type: 'category', boundaryGap: false, data: aggregate.values.map((item) => item.date), axisLabel: { color: '#64748b', hideOverlap: true } }, yAxis: [{ type: 'value', minInterval: 1, axisLabel: { color: '#64748b' } }, { type: 'value', axisLabel: { color: '#64748b', formatter: (value) => ui.money(value).replace(' TND', '') } }], series: [{ name: 'Commandes', type: 'line', smooth: true, showSymbol: false, areaStyle: { opacity: .08 }, data: aggregate.values.map((item) => item.orders) }, { name: 'CA HT', type: 'line', yAxisIndex: 1, smooth: true, showSymbol: false, data: aggregate.values.map((item) => item.revenue) }] }, { notMerge: true });
     }
@@ -159,51 +166,54 @@ document.addEventListener('DOMContentLoaded', () => {
             : `${ui.integer.format(transit)} commandes en cours d’acheminement`;
     }
 
-    function rankedProducts(items) {
-        if (productMode === 'declining') {
-            return items
-                .filter((item) => item.revenueChangePercent !== null && item.revenueChangePercent < 0)
-                .sort((a, b) => a.revenueChangePercent - b.revenueChangePercent)
-                .slice(0, 5);
-        }
-
-        return items
-            .filter((item) => productMode === 'units' ? item.currentUnitsSold > 0 : item.currentRevenueHt > 0)
-            .sort((a, b) => productMode === 'units'
-                ? b.currentUnitsSold - a.currentUnitsSold || b.currentRevenueHt - a.currentRevenueHt
-                : b.currentRevenueHt - a.currentRevenueHt || b.currentUnitsSold - a.currentUnitsSold)
-            .slice(0, 5);
+    function escapeHtml(value) {
+        const element = document.createElement('span');
+        element.textContent = String(value ?? '');
+        return element.innerHTML;
     }
 
-    function renderProducts(items) {
-        elements.products.replaceChildren();
-        const products = rankedProducts(items);
-        document.querySelector('[data-empty-for="products"]').hidden = products.length > 0;
-
-        products.forEach((item) => {
-            const row = document.createElement('li');
-            const content = document.createElement('div');
-            content.className = 'dashboard-performance-product';
-            const name = document.createElement('strong');
-            name.textContent = item.productName;
-            content.append(name);
-            const revenue = document.createElement('span');
-            revenue.textContent = ui.money(item.currentRevenueHt, revenue);
-            const units = document.createElement('span');
-            units.textContent = ui.integer.format(item.currentUnitsSold);
-            const change = productMode === 'units' ? item.unitsChangePercent : item.revenueChangePercent;
-            const evolution = document.createElement('span');
-            evolution.className = 'dashboard-performance-change';
-            if (change === null) {
-                evolution.textContent = 'Nouveau';
-            } else {
-                const amount = Number(change) || 0;
-                evolution.textContent = amount === 0 ? 'Stable' : `${amount > 0 ? '+' : ''}${ui.number.format(amount)} %`;
-                if (amount > 0) evolution.classList.add('is-positive');
-                if (amount < 0) evolution.classList.add('is-negative');
-            }
-            row.append(content, revenue, units, evolution);
-            elements.products.append(row);
+    function initializePerformanceTable() {
+        performanceTable = $(elements.productTable).DataTable({
+            processing: true,
+            serverSide: true,
+            pageLength: 5,
+            lengthChange: false,
+            searching: false,
+            ajax: {
+                url: endpoints.products,
+                type: 'GET',
+                data: (data) => {
+                    data.from = elements.from.value;
+                    data.to = elements.to.value;
+                    data.mode = productMode;
+                },
+                error: (xhr) => setSectionError(
+                    'products',
+                    xhr.responseJSON?.error?.message || 'Impossible de charger les performances.',
+                    () => performanceTable.ajax.reload(null, false),
+                ),
+            },
+            columns: [
+                { data: 'productName', render: (value, type) => type === 'display' ? escapeHtml(value) : value },
+                { data: 'currentRevenueHt', render: (value, type) => type === 'display' ? ui.money(value) : Number(value) },
+                { data: 'currentUnitsSold', render: (value, type) => type === 'display' ? ui.integer.format(value) : Number(value) },
+                { data: null, render: (data, type, row) => {
+                    const value = productMode === 'units' ? row.unitsChangePercent : row.revenueChangePercent;
+                    if (type !== 'display') return value ?? Number.POSITIVE_INFINITY;
+                    if (value === null) return '<span class="dashboard-performance-change">Nouveau</span>';
+                    const amount = Number(value) || 0;
+                    const label = amount === 0 ? 'Stable' : `${amount > 0 ? '+' : ''}${ui.number.format(amount)} %`;
+                    const state = amount > 0 ? 'is-positive' : amount < 0 ? 'is-negative' : '';
+                    return `<span class="dashboard-performance-change ${state}">${label}</span>`;
+                } },
+            ],
+            order: [[1, 'desc']],
+        });
+        $(elements.productTable).on('xhr.dt', (event, settings, json) => {
+            if (!json) return;
+            snapshot.products = json.data || [];
+            setSectionError('products');
+            updateLastUpdated();
         });
     }
 
@@ -294,14 +304,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function load() {
+    function load(reloadProducts = true) {
         if (!elements.from.value || !elements.to.value || elements.from.value > elements.to.value) return ui.setFeedback(elements.feedback, 'La période sélectionnée est invalide.');
         controllers.forEach((item) => item.abort()); controllers.clear(); ui.setFeedback(elements.feedback);
         const period = { from: elements.from.value, to: elements.to.value };
         alertPending = new Set(['overview', 'stock', 'risks']); alertErrors.clear(); setSectionLoading('alerts', true, elements.alerts.children.length > 0); setSectionError('alerts');
         loadPart('overview', 'overview', ui.buildUrl(endpoints.overview, period), renderKpis);
         loadPart('evolution', 'evolution', ui.buildUrl(endpoints.evolution, period), renderEvolution);
-        loadPart('products', 'products', ui.buildUrl(endpoints.products, { ...period, limit: 100 }), renderProducts);
+        if (reloadProducts && performanceTable) performanceTable.ajax.reload(null, false);
         loadPart('statuses', 'statuses', endpoints.statuses, renderStatuses);
         loadPart('stock', null, ui.buildUrl(endpoints.stock, { limit: 200 }));
         loadPart('risks', null, ui.buildUrl(endpoints.risks, { limit: 200 }));
@@ -325,11 +335,17 @@ document.addEventListener('DOMContentLoaded', () => {
             item.classList.toggle('is-active', active);
             item.setAttribute('aria-selected', String(active));
         });
-        renderProducts(snapshot.products || []);
+        const order = productMode === 'units'
+            ? [[2, 'desc']]
+            : productMode === 'declining'
+                ? [[3, 'asc']]
+                : [[1, 'desc']];
+        performanceTable.order(order).ajax.reload();
     }));
     elements.apply.addEventListener('click', load); elements.refresh.addEventListener('click', load); elements.refreshInterval.addEventListener('change', configureRefresh);
     window.addEventListener('resize', () => chart.resize()); window.addEventListener('pagehide', () => { controllers.forEach((item) => item.abort()); if (refreshTimer) clearInterval(refreshTimer); chart.dispose(); });
     ui.selectPeriod(elements.from, elements.to, 90);
+    initializePerformanceTable();
     let saved = null;
     try {
         saved = localStorage.getItem('comdelyDashboardRefreshSeconds');
@@ -340,5 +356,5 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.refreshInterval.value = saved;
     }
     configureRefresh();
-    load();
+    load(false);
 });

@@ -108,6 +108,33 @@ class SupplierAnalyticsService
         );
     }
 
+    public function productPerformanceDataTable(
+        User $supplier,
+        AnalyticsDateRange $range,
+        string $mode,
+        int $start,
+        int $length,
+        string $search,
+        int $orderColumn,
+        string $orderDirection,
+    ): array {
+        $allowedModes = ['revenue', 'units', 'declining'];
+        if (!in_array($mode, $allowedModes, true)) {
+            throw new \InvalidArgumentException('Mode de classement invalide.');
+        }
+
+        return $this->repository->productPerformanceDataTable(
+            $this->supplierId($supplier),
+            $range,
+            $mode,
+            max(0, $start),
+            min(25, max(5, $length)),
+            mb_substr(trim($search), 0, 100),
+            $orderColumn,
+            strtolower($orderDirection) === 'asc' ? 'asc' : 'desc',
+        );
+    }
+
     public function stockRisks(
         User $supplier,
         ?string $risk,

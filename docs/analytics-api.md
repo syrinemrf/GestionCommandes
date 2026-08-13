@@ -125,7 +125,7 @@ activite » sans division par zero.
 
 ## GET `/api/analytics/product-comparison?from=2026-08-01&to=2026-08-04&limit=50`
 
-Cette route alimente le classement compact de la vue d'ensemble. Elle compare
+Cette route expose la comparaison produit reutilisable. Elle compare
 la periode demandee a la periode precedente de meme duree, au jour pres. Les
 commandes annulees ou supprimees sont exclues. Une evolution vaut `null` si la
 periode precedente est nulle et la periode courante non nulle, afin d'eviter
@@ -152,6 +152,35 @@ toute division par zero.
     "count": 1,
     "limit": 50
   }
+}
+```
+
+## GET `/api/analytics/product-comparison-table`
+
+Endpoint DataTables en traitement serveur utilise par la vue d'ensemble. Il
+accepte `from`, `to`, `mode` (`revenue`, `units` ou `declining`), `draw`,
+`start`, `length`, `search[value]` et `order`. La recherche, le tri et la
+pagination sont appliques dans PostgreSQL. L'identifiant fournisseur est
+toujours obtenu depuis l'utilisateur Symfony authentifie.
+
+```json
+{
+  "draw": 3,
+  "recordsTotal": 12,
+  "recordsFiltered": 2,
+  "data": [{
+    "productId": 42,
+    "productName": "Serum HydraGlow",
+    "currentRevenueHt": 7800.0,
+    "previousRevenueHt": 6964.286,
+    "currentUnitsSold": 168,
+    "previousUnitsSold": 160,
+    "currentOrderCount": 84,
+    "previousOrderCount": 79,
+    "revenueChangePercent": 12.0,
+    "unitsChangePercent": 5.0,
+    "lastUpdatedAt": "2026-08-11 08:00:00+00"
+  }]
 }
 ```
 

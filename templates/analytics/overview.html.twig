@@ -3,7 +3,7 @@
 {% block title %}Vue d’ensemble - Komdely{% endblock %}
 
 {% block body %}
-<div id="supplier-dashboard" class="dashboard" data-overview-url="{{ path('analytics_overview') }}" data-evolution-url="{{ path('analytics_evolution') }}" data-products-url="{{ path('analytics_product_comparison') }}" data-statuses-url="{{ path('analytics_statuses') }}" data-stock-url="{{ path('analytics_stock') }}" data-risks-url="{{ path('analytics_risks') }}" data-orders-url="{{ path('commande_list') }}">
+<div id="supplier-dashboard" class="dashboard" data-overview-url="{{ path('analytics_overview') }}" data-evolution-url="{{ path('analytics_evolution') }}" data-products-table-url="{{ path('analytics_product_comparison_table') }}" data-statuses-url="{{ path('analytics_statuses') }}" data-stock-url="{{ path('analytics_stock') }}" data-risks-url="{{ path('analytics_risks') }}" data-orders-url="{{ path('commande_list') }}">
     {% include 'analytics/_header.html.twig' with {title: 'Vue d’ensemble', subtitle: 'Les indicateurs essentiels pour piloter votre activité.'} %}
     {% include 'analytics/_navigation.html.twig' %}
 
@@ -29,7 +29,16 @@
 
     <section class="dashboard-overview-primary-grid">
         <article class="dashboard-panel dashboard-overview-chart-panel dashboard-progressive-section" data-dashboard-section="evolution">
-            <div class="dashboard-panel-heading"><div><h2>Évolution de l’activité</h2><p id="dashboard-evolution-subtitle">Commandes et chiffre d’affaires HT</p></div></div>
+            <div class="dashboard-panel-heading">
+                <div>
+                    <div class="dashboard-title-with-help">
+                        <h2>Évolution de l’activité</h2>
+                        <button type="button" class="dashboard-help-button" aria-label="Comprendre le graphique" aria-describedby="dashboard-evolution-help">?</button>
+                        <span id="dashboard-evolution-help" class="dashboard-help-tooltip" role="tooltip">Le graphique compare le nombre de commandes et le chiffre d’affaires HT sur la période sélectionnée.</span>
+                    </div>
+                    <p id="dashboard-evolution-subtitle">Commandes et chiffre d’affaires HT</p>
+                </div>
+            </div>
             <div class="dashboard-chart dashboard-chart-main" id="dashboard-evolution-chart" role="img" aria-label="Évolution des commandes et du chiffre d’affaires"></div>
             <div class="dashboard-section-loading" data-loading-for="evolution"><span class="dashboard-spinner"></span><span>Chargement de l’évolution...</span></div>
             <div class="dashboard-section-error" data-error-for="evolution" hidden></div>
@@ -57,11 +66,12 @@
                 <button type="button" role="tab" aria-selected="false" data-product-mode="units">Plus vendus</button>
                 <button type="button" role="tab" aria-selected="false" data-product-mode="declining">En baisse</button>
             </div>
-            <div class="dashboard-performance-columns" aria-hidden="true"><span>Produit</span><span>CA HT</span><span>Unités</span><span>Évolution</span></div>
-            <ol id="dashboard-top-products" class="dashboard-performance-list"></ol>
-            <div class="dashboard-section-loading" data-loading-for="products"><span class="dashboard-spinner"></span><span>Chargement...</span></div>
+            <div class="dashboard-table-wrapper dashboard-overview-performance-table-wrapper">
+                <table id="dashboard-product-performance-table" class="dashboard-data-table dashboard-overview-performance-table">
+                    <thead><tr><th>Produit</th><th>CA HT</th><th>Unités</th><th>Évolution</th></tr></thead>
+                </table>
+            </div>
             <div class="dashboard-section-error" data-error-for="products" hidden></div>
-            <div class="dashboard-empty dashboard-empty-compact" data-empty-for="products" hidden>Aucune donnée pour ce classement.</div>
         </article>
         <article class="dashboard-panel dashboard-compact-panel dashboard-alert-panel dashboard-progressive-section" data-dashboard-section="alerts"><div class="dashboard-panel-heading"><div><h2>À surveiller</h2><p>5 alertes prioritaires maximum</p></div></div><ul id="dashboard-alerts" class="dashboard-alert-list"></ul><div class="dashboard-section-loading" data-loading-for="alerts"><span class="dashboard-spinner"></span><span>Analyse des alertes...</span></div><div class="dashboard-section-error" data-error-for="alerts" hidden></div><div class="dashboard-empty dashboard-empty-compact" data-empty-for="alerts" hidden>Aucune alerte prioritaire.</div></article>
     </section>
@@ -69,4 +79,5 @@
 </div>
 {% endblock %}
 
-{% block javascripts %}{{ parent() }}<script src="{{ asset('vendor/echarts/echarts.min.js') }}"></script><script src="{{ asset('js/dashboard-common.js') }}?v=20260812-1"></script><script src="{{ asset('js/dashboard-overview.js') }}?v=20260812-1"></script>{% endblock %}
+{% block javascripts %}{{ parent() }}<script src="{{ asset('vendor/jquery/jquery-3.7.1.min.js') }}"></script><script src="{{ asset('vendor/datatables/dataTables.min.js') }}"></script><script src="{{ asset('vendor/echarts/echarts.min.js') }}"></script><script src="{{ asset('js/dashboard-common.js') }}?v=20260813-1"></script><script src="{{ asset('js/dashboard-overview.js') }}?v=20260813-4"></script>{% endblock %}
+{% block stylesheets %}{{ parent() }}<link rel="stylesheet" href="{{ asset('vendor/datatables/dataTables.dataTables.min.css') }}">{% endblock %}

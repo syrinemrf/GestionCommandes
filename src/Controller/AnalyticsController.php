@@ -220,6 +220,44 @@ class AnalyticsController extends AbstractController
         ]);
     }
 
+    public function productComparisonTable(
+        Request $request,
+        SupplierAnalyticsService $analytics,
+    ): JsonResponse {
+        try {
+            $range = AnalyticsDateRange::fromRequest($request);
+            $search = $request->query->all('search');
+            $orders = $request->query->all('order');
+            $order = is_array($orders[0] ?? null) ? $orders[0] : [];
+            $orderColumn = filter_var(
+                $order['column'] ?? 1,
+                FILTER_VALIDATE_INT,
+            );
+            $result = $analytics->productPerformanceDataTable(
+                $this->currentSupplier(),
+                $range,
+                $request->query->getString('mode', 'revenue'),
+                $request->query->getInt('start', 0),
+                $request->query->getInt('length', 5),
+                is_string($search['value'] ?? null) ? $search['value'] : '',
+                $orderColumn === false ? 1 : $orderColumn,
+                ($order['dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc',
+            );
+        } catch (\InvalidArgumentException $exception) {
+            return $this->validationError($exception);
+        }
+
+        return $this->json([
+            'draw' => max(0, $request->query->getInt('draw', 0)),
+            'recordsTotal' => $result['total'],
+            'recordsFiltered' => $result['filtered'],
+            'data' => array_map(
+                static fn ($item): array => $item->toArray(),
+                $result['rows'],
+            ),
+        ]);
+    }
+
     public function risks(
         Request $request,
         SupplierAnalyticsService $analytics,

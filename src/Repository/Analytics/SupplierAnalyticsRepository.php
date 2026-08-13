@@ -246,6 +246,129 @@ class SupplierAnalyticsRepository
         return array_map(ProductPerformanceComparisonDto::fromRow(...), $rows);
     }
 
+    /** @return array{rows: list<ProductPerformanceComparisonDto>, total: int, filtered: int} */
+    public function productPerformanceDataTable(
+        int $supplierId,
+        AnalyticsDateRange $range,
+        string $mode,
+        int $start,
+        int $length,
+        string $search,
+        int $orderColumn,
+        string $orderDirection,
+    ): array {
+        $previous = $range->previous();
+        $modeFilter = match ($mode) {
+            'units' => 'current_units_sold > 0',
+            'declining' => 'previous_revenue_ht > 0 and current_revenue_ht < previous_revenue_ht',
+            default => 'current_revenue_ht > 0',
+        };
+        $changeExpression = <<<'SQL'
+            case
+                when previous_revenue_ht = 0 then null
+                else ((current_revenue_ht - previous_revenue_ht)
+                    / previous_revenue_ht) * 100
+            end
+            SQL;
+        $orderExpressions = [
+            0 => 'lower(product_name)',
+            1 => 'current_revenue_ht',
+            2 => 'current_units_sold',
+            3 => $changeExpression,
+        ];
+        $orderBy = $orderExpressions[$orderColumn] ?? $orderExpressions[1];
+        $direction = $orderDirection === 'asc' ? 'asc' : 'desc';
+        $parameters = [
+            'supplier_id' => $supplierId,
+            'date_from' => $range->from->format('Y-m-d'),
+            'date_to' => $range->to->format('Y-m-d'),
+            'previous_date_from' => $previous->from->format('Y-m-d'),
+            'previous_date_to' => $previous->to->format('Y-m-d'),
+        ];
+        $types = [
+            'supplier_id' => ParameterType::INTEGER,
+            'date_from' => ParameterType::STRING,
+            'date_to' => ParameterType::STRING,
+            'previous_date_from' => ParameterType::STRING,
+            'previous_date_to' => ParameterType::STRING,
+        ];
+        $searchFilter = '';
+        if ($search !== '') {
+            $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $search);
+            $parameters['search'] = sprintf('%%%s%%', $escaped);
+            $types['search'] = ParameterType::STRING;
+            $searchFilter = "and product_name ilike :search escape '\\'";
+        }
+
+        $performanceCte = <<<'SQL'
+            with performance as (
+                select
+                    source_product_id,
+                    max(product_name) as product_name,
+                    coalesce(sum(revenue_ht) filter (
+                        where calendar_date between :date_from and :date_to
+                    ), 0)::numeric(18, 3) as current_revenue_ht,
+                    coalesce(sum(revenue_ht) filter (
+                        where calendar_date between :previous_date_from and :previous_date_to
+                    ), 0)::numeric(18, 3) as previous_revenue_ht,
+                    coalesce(sum(units_sold) filter (
+                        where calendar_date between :date_from and :date_to
+                    ), 0)::bigint as current_units_sold,
+                    coalesce(sum(units_sold) filter (
+                        where calendar_date between :previous_date_from and :previous_date_to
+                    ), 0)::bigint as previous_units_sold,
+                    coalesce(sum(order_count) filter (
+                        where calendar_date between :date_from and :date_to
+                    ), 0)::bigint as current_order_count,
+                    coalesce(sum(order_count) filter (
+                        where calendar_date between :previous_date_from and :previous_date_to
+                    ), 0)::bigint as previous_order_count,
+                    max(last_updated_at) as last_updated_at
+                from analytics.mart_supplier_product_daily_performance
+                where source_supplier_id = :supplier_id
+                  and calendar_date between :previous_date_from and :date_to
+                  and not product_is_deleted
+                group by source_product_id
+            )
+            SQL;
+        $baseWhere = "from performance where {$modeFilter}";
+
+        $total = (int) $this->connection->fetchOne(
+            "{$performanceCte} select count(*) {$baseWhere}",
+            $parameters,
+            $types,
+        );
+        $filtered = $search === '' ? $total : (int) $this->connection->fetchOne(
+            "{$performanceCte} select count(*) {$baseWhere} {$searchFilter}",
+            $parameters,
+            $types,
+        );
+
+        $rowParameters = $parameters + ['result_limit' => $length, 'result_offset' => $start];
+        $rowTypes = $types + [
+            'result_limit' => ParameterType::INTEGER,
+            'result_offset' => ParameterType::INTEGER,
+        ];
+        $rows = $this->connection->fetchAllAssociative(
+            <<<SQL
+                {$performanceCte}
+                select *
+                {$baseWhere}
+                {$searchFilter}
+                order by {$orderBy} {$direction}, source_product_id
+                limit :result_limit offset :result_offset
+                SQL,
+            $rowParameters,
+            $rowTypes,
+        );
+
+        return [
+            'rows' => array_map(ProductPerformanceComparisonDto::fromRow(...), $rows),
+            'total' => $total,
+            'filtered' => $filtered,
+        ];
+    }
+
     /** @return list<OrderStatusDto> */
     public function orderStatuses(int $supplierId): array
     {
