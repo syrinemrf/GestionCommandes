@@ -93,7 +93,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #f5f7fb;
+    background-color: #f5f7fb;
+    background-image:
+        linear-gradient(rgba(245, 247, 251, .28), rgba(245, 247, 251, .28)),
+        url('../images/backgrounds/bg-Komdely.png');
+    background-position: center;
+    background-size: cover;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
 }
 .login-container { width: 100%; max-width: 420px; padding: 20px; }
 .login-box,
