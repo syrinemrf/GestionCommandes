@@ -3,7 +3,7 @@
 {% block title %}Accueil - Komdely{% endblock %}
 
 {% block stylesheets %}
-    <link rel="stylesheet" href="{{ asset('css/home-authenticated.css') }}?v=20260813-1">
+    <link rel="stylesheet" href="{{ asset('css/home-authenticated.css') }}?v=20260813-2">
 {% endblock %}
 
 {% block body %}
@@ -23,6 +23,12 @@
                 {% endif %}
             </p>
         </div>
+        <a
+            href="{{ isAdmin ? path('user_list') : path('analytics_dashboard') }}"
+            class="home-welcome-link">
+            <span>{{ isAdmin ? 'Gérer les utilisateurs' : 'Piloter mon activité' }}</span>
+            <i class="bi bi-arrow-right" aria-hidden="true"></i>
+        </a>
     </section>
 
     <section class="home-panel home-activity-panel">
@@ -40,23 +46,25 @@
                     <span>Les nouvelles opérations apparaîtront ici.</span>
                 </div>
             {% else %}
-                <div class="home-activity-list">
+                <ul class="home-activity-list">
                     {% for activity in home.activities %}
-                        <a href="{{ path(activity.route) }}" class="home-activity-item">
-                            <span class="home-activity-icon home-activity-icon-{{ activity.type }}">
-                                <i class="bi bi-{{ activity.icon }}" aria-hidden="true"></i>
-                            </span>
-                            <span class="home-activity-content">
-                                <strong>{{ activity.title }}</strong>
-                                <small>{{ activity.detail }}</small>
-                            </span>
-                            <time datetime="{{ activity.date|date('c') }}">
-                                {{ activity.date|date('d/m/Y H:i') }}
-                            </time>
-                            <i class="bi bi-chevron-right home-activity-arrow" aria-hidden="true"></i>
-                        </a>
+                        <li>
+                            <a href="{{ path(activity.route) }}" class="home-activity-item">
+                                <span class="home-activity-icon home-activity-icon-{{ activity.type }}">
+                                    <i class="bi bi-{{ activity.icon }}" aria-hidden="true"></i>
+                                </span>
+                                <span class="home-activity-content">
+                                    <strong>{{ activity.title }}</strong>
+                                    <small>{{ activity.detail }}</small>
+                                </span>
+                                <time datetime="{{ activity.date|date('c') }}">
+                                    {{ activity.date|date('d/m/Y H:i') }}
+                                </time>
+                                <i class="bi bi-chevron-right home-activity-arrow" aria-hidden="true"></i>
+                            </a>
+                        </li>
                     {% endfor %}
-                </div>
+                </ul>
             {% endif %}
     </section>
 </div>

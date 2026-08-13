@@ -143,7 +143,7 @@ class HomeActivityService
                 $right['date'] <=> $left['date'],
         );
 
-        return array_slice($activities, 0, 6);
+        return array_slice($activities, 0, 5);
     }
 
     private function movementLabel(MouvementStock $movement): string

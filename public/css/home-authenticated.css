@@ -1,6 +1,6 @@
 .authenticated-home {
     display: grid;
-    gap: 22px;
+    gap: 16px;
     width: 100%;
     max-width: 1380px;
     margin: 0 auto;
@@ -11,7 +11,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 30px;
-    padding: 27px 30px;
+    padding: 22px 26px;
     border: 1px solid #dfe8e4;
     border-radius: 16px;
     background: linear-gradient(115deg, #fff 0%, #fff 70%, #edf9f5 100%);
@@ -27,9 +27,9 @@
 }
 
 .home-welcome-card h1 {
-    margin: 7px 0 5px;
+    margin: 6px 0 4px;
     color: #172033;
-    font-size: 29px;
+    font-size: 27px;
     line-height: 1.2;
 }
 
@@ -37,6 +37,27 @@
     margin: 0;
     color: #64748b;
     font-size: 14px;
+}
+
+.home-welcome-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 10px 14px;
+    border: 1px solid #b9d9ce;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, .78);
+    color: var(--color-primary);
+    font-size: 13px;
+    font-weight: 750;
+    white-space: nowrap;
+    transition: border-color .2s ease, background-color .2s ease, transform .2s ease;
+}
+
+.home-welcome-link:hover {
+    border-color: var(--color-primary);
+    background: #fff;
+    transform: translateX(2px);
 }
 
 .home-panel {
@@ -53,23 +74,24 @@
     align-items: center;
     justify-content: space-between;
     gap: 20px;
-    padding: 20px 22px 17px;
+    padding: 15px 19px 13px;
     border-bottom: 1px solid #eef2f7;
 }
 
-.home-panel-header h2 { margin: 0; color: #172033; font-size: 18px; }
+.home-panel-header h2 { margin: 0; color: #172033; font-size: 17px; }
 .home-panel-header p { margin: 4px 0 0; color: #7a8795; font-size: 12px; }
 .home-panel-header > a { color: var(--color-primary); font-size: 12px; font-weight: 750; }
 
-.home-activity-list { display: grid; }
+.home-activity-list { display: grid; margin: 0; padding: 0; list-style: none; }
+.home-activity-list li { margin: 0; padding: 0; }
 
 .home-activity-item {
     display: grid;
-    grid-template-columns: 38px minmax(0, 1fr) auto 14px;
+    grid-template-columns: 32px minmax(0, 1fr) auto 12px;
     align-items: center;
-    gap: 12px;
-    min-height: 69px;
-    padding: 12px 21px;
+    gap: 11px;
+    min-height: 54px;
+    padding: 8px 18px;
     border-bottom: 1px solid #f0f3f6;
     transition: background-color .15s ease;
 }
@@ -79,18 +101,18 @@
 
 .home-activity-icon {
     display: grid;
-    width: 38px;
-    height: 38px;
+    width: 32px;
+    height: 32px;
     place-items: center;
-    border-radius: 10px;
+    border-radius: 9px;
     background: #edf7f4;
     color: var(--color-primary);
-    font-size: 16px;
+    font-size: 14px;
 }
 .home-activity-icon-order { background: #eef4ff; color: #3566ad; }
 .home-activity-icon-stock { background: #fff5df; color: #a86709; }
 .home-activity-icon-status { background: #f2efff; color: #6b52b5; }
-.home-activity-content { display: grid; gap: 4px; min-width: 0; }
+.home-activity-content { display: grid; gap: 2px; min-width: 0; }
 .home-activity-content strong { overflow: hidden; color: #273348; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
 .home-activity-content small { overflow: hidden; color: #7a8795; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .home-activity-item time { color: #84909d; font-size: 11px; white-space: nowrap; }
@@ -100,7 +122,7 @@
     display: grid;
     justify-items: center;
     gap: 7px;
-    min-height: 220px;
+    min-height: 180px;
     place-content: center;
     padding: 30px;
     color: #7a8795;
@@ -113,9 +135,11 @@
 
 @media (max-width: 760px) {
     .authenticated-home { gap: 16px; }
-    .home-welcome-card { align-items: flex-start; padding: 22px; }
+    .home-welcome-card { align-items: flex-start; padding: 20px; }
     .home-welcome-card h1 { font-size: 25px; }
-    .home-activity-item { grid-template-columns: 36px minmax(0, 1fr) 12px; padding-inline: 15px; }
+    .home-welcome-link { padding: 9px 11px; }
+    .home-welcome-link span { display: none; }
+    .home-activity-item { grid-template-columns: 32px minmax(0, 1fr) 12px; padding-inline: 14px; }
     .home-activity-item time { display: none; }
 }
 
