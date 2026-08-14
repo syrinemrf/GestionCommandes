@@ -397,7 +397,7 @@ $(document).ready(function () {
 
         return line;
     }
-
+    
     function updateLine(line) {
         const option = line.find('.commande-variation option:selected');
         const price = Number(option.data('price')) || 0;

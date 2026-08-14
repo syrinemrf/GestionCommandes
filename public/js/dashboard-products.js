@@ -74,7 +74,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('dashboard-stock-risk-available').textContent = ui.integer.format(stock.stockAvailable);
         document.getElementById('dashboard-stock-risk-forecast').textContent = data ? `${ui.number.format(data.forecastCentral7d)} unités` : 'Non disponible';
         document.getElementById('dashboard-stock-risk-trend').textContent = data?.recentTrend || 'Non disponible';
-        document.getElementById('dashboard-stock-risk-variability').textContent = data?.variability || 'Non disponible';
         const observed = document.getElementById('dashboard-stock-risk-observed');
         const isOut = stock.currentlyOutOfStock || stock.stockAvailable <= 0;
         observed.hidden = !isOut;
