@@ -113,11 +113,12 @@ $(document).ready(function () {
                 data: 'image',
                 orderable: false,
                 searchable: false,
-                render: function (data, type) {
+                render: function (data, type, row) {
                     if (type !== 'display') {
                         return data;
                     }
 
+                    const button = document.createElement('button');
                     const image = document.createElement('img');
 
                     image.src = data
@@ -125,11 +126,16 @@ $(document).ready(function () {
                         : placeholderImage;
                     image.className = 'product-image';
                     image.alt = data
-                        ? 'Image du produit'
+                        ? 'Image de ' + row.libelle
                         : 'Aucune image disponible';
                     image.loading = 'lazy';
+                    button.type = 'button';
+                    button.className = 'product-image-button';
+                    button.title = 'Agrandir l’image';
+                    button.setAttribute('aria-label', 'Agrandir l’image de ' + row.libelle);
+                    button.appendChild(image);
 
-                    return image;
+                    return button;
                 }
             },
 
@@ -263,6 +269,35 @@ $(document).ready(function () {
 
     });
 
+    const productImageModal = $('#product-image-modal');
+    const productImageLarge = $('#product-image-large');
+
+    function closeProductImageModal() {
+        productImageModal.prop('hidden', true);
+        productImageLarge.attr({ src: '', alt: '' });
+        $('body').removeClass('modal-open');
+    }
+
+    $(document).on('click', '.product-image-button', function () {
+        const image = $(this).find('.product-image');
+
+        productImageLarge.attr({
+            src: image.attr('src'),
+            alt: image.attr('alt')
+        });
+        productImageModal.prop('hidden', false);
+        $('body').addClass('modal-open');
+        $('#close-product-image').trigger('focus');
+    });
+
+    $('#close-product-image').on('click', closeProductImageModal);
+
+    productImageModal.on('click', function (event) {
+        if (event.target === this) {
+            closeProductImageModal();
+        }
+    });
+
     const productDetailsModal = $('#product-details-modal');
     const productDetailsContent = $('#product-details-content');
 
@@ -310,6 +345,15 @@ $(document).ready(function () {
     });
 
     $(document).on('keydown', function (event) {
+        if (
+            event.key === 'Escape'
+            && productImageModal.length
+            && !productImageModal.prop('hidden')
+        ) {
+            closeProductImageModal();
+            return;
+        }
+
         if (
             event.key === 'Escape'
             && productDetailsModal.length

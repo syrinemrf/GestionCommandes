@@ -77,6 +77,25 @@ Liste des produits
 </div>
 
 <div
+    id="product-image-modal"
+    class="product-image-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Image du produit"
+    hidden>
+    <div class="product-image-dialog">
+        <button
+            type="button"
+            class="product-image-modal-close"
+            id="close-product-image"
+            aria-label="Fermer l’image">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+        <img id="product-image-large" class="product-image-large" alt="">
+    </div>
+</div>
+
+<div
     id="product-restock-modal"
     class="product-restock-modal"
     role="dialog"
@@ -185,7 +204,7 @@ Liste des produits
 
     <script src="{{ asset('vendor/jquery/jquery-3.7.1.min.js') }}"></script>
     <script src="{{ asset('vendor/datatables/dataTables.min.js') }}"></script>
-    <script src="{{ asset('js/product.js') }}"></script>
+    <script src="{{ asset('js/product.js') }}?v=20260814-1"></script>
 {% endblock %}
 
 {% block stylesheets %}
